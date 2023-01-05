@@ -1,15 +1,29 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+.DS_Store
+terraform-provider-komodor
+bin
+vendor
 
-# Test binary, built with `go test -c`
-*.test
+# Local .terraform directories
+**/.terraform/*
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# .tfstate files
+*.tfstate
+*.tfstate.*
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# Crash log files
+crash.log
+
+# Ignore override files as they are usually used to override resources locally and so
+# are not checked in
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+terraform
+
+.vscode/
+.idea/
