@@ -4,7 +4,7 @@ import "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 func dataSourceKomodorRole() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceKomodorRoleRead,
+		Read: dataSourceKomodorRoleRead, // deprecated field
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -43,7 +43,7 @@ func dataSourceKomodorRoleRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	d.SetId(role.Id)
-	d.Set("name", role.Name)
+	d.Set("name", role.Name) // err not handled?
 	d.Set("created_at", role.CreatedAt)
 	d.Set("updated_at", role.UpdatedAt)
 	d.Set("is_default", role.IsDefault)

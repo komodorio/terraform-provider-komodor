@@ -43,18 +43,18 @@ func Provider() *schema.Provider {
 			"komodor_role":   dataSourceKomodorRole(),
 			"komodor_policy": dataSourceKomodorPolicy(),
 		},
-		ConfigureFunc: configureFunc(),
+		ConfigureFunc: configureFunc(), // deprecated field, unnecessary function call
 	}
 
 	return provider
 }
 
-func configureFunc() func(*schema.ResourceData) (interface{}, error) {
+func configureFunc() func(*schema.ResourceData) (interface{}, error) { // unnecessary nested fn
 	return func(d *schema.ResourceData) (interface{}, error) {
 		apiKey := d.Get("api_key").(string)
 		if apiKey == "" {
 			return nil, fmt.Errorf("[ERROR] api_key must be set, can't continue")
-		}
+		} //diag.FromErr(err) or similar here
 		client := NewClient(apiKey, DefaultEndpoint)
 		return client, nil
 	}

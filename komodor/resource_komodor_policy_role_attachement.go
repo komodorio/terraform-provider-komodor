@@ -77,7 +77,7 @@ func resourcePolicyRoleAttachmentRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	log.Printf("Policies attached to role %s are: %s", roleId, pl)
-	//d.Set("policies", pl)
+	//d.Set("policies", pl) // what's the point of this method without this line?
 
 	return nil
 }

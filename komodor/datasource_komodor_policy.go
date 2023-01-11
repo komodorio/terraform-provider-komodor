@@ -55,7 +55,7 @@ func dataSourceKomodorPolicyRead(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	d.SetId(policy.Id)
-	d.Set("created_at", policy.CreatedAt)
+	d.Set("created_at", policy.CreatedAt) // err not handled intentionally?
 	d.Set("updated_at", policy.UpdatedAt)
 	d.Set("statements", string(jsonStatements))
 

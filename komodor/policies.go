@@ -107,7 +107,7 @@ func (c *Client) DeletePolicy(id string) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.executeHttpRequest(http.MethodDelete, PoliciesUrl, &requestBody)
+	_, err = c.executeHttpRequest(http.MethodDelete, PoliciesUrl, &requestBody) // if post body is always marshaled, also include it into function
 	if err != nil {
 		return err
 	}

@@ -9,6 +9,6 @@ import (
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
 func main() {
-	plugin.Serve(&plugin.ServeOpts{
+	plugin.Serve(&plugin.ServeOpts{ // formatting is slightly off
 		ProviderFunc: komodor.Provider})
 }
