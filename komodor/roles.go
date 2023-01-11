@@ -1,7 +1,6 @@
 package komodor
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -22,12 +21,8 @@ type NewRole struct {
 }
 
 func (c *Client) GetRoles() ([]Role, error) {
-	req, err := http.NewRequest(http.MethodGet, RolesUrl, nil)
-	if err != nil {
-		return nil, err
-	}
+	res, err := c.executeHttpRequest(http.MethodGet, RolesUrl, nil)
 
-	res, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -42,15 +37,27 @@ func (c *Client) GetRoles() ([]Role, error) {
 	return roles, nil
 }
 
-func (c *Client) GetRole(id string) (*Role, error) {
-	var role Role
-
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(RolesUrl+"/%s", id), nil)
+func (c *Client) GetRoleByName(name string) (*Role, error) {
+	allRoles, err := c.GetRoles()
 	if err != nil {
 		return nil, err
 	}
+	var targetRole *Role
+	for _, role := range allRoles {
+		if role.Name == name {
+			targetRole = &role
+			break
+		}
+	}
 
-	res, err := c.doRequest(req)
+	return targetRole, nil
+}
+
+func (c *Client) GetRole(id string) (*Role, error) {
+	var role Role
+
+	res, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(RolesUrl+"/%s", id), nil)
+
 	if err != nil {
 		return nil, err
 	}
@@ -63,30 +70,25 @@ func (c *Client) GetRole(id string) (*Role, error) {
 	return &role, nil
 }
 
-func (c *Client) CreateRole(r *NewRole) (*Role, error) {
-	requestBody, err := json.Marshal(r)
+func (c *Client) CreateRole(role *NewRole) (*Role, error) {
+	requestBody, err := json.Marshal(role)
 
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(http.MethodPost, RolesUrl, bytes.NewBuffer(requestBody))
+	res, err := c.executeHttpRequest(http.MethodPost, RolesUrl, &requestBody)
 
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := c.doRequest(req)
+	var newRole Role
+	err = json.Unmarshal(res, &newRole)
 	if err != nil {
 		return nil, err
 	}
 
-	var role Role
-	err = json.Unmarshal(res, &role)
-	if err != nil {
-		return nil, err
-	}
-
-	return &role, nil
+	return &newRole, nil
 }
 
 func (c *Client) DeleteRole(id string) error {
@@ -94,12 +96,8 @@ func (c *Client) DeleteRole(id string) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest(http.MethodDelete, RolesUrl, bytes.NewBuffer(requestBody))
-	if err != nil {
-		return err
-	}
 
-	_, err = c.doRequest(req)
+	_, err = c.executeHttpRequest(http.MethodDelete, RolesUrl, &requestBody)
 	if err != nil {
 		return err
 	}

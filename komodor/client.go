@@ -1,6 +1,7 @@
 package komodor
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,16 +25,15 @@ func NewClient(apiKey string, base string) *Client {
 	}
 }
 
-// func (c *Client) newRequest(path string) (*http.Request, error) {
-// 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", c.Base, path), nil)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return req, nil
-// }
-
-func (c *Client) doRequest(req *http.Request) ([]byte, error) {
+func (c *Client) executeHttpRequest(method string, url string, body *[]byte) ([]byte, error) {
+	var reader io.Reader
+	if body != nil {
+		reader = bytes.NewReader(*body)
+	}
+	req, err := http.NewRequest(method, url, reader)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("x-api-key", c.ApiKey)
 	req.Header.Set("Content-Type", "application/json")
 	res, err := c.HttpClient.Do(req)
@@ -41,13 +41,13 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
+	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
 	if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated || res.StatusCode == http.StatusNoContent {
-		return body, err
+		return resBody, nil
 	} else {
-		return nil, fmt.Errorf("status: %d, body: %s", res.StatusCode, body)
+		return nil, fmt.Errorf("status: %d, body: %s", res.StatusCode, resBody)
 	}
 }

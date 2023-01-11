@@ -69,8 +69,13 @@ func resourceKomodorRoleRead(ctx context.Context, d *schema.ResourceData, meta i
 
 	role, err := client.GetRole(id)
 	if err != nil {
-		d.SetId("")
-		return nil
+		statusCode := GetStatusCodeFromErrorMessage(err)
+		if statusCode == "404" {
+			log.Printf("[DEBUG] Role (%s) was not found - removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
+		return diag.Errorf("Error reading Role: %s", err)
 	}
 
 	d.Set("name", role.Name)

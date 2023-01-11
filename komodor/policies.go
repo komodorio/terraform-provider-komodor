@@ -1,7 +1,6 @@
 package komodor
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -33,12 +32,8 @@ type NewPolicy struct {
 }
 
 func (c *Client) GetPolicies() ([]Policy, error) {
-	req, err := http.NewRequest(http.MethodGet, PoliciesUrl, nil)
-	if err != nil {
-		return nil, err
-	}
+	res, err := c.executeHttpRequest(http.MethodGet, PoliciesUrl, nil)
 
-	res, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -56,12 +51,8 @@ func (c *Client) GetPolicies() ([]Policy, error) {
 func (c *Client) GetPolicy(id string) (*Policy, error) {
 	var policy Policy
 
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(PoliciesUrl+"/%s", id), nil)
-	if err != nil {
-		return nil, err
-	}
+	res, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(PoliciesUrl+"/%s", id), nil)
 
-	res, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -74,19 +65,30 @@ func (c *Client) GetPolicy(id string) (*Policy, error) {
 	return &policy, nil
 }
 
+func (c *Client) GetPolicyByName(name string) (*Policy, error) {
+	allPolicies, err := c.GetPolicies()
+	if err != nil {
+		return nil, err
+	}
+	var targetPolicy *Policy
+	for _, policy := range allPolicies {
+		if policy.Name == name {
+			targetPolicy = &policy
+			break
+		}
+	}
+
+	return targetPolicy, nil
+}
+
 func (c *Client) CreatePolicy(p *NewPolicy) (*Policy, error) {
-	j, err := json.Marshal(p)
+	jsonPolicy, err := json.Marshal(p)
 
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(http.MethodPost, PoliciesUrl, bytes.NewBuffer(j))
+	res, err := c.executeHttpRequest(http.MethodPost, PoliciesUrl, &jsonPolicy)
 
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -105,15 +107,9 @@ func (c *Client) DeletePolicy(id string) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest(http.MethodDelete, PoliciesUrl, bytes.NewBuffer(requestBody))
+	_, err = c.executeHttpRequest(http.MethodDelete, PoliciesUrl, &requestBody)
 	if err != nil {
 		return err
 	}
-
-	_, err = c.doRequest(req)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }

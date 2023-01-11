@@ -19,44 +19,8 @@ func resourceKomodorPolicy() *schema.Resource {
 				ValidateFunc: validation.NoZeroValues,
 			},
 			"statements": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.NoZeroValues,
-				// ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
-				// 	v := val.(string)
-				// 	if v != "" {
-				// 		statements := make(map[string]interface{})
-				// 		err := json.Unmarshal([]byte(v), &statements)
-				// 		if err != nil {
-				// 			errs = append(errs, fmt.Errorf("statements attribute is invalid JSON: %v", err))
-				// 		}
-				// 	}
-				// 	return warns, errs
-				// },
-				// Elem: &schema.Resource{
-				// 	Schema: map[string]*schema.Schema{
-				// 		"actions": {
-				// 			Type:     schema.TypeString,
-				// 			Required: true,
-				// 		},
-				// 		"resources": {
-				// 			Type:     schema.TypeString,
-				// 			Required: true,
-				// 			Elem: &schema.Resource{
-				// 				Schema: map[string]*schema.Schema{
-				// 					"cluster": {
-				// 						Type:     schema.TypeString,
-				// 						Required: true,
-				// 					},
-				// 					"namespace": {
-				// 						Type:     schema.TypeString,
-				// 						Optional: true,
-				// 					},
-				// 				},
-				// 			},
-				// 		},
-				// 	},
-				// },
+				Type:     schema.TypeString,
+				Required: true,
 			},
 			"id": {
 				Type:     schema.TypeString,
@@ -82,6 +46,7 @@ func resourceKomodorPolicy() *schema.Resource {
 func resourceKomodorPolicyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 	name := d.Get("name").(string)
+
 	statementsJson := d.Get("statements")
 
 	var statements []Statement
@@ -111,8 +76,13 @@ func resourceKomodorPolicyRead(ctx context.Context, d *schema.ResourceData, meta
 
 	policy, err := client.GetPolicy(id)
 	if err != nil {
-		d.SetId("")
-		return nil
+		statusCode := GetStatusCodeFromErrorMessage(err)
+		if statusCode == "404" {
+			log.Printf("[DEBUG] Policy (%s) was not found - removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
+		return diag.Errorf("Error reading Policy: %s", err)
 	}
 
 	d.Set("name", policy.Name)
@@ -149,7 +119,6 @@ func resourceKomodorPolicyDelete(ctx context.Context, d *schema.ResourceData, me
 		return diag.Errorf("Error deleting policy: %s", err)
 	}
 
-	log.Printf("[INFO] Policy deleted successfully")
 	d.SetId("")
 	return nil
 }

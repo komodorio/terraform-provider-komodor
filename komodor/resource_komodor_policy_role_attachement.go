@@ -61,7 +61,13 @@ func resourcePolicyRoleAttachmentRead(ctx context.Context, d *schema.ResourceDat
 
 	rolePolicyObject, err := client.GetRolePoliciesObject(roleId)
 	if err != nil {
-		diag.Errorf("Error retrieving role-policy object: %s", err)
+		statusCode := GetStatusCodeFromErrorMessage(err)
+		if statusCode == "404" {
+			log.Printf("[DEBUG] Role-Policy object (%s) was not found - removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
+		return diag.Errorf("Error reading Role-Policy object: %s", err)
 	}
 
 	pl := make([]string, 0)

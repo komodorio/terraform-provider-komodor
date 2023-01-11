@@ -36,11 +36,13 @@ func Provider() *schema.Provider {
 			"komodor_policy":                 resourceKomodorPolicy(),
 			"komodor_role":                   resourceKomodorRole(),
 			"komodor_policy_role_attachment": resourcePolicyRoleAttachment(),
+			"komodor_monitor":                resourceKomodorMonitor(),
 		},
 
-		// DataSourcesMap: map[string]*schema.Resource{
-		// 	"komodor_role": dataSourceKomodorRole(),
-		// },
+		DataSourcesMap: map[string]*schema.Resource{
+			"komodor_role":   dataSourceKomodorRole(),
+			"komodor_policy": dataSourceKomodorPolicy(),
+		},
 		ConfigureFunc: configureFunc(),
 	}
 

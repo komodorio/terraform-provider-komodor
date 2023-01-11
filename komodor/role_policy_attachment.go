@@ -1,7 +1,6 @@
 package komodor
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,23 +13,13 @@ type RolePolicy struct {
 	PolicyId string `json:"policyId"`
 }
 
-type RolePolicies struct {
-	RolePolicy []RolePolicy
-}
-
 func (c *Client) AttachPolicy(policyId string, roleId string) error {
 	rolePolicyObject := RolePolicy{RoleId: roleId, PolicyId: policyId}
 	requestBody, err := json.Marshal(rolePolicyObject)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest(http.MethodPost, PolicyRoleAttachmentUrl, bytes.NewBuffer(requestBody))
-
-	if err != nil {
-		return err
-	}
-
-	_, err = c.doRequest(req)
+	_, err = c.executeHttpRequest(http.MethodPost, PolicyRoleAttachmentUrl, &requestBody)
 	if err != nil {
 		return err
 	}
@@ -39,24 +28,19 @@ func (c *Client) AttachPolicy(policyId string, roleId string) error {
 }
 
 func (c *Client) GetRolePoliciesObject(roleId string) ([]RolePolicy, error) {
-	var rolePolicyObject RolePolicies
+	var rolePolicies []RolePolicy
 
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(DefaultEndpoint+"/rbac/roles/%s/policies", roleId), nil)
+	res, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(DefaultEndpoint+"/rbac/roles/%s/policies", roleId), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := c.doRequest(req)
+	err = json.Unmarshal([]byte(res), &rolePolicies)
 	if err != nil {
 		return nil, err
 	}
 
-	err = json.Unmarshal(res, &rolePolicyObject)
-	if err != nil {
-		return nil, err
-	}
-
-	return rolePolicyObject.RolePolicy, nil
+	return rolePolicies, nil
 }
 
 func (c *Client) DetachPolicy(policyId string, roleId string) error {
@@ -65,13 +49,7 @@ func (c *Client) DetachPolicy(policyId string, roleId string) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest(http.MethodDelete, PolicyRoleAttachmentUrl, bytes.NewBuffer(requestBody))
-
-	if err != nil {
-		return err
-	}
-
-	_, err = c.doRequest(req)
+	_, err = c.executeHttpRequest(http.MethodDelete, PolicyRoleAttachmentUrl, &requestBody)
 	if err != nil {
 		return err
 	}
