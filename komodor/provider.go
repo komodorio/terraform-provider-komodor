@@ -55,7 +55,7 @@ func configureFunc() func(*schema.ResourceData) (interface{}, error) {
 		if apiKey == "" {
 			return nil, fmt.Errorf("[ERROR] api_key must be set, can't continue")
 		}
-		client := NewClient(apiKey, DefaultEndpoint)
+		client := NewClient(apiKey)
 		return client, nil
 	}
 }

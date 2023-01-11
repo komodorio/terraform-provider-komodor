@@ -10,18 +10,16 @@ import (
 type Client struct {
 	HttpClient *http.Client
 	ApiKey     string
-	Base       string
 }
 
 type ApiKeyResponse struct {
 	Valid bool `json:"valid"`
 }
 
-func NewClient(apiKey string, base string) *Client {
+func NewClient(apiKey string) *Client {
 	return &Client{
 		HttpClient: http.DefaultClient,
 		ApiKey:     apiKey,
-		Base:       base,
 	}
 }
 
