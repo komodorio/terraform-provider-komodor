@@ -1,10 +1,15 @@
 package komodor
 
-import "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
 
 func dataSourceKomodorRole() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceKomodorRoleRead, // deprecated field
+		ReadContext: dataSourceKomodorRoleRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -35,18 +40,26 @@ func dataSourceKomodorRole() *schema.Resource {
 	}
 }
 
-func dataSourceKomodorRoleRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceKomodorRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 	name := d.Get("name").(string)
 	role, err := client.GetRoleByName(name)
 	if err != nil {
-		return err
+		return diag.Errorf("Could not get role by name %s", name)
 	}
 	d.SetId(role.Id)
-	d.Set("name", role.Name) // err not handled?
-	d.Set("created_at", role.CreatedAt)
-	d.Set("updated_at", role.UpdatedAt)
-	d.Set("is_default", role.IsDefault)
+	if err := d.Set("name", role.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("created_at", role.CreatedAt); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("updated_at", role.UpdatedAt); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("is_default", role.IsDefault); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

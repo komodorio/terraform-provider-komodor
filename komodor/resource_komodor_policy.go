@@ -76,8 +76,7 @@ func resourceKomodorPolicyRead(ctx context.Context, d *schema.ResourceData, meta
 
 	policy, err := client.GetPolicy(id)
 	if err != nil {
-		statusCode := GetStatusCodeFromErrorMessage(err)
-		if statusCode == "404" {
+		if err.Error() == "404" {
 			log.Printf("[DEBUG] Policy (%s) was not found - removing from state", d.Id())
 			d.SetId("")
 			return nil
@@ -97,17 +96,12 @@ func resourceKomodorPolicyUpdate(ctx context.Context, d *schema.ResourceData, me
 	client := meta.(*Client)
 	id := d.Id()
 
-	if d.HasChange("name") {
-		return resourceKomodorPolicyCreate(ctx, d, meta)
-	} else if d.HasChange("statements") {
-		//client.updatePolicy() // not yet implemented in rest api
-		if err := client.DeletePolicy(id); err != nil { //Deleting and recreating because can't update policy in place through api
-			return diag.FromErr(err)
-		}
-		d.SetId("")
-		return resourceKomodorPolicyCreate(ctx, d, meta)
+	//client.updatePolicy() // not yet implemented in rest api
+	if err := client.DeletePolicy(id); err != nil { //Deleting and recreating because can't update policy in place through api
+		return diag.FromErr(err)
 	}
-	return nil
+	d.SetId("")
+	return resourceKomodorPolicyCreate(ctx, d, meta)
 }
 
 func resourceKomodorPolicyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

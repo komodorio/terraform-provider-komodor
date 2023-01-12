@@ -61,8 +61,7 @@ func resourcePolicyRoleAttachmentRead(ctx context.Context, d *schema.ResourceDat
 
 	rolePolicyObject, err := client.GetRolePoliciesObject(roleId)
 	if err != nil {
-		statusCode := GetStatusCodeFromErrorMessage(err)
-		if statusCode == "404" {
+		if err.Error() == "404" {
 			log.Printf("[DEBUG] Role-Policy object (%s) was not found - removing from state", d.Id())
 			d.SetId("")
 			return nil
@@ -77,7 +76,7 @@ func resourcePolicyRoleAttachmentRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	log.Printf("Policies attached to role %s are: %s", roleId, pl)
-	//d.Set("policies", pl) // what's the point of this method without this line?
+	d.Set("policies", pl)
 
 	return nil
 }

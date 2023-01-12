@@ -100,8 +100,7 @@ func resourceKomodorMonitorRead(ctx context.Context, d *schema.ResourceData, met
 
 	monitor, err := client.GetMonitor(id)
 	if err != nil {
-		statusCode := GetStatusCodeFromErrorMessage(err)
-		if statusCode == "404" {
+		if err.Error() == "404" {
 			log.Printf("[DEBUG] Monitor (%s) was not found - removing from state", d.Id())
 			d.SetId("")
 			return nil

@@ -10,18 +10,16 @@ import (
 type Client struct {
 	HttpClient *http.Client
 	ApiKey     string
-	Base       string
 }
 
 type ApiKeyResponse struct {
 	Valid bool `json:"valid"`
 }
 
-func NewClient(apiKey string, base string) *Client {
+func NewClient(apiKey string) *Client {
 	return &Client{
 		HttpClient: http.DefaultClient,
 		ApiKey:     apiKey,
-		Base:       base,
 	}
 }
 
@@ -48,6 +46,6 @@ func (c *Client) executeHttpRequest(method string, url string, body *[]byte) ([]
 	if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated || res.StatusCode == http.StatusNoContent {
 		return resBody, nil
 	} else {
-		return nil, fmt.Errorf("status: %d, body: %s", res.StatusCode, resBody)
+		return nil, fmt.Errorf("%d", res.StatusCode)
 	}
 }
