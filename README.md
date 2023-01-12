@@ -8,12 +8,45 @@
 - [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
 - Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
 
-## Requirements
+## Installation
+
+Add the following to your terraform configuration
+
+```tf
+terraform {
+  required_providers {
+    komodor = {
+      source  = "komodorio/komodor"
+      version = "~> 1.0.0"
+    }
+  }
+}
+```
+
+## How to use
+
+First, you need a [Komodor](https://komodor.com/) account.
+
+Once you have the account, you should create an API key. Go to the **API Keys** tab in the [User Settings Page](https://app.komodor.com/settings/api-keys). Click on **Generate Key** button and generate the key.
+
+Configure the terraform provider like so
+
+```tf
+variable "komodor_api_key" {
+  type = string
+}
+
+provider "komodor" {
+  api_key = var.komodor_api_key
+}
+```
+
+## Developing The Provider
+
+### Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 0.13.x
 - [Go](https://golang.org/doc/install) >= 1.18
-
-## Developing The Provider
 
 If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.18+ is _required_). You'll also need to correctly setup a [GOPATH](http://golang.org/doc/code.html#GOPATH), as well as adding `$GOPATH/bin` to your `$PATH`.
 
@@ -33,20 +66,4 @@ cd $GOPATH/src/github.com/komodor/terraform-provider-komodor
 make tools
 make build
 $GOPATH/bin/terraform-provider-komodor
-```
-
-## Testing the Provider
-
-In order to test the provider, you can simply run `make test`.
-
-```sh
-$ make test
-```
-
-In order to run the full suite of Acceptance tests, run `make testacc`.
-
-_Note:_ Acceptance tests create real resources, and often cost money to run.
-
-```sh
-$ make testacc
 ```
