@@ -1,9 +1,10 @@
 package komodor
 
 import (
-	"fmt"
+	"context"
 	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -43,19 +44,17 @@ func Provider() *schema.Provider {
 			"komodor_role":   dataSourceKomodorRole(),
 			"komodor_policy": dataSourceKomodorPolicy(),
 		},
-		ConfigureFunc: configureFunc(),
+		ConfigureContextFunc: providerConfigure,
 	}
 
 	return provider
 }
 
-func configureFunc() func(*schema.ResourceData) (interface{}, error) {
-	return func(d *schema.ResourceData) (interface{}, error) {
-		apiKey := d.Get("api_key").(string)
-		if apiKey == "" {
-			return nil, fmt.Errorf("[ERROR] api_key must be set, can't continue")
-		}
-		client := NewClient(apiKey)
-		return client, nil
+func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+	apiKey := d.Get("api_key").(string)
+	if apiKey == "" {
+		return nil, diag.Errorf("[ERROR] api_key must be set, can't continue")
 	}
+	client := NewClient(apiKey)
+	return client, nil
 }

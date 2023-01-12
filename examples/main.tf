@@ -41,3 +41,7 @@ resource "komodor_policy_role_attachment" "my-attachement" {
   policies = [komodor_policy.my-policy.id]
   role     = komodor_role.my-role.id
 }
+
+data "komodor_policy" "my-policy" {
+  name = "default-read-only"
+}
