@@ -89,7 +89,7 @@ func resourceKomodorMonitorCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	d.SetId(monitor.Id)
-	log.Printf("[INFO] Monitor created successfully. Monitor Id: %s", monitor.Id)
+	log.Printf("[INFO] Monitor created successfully. Monitor Id: %s", monitor.Id) // instead of using custom log severities, switch into logrus and use corresponding methods
 
 	return resourceKomodorMonitorRead(ctx, d, meta)
 }

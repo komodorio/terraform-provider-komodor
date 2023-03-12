@@ -41,7 +41,7 @@ type Monitor struct {
 }
 
 func (c *Client) GetMonitors() ([]Monitor, error) {
-	res, err := c.executeHttpRequest(http.MethodGet, MonitorsUrl, nil)
+	res, err := c.executeHttpRequest(http.MethodGet, MonitorsUrl, nil) // if you always unmarshal the result, why not include that into method of client?
 	if err != nil {
 		return nil, err
 	}
