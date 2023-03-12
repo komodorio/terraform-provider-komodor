@@ -8,6 +8,11 @@
 - [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
 - Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
 
+## Requirements
+
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.3.x
+- [Go](https://golang.org/doc/install) >= 1.18 ((to build the provider plugin)
+
 ## Installation
 
 Add the following to your terraform configuration
@@ -41,12 +46,9 @@ provider "komodor" {
 }
 ```
 
+To see examples of how to use this provider, check out the `examples` directory in the source code [here](/examples).
+
 ## Developing The Provider
-
-### Requirements
-
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.3.x
-- [Go](https://golang.org/doc/install) >= 1.18
 
 If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.18+ is _required_). You'll also need to correctly setup a [GOPATH](http://golang.org/doc/code.html#GOPATH), as well as adding `$GOPATH/bin` to your `$PATH`.
 
