@@ -15,15 +15,23 @@ type Sensor struct {
 	Include    map[string]interface{} `json:"include"`
 }
 
+type Sink struct {
+	Slack     []string `json:"slack,omitempty"`
+	Teams     []string `json:"teams,omitempty"`
+	Opsgenie  []string `json:"opsgenie,omitempty"`
+	Pagerduty []string `json:"pagerduty,omitempty"`
+	Webhook   []string `json:"webhook,omitempty"`
+}
+
 type NewMonitor struct {
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	Active      bool                   `json:"active"`
-	Sensors     []Sensor               `json:"sensors"`
-	Variables   map[string]interface{} `json:"variables"`
-	Sinks       map[string]interface{} `json:"sinks"`
-	SinkOptions map[string]interface{} `json:"sinkOptions"`
-	IsDeleted   bool                   `json:"isDeleted"`
+	Name        string                   `json:"name"`
+	Type        string                   `json:"type"`
+	Active      bool                     `json:"active"`
+	Sensors     []Sensor                 `json:"sensors"`
+	Variables   map[string]interface{}   `json:"variables"`
+	Sinks       []Sink                   `json:"sinks"`
+	SinkOptions map[string][]interface{} `json:"sinkOptions,omitempty"`
+	IsDeleted   bool                     `json:"isDeleted"`
 }
 
 type Monitor struct {

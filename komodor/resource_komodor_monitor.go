@@ -78,8 +78,8 @@ func resourceKomodorMonitorCreate(ctx context.Context, d *schema.ResourceData, m
 		Active:      d.Get("active").(bool),
 		Sensors:     sensors,
 		Variables:   d.Get("variables").(map[string]interface{}),
-		Sinks:       d.Get("sinks").(map[string]interface{}),
-		SinkOptions: d.Get("sinks_options").(map[string]interface{}),
+		Sinks:       d.Get("sinks").([]Sink),
+		SinkOptions: d.Get("sinks_options").(map[string][]interface{}),
 		IsDeleted:   d.Get("is_deleted").(bool),
 	}
 
@@ -139,8 +139,8 @@ func resourceKomodorMonitorUpdate(ctx context.Context, d *schema.ResourceData, m
 		Active:      d.Get("active").(bool),
 		Sensors:     sensors,
 		Variables:   d.Get("variables").(map[string]interface{}),
-		Sinks:       d.Get("sinks").(map[string]interface{}),
-		SinkOptions: d.Get("sinks_options").(map[string]interface{}),
+		Sinks:       d.Get("sinks").([]Sink),
+		SinkOptions: d.Get("sinks_options").(map[string][]interface{}),
 		IsDeleted:   d.Get("is_deleted").(bool),
 	}
 
