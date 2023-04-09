@@ -3,6 +3,7 @@ package komodor
 import (
 	"context"
 	"encoding/json"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -38,12 +39,12 @@ func resourceKomodorMonitor() *schema.Resource {
 				Optional: true,
 			},
 			"sinks": {
-				Type:     schema.TypeMap,
+				Type:     schema.TypeString,
 				Elem:     schema.TypeString,
 				Optional: true,
 			},
 			"sinks_options": {
-				Type:     schema.TypeMap,
+				Type:     schema.TypeString,
 				Elem:     schema.TypeString,
 				Optional: true,
 			},
@@ -66,20 +67,32 @@ func resourceKomodorMonitor() *schema.Resource {
 func resourceKomodorMonitorCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 	sensorsJson := d.Get("sensors")
+	sinksJson := d.Get("sinks")
+	sinksOptionsJson := d.Get("sinks_options")
+	tflog.Info(ctx, "this is the sinks", map[string]interface{}{"sinksOptions": sinksOptionsJson})
 
 	var sensors []Sensor
 	if err := json.Unmarshal([]byte(sensorsJson.(string)), &sensors); err != nil {
 		return diag.Errorf("Error creating sensor statement structure: %s", err)
 	}
 
+	var sinks Sinks
+	if err := json.Unmarshal([]byte(sinksJson.(string)), &sinks); err != nil {
+		return diag.Errorf("Error creating sensor statement structure: %s", err)
+	}
+
+	var sinksOptions SinkOptions
+	if err := json.Unmarshal([]byte(sinksOptionsJson.(string)), &sinksOptions); err != nil {
+		return diag.Errorf("Error creating sensor statement structure: %s", err)
+	}
 	newMonitor := &NewMonitor{
 		Name:        d.Get("name").(string),
 		Type:        d.Get("type").(string),
 		Active:      d.Get("active").(bool),
 		Sensors:     sensors,
 		Variables:   d.Get("variables").(map[string]interface{}),
-		Sinks:       d.Get("sinks").(map[string]interface{}),
-		SinkOptions: d.Get("sinks_options").(map[string]interface{}),
+		Sinks:       sinks,
+		SinkOptions: sinksOptions,
 		IsDeleted:   d.Get("is_deleted").(bool),
 	}
 
@@ -127,9 +140,21 @@ func resourceKomodorMonitorUpdate(ctx context.Context, d *schema.ResourceData, m
 	id := d.Id()
 
 	sensorsJson := d.Get("sensors")
+	sinksJson := d.Get("sinks")
+	sinksOptionsJson := d.Get("sinks_options")
 
 	var sensors []Sensor
 	if err := json.Unmarshal([]byte(sensorsJson.(string)), &sensors); err != nil {
+		return diag.Errorf("Error creating sensor statement structure: %s", err)
+	}
+
+	var sinks Sinks
+	if err := json.Unmarshal([]byte(sinksJson.(string)), &sensors); err != nil {
+		return diag.Errorf("Error creating sensor statement structure: %s", err)
+	}
+
+	var sinksOptions SinkOptions
+	if err := json.Unmarshal([]byte(sinksOptionsJson.(string)), &sinksOptions); err != nil {
 		return diag.Errorf("Error creating sensor statement structure: %s", err)
 	}
 
@@ -139,8 +164,8 @@ func resourceKomodorMonitorUpdate(ctx context.Context, d *schema.ResourceData, m
 		Active:      d.Get("active").(bool),
 		Sensors:     sensors,
 		Variables:   d.Get("variables").(map[string]interface{}),
-		Sinks:       d.Get("sinks").(map[string]interface{}),
-		SinkOptions: d.Get("sinks_options").(map[string]interface{}),
+		Sinks:       sinks,
+		SinkOptions: sinksOptions,
 		IsDeleted:   d.Get("is_deleted").(bool),
 	}
 

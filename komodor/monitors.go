@@ -15,14 +15,26 @@ type Sensor struct {
 	Include    map[string]interface{} `json:"include"`
 }
 
+type Sinks struct {
+	Slack    []string `json:"slack"`
+	Teams    []string `json:"teams"`
+	Opsgenie []string `json:"opsgenie"`
+	//Pagerduty map[string]interface{} `json:"pagerduty"` // TODO: what is the type
+	//Webhook   map[string]interface{} `json:"webhook"`   // TODO: what is the type
+}
+
+type SinkOptions struct {
+	ShouldSend bool     `json:"shouldSend"`
+	NotifyOn   []string `json:"notifyOn"`
+}
 type NewMonitor struct {
 	Name        string                 `json:"name"`
 	Type        string                 `json:"type"`
 	Active      bool                   `json:"active"`
 	Sensors     []Sensor               `json:"sensors"`
 	Variables   map[string]interface{} `json:"variables"`
-	Sinks       map[string]interface{} `json:"sinks"`
-	SinkOptions map[string]interface{} `json:"sinkOptions"`
+	Sinks       Sinks                  `json:"sinks"`
+	SinkOptions SinkOptions            `json:"sinkOptions"`
 	IsDeleted   bool                   `json:"isDeleted"`
 }
 
@@ -33,7 +45,7 @@ type Monitor struct {
 	Active      bool                   `json:"active"`
 	Sensors     []Sensor               `json:"sensors"`
 	Variables   map[string]interface{} `json:"variables"`
-	Sinks       map[string]interface{} `json:"sinks"`
+	Sinks       Sinks                  `json:"sinks"`
 	SinkOptions map[string]interface{} `json:"sinkOptions"`
 	CreatedAt   string                 `json:"createdAt"`
 	UpdatedAt   string                 `json:"ureatedAt"`
