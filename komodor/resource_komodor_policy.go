@@ -96,12 +96,26 @@ func resourceKomodorPolicyUpdate(ctx context.Context, d *schema.ResourceData, me
 	client := meta.(*Client)
 	id := d.Id()
 
-	//client.updatePolicy() // not yet implemented in rest api
-	if err := client.DeletePolicy(id); err != nil { //Deleting and recreating because can't update policy in place through api
-		return diag.FromErr(err)
+	statementsJson := d.Get("statements")
+
+	var statements []Statement
+	if err := json.Unmarshal([]byte(statementsJson.(string)), &statements); err != nil {
+		return diag.Errorf("Error creating statement structure: %s", err)
 	}
-	d.SetId("")
-	return resourceKomodorPolicyCreate(ctx, d, meta)
+
+	newPolicy := &NewPolicy{
+		Name:       d.Get("name").(string),
+		Statements: statements,
+	}
+
+	_, err := client.UpdatePolicy(id, newPolicy)
+
+	if err != nil {
+		return diag.Errorf("Error updating policy: %s", err)
+	}
+
+	log.Printf("[INFO] Policy %s successfully updated", id)
+	return resourceKomodorPolicyRead(ctx, d, meta)
 }
 
 func resourceKomodorPolicyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

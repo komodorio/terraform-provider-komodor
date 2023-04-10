@@ -113,3 +113,21 @@ func (c *Client) DeletePolicy(id string) error {
 	}
 	return nil
 }
+
+func (c *Client) UpdatePolicy(id string, p *NewPolicy) (*Policy, error) {
+	jsonPolicy, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(PoliciesUrl+"/%s", id), &jsonPolicy)
+	if err != nil {
+		return nil, err
+	}
+	var policy Policy
+	err = json.Unmarshal(res, &policy)
+	if err != nil {
+		return nil, err
+	}
+
+	return &policy, nil
+}
