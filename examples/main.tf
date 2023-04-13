@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     komodor = {
-      version = "1.0.3"
+      version = "1.0.4"
       source  = "komodorio/komodor"
     }
   }

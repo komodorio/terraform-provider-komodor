@@ -13,6 +13,8 @@ type (
 		Namespaces  []string `json:"namespaces,omitempty"`
 		Annotations []string `json:"annotations,omitempty"`
 		Labels      []string `json:"labels,omitempty"`
+		Services    []string `json:"services,omitempty"`
+		Condition   string   `json:"condition,omitempty"`
 	}
 	Sensor struct {
 		Cluster string `json:"cluster"`
