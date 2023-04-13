@@ -77,17 +77,6 @@ EOF
   "notifyOn": ["Failure"]
 }
 EOF 
-  variables     = <<EOF
-{
-  "reasons": [
-    "NonZeroExitCode",
-    "Unhealthy",
-    "OOMKilled"
-  ],
-  "duration": 30,
-  "minAvailable": "100%"
-}
-EOF 
 }
 
 data "komodor_policy" "my-policy" {
