@@ -3,7 +3,6 @@ package komodor
 import (
 	"context"
 	"encoding/json"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -67,33 +66,41 @@ func resourceKomodorMonitor() *schema.Resource {
 func resourceKomodorMonitorCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 	sensorsJson := d.Get("sensors")
-	sinksJson := d.Get("sinks")
-	sinksOptionsJson := d.Get("sinks_options")
-	tflog.Info(ctx, "this is the sinks", map[string]interface{}{"sinksOptions": sinksOptionsJson})
-
 	var sensors []Sensor
 	if err := json.Unmarshal([]byte(sensorsJson.(string)), &sensors); err != nil {
 		return diag.Errorf("Error creating sensor statement structure: %s", err)
 	}
 
-	var sinks Sinks
-	if err := json.Unmarshal([]byte(sinksJson.(string)), &sinks); err != nil {
-		return diag.Errorf("Error creating sensor statement structure: %s", err)
+	newMonitor := &NewMonitor{
+		Name:      d.Get("name").(string),
+		Type:      d.Get("type").(string),
+		Active:    d.Get("active").(bool),
+		Sensors:   sensors,
+		IsDeleted: d.Get("is_deleted").(bool),
 	}
 
-	var sinksOptions SinkOptions
-	if err := json.Unmarshal([]byte(sinksOptionsJson.(string)), &sinksOptions); err != nil {
-		return diag.Errorf("Error creating sensor statement structure: %s", err)
+	if variablesJson, variablesJsonExists := d.GetOk("variables"); variablesJsonExists {
+		var variables ModelWorkflowConfigurationVariables
+		if err := json.Unmarshal([]byte(variablesJson.(string)), &variables); err != nil {
+			return diag.Errorf("Error creating variables statement structure: %s", err)
+		}
+		newMonitor.Variables = variables
 	}
-	newMonitor := &NewMonitor{
-		Name:        d.Get("name").(string),
-		Type:        d.Get("type").(string),
-		Active:      d.Get("active").(bool),
-		Sensors:     sensors,
-		Variables:   d.Get("variables").(map[string]interface{}),
-		Sinks:       sinks,
-		SinkOptions: sinksOptions,
-		IsDeleted:   d.Get("is_deleted").(bool),
+
+	if sinksJson, sinksJsonExists := d.GetOk("sinks"); sinksJsonExists {
+		var sinks Sinks
+		if err := json.Unmarshal([]byte(sinksJson.(string)), &sinks); err != nil {
+			return diag.Errorf("Error creating sinks statement structure: %s, %s", err, sinksJson)
+		}
+		newMonitor.Sinks = sinks
+	}
+
+	if sinksOptionsJson, sinksOptionsJsonExists := d.GetOk("sinks_options"); sinksOptionsJsonExists {
+		var sinksOptions SinkOptions
+		if err := json.Unmarshal([]byte(sinksOptionsJson.(string)), &sinksOptions); err != nil {
+			return diag.Errorf("Error creating sinks options statement structure: %s", err)
+		}
+		newMonitor.SinkOptions = sinksOptions
 	}
 
 	monitor, err := client.CreateMonitor(newMonitor)
@@ -140,37 +147,43 @@ func resourceKomodorMonitorUpdate(ctx context.Context, d *schema.ResourceData, m
 	id := d.Id()
 
 	sensorsJson := d.Get("sensors")
-	sinksJson := d.Get("sinks")
-	sinksOptionsJson := d.Get("sinks_options")
-
 	var sensors []Sensor
 	if err := json.Unmarshal([]byte(sensorsJson.(string)), &sensors); err != nil {
 		return diag.Errorf("Error creating sensor statement structure: %s", err)
 	}
 
-	var sinks Sinks
-	if err := json.Unmarshal([]byte(sinksJson.(string)), &sensors); err != nil {
-		return diag.Errorf("Error creating sensor statement structure: %s", err)
-	}
-
-	var sinksOptions SinkOptions
-	if err := json.Unmarshal([]byte(sinksOptionsJson.(string)), &sinksOptions); err != nil {
-		return diag.Errorf("Error creating sensor statement structure: %s", err)
-	}
-
 	newMonitor := &NewMonitor{
-		Name:        d.Get("name").(string),
-		Type:        d.Get("type").(string),
-		Active:      d.Get("active").(bool),
-		Sensors:     sensors,
-		Variables:   d.Get("variables").(map[string]interface{}),
-		Sinks:       sinks,
-		SinkOptions: sinksOptions,
-		IsDeleted:   d.Get("is_deleted").(bool),
+		Name:      d.Get("name").(string),
+		Type:      d.Get("type").(string),
+		Active:    d.Get("active").(bool),
+		Sensors:   sensors,
+		IsDeleted: d.Get("is_deleted").(bool),
+	}
+	if variablesJson, variablesJsonExists := d.GetOk("variables"); variablesJsonExists {
+		var variables ModelWorkflowConfigurationVariables
+		if err := json.Unmarshal([]byte(variablesJson.(string)), &variables); err != nil {
+			return diag.Errorf("Error creating variables statement structure: %s", err)
+		}
+		newMonitor.Variables = variables
+	}
+
+	if sinksJson, sinksJsonExists := d.GetOk("sinks"); sinksJsonExists {
+		var sinks Sinks
+		if err := json.Unmarshal([]byte(sinksJson.(string)), &sinks); err != nil {
+			return diag.Errorf("Error creating sinks statement structure: %s", err)
+		}
+		newMonitor.Sinks = sinks
+	}
+
+	if sinksOptionsJson, sinksOptionsJsonExists := d.GetOk("sinks_options"); sinksOptionsJsonExists {
+		var sinksOptions SinkOptions
+		if err := json.Unmarshal([]byte(sinksOptionsJson.(string)), &sinksOptions); err != nil {
+			return diag.Errorf("Error creating sinks options statement structure: %s", err)
+		}
+		newMonitor.SinkOptions = sinksOptions
 	}
 
 	_, err := client.UpdateMonitor(id, newMonitor)
-
 	if err != nil {
 		return diag.Errorf("Error updating monitor: %s", err)
 	}

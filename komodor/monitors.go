@@ -8,48 +8,71 @@ import (
 
 const MonitorsUrl = DefaultEndpoint + "/monitors/config"
 
-type Sensor struct {
-	Cluster    string                 `json:"cluster"`
-	Namespaces []string               `json:"namespaces"`
-	Exclude    map[string]interface{} `json:"exclude"`
-	Include    map[string]interface{} `json:"include"`
-}
+type (
+	ModelWorkflowConfigurationSensorFilters struct {
+		Namespaces  []string `json:"namespaces,omitempty"`
+		Annotations []string `json:"annotations,omitempty"`
+		Labels      []string `json:"labels,omitempty"`
+	}
+	Sensor struct {
+		Cluster string `json:"cluster"`
+		ModelWorkflowConfigurationSensorFilters
+		Exclude ModelWorkflowConfigurationSensorFilters `json:"exclude,omitempty"`
+	}
 
-type Sinks struct {
-	Slack    []string `json:"slack"`
-	Teams    []string `json:"teams"`
-	Opsgenie []string `json:"opsgenie"`
-	//Pagerduty map[string]interface{} `json:"pagerduty"` // TODO: what is the type
-	//Webhook   map[string]interface{} `json:"webhook"`   // TODO: what is the type
-}
+	SinkOptions struct {
+		ShouldSend *bool    `json:"shouldSend,omitempty"`
+		NotifyOn   []string `json:"notifyOn,omitempty"`
+	}
 
-type SinkOptions struct {
-	ShouldSend bool     `json:"shouldSend"`
-	NotifyOn   []string `json:"notifyOn"`
-}
+	PagerDutyModel struct {
+		Channel              string `json:"channel"`
+		IntegrationKey       string `json:"integrationKey"`
+		PagerDutyAccountName string `json:"pagerDutyAccountName"`
+	}
+
+	Sinks struct {
+		Slack          []string         `json:"slack,omitempty"`
+		Teams          []string         `json:"teams,omitempty"`
+		Opsgenie       []string         `json:"opsgenie,omitempty"`
+		Pagerduty      []PagerDutyModel `json:"pagerduty,omitempty"`
+		GenericWebhook []string         `json:"genericWebhook,omitempty"`
+	}
+
+	ModelWorkflowConfigurationVariables struct {
+		MinDuration           *int      `json:"duration,omitempty"`
+		MinAvailable          *string   `json:"minAvailable,omitempty"`
+		CronJobCondition      *string   `json:"cronJobCondition,omitempty"`
+		ResolveAfter          *int      `json:"resolveAfter,omitempty"`
+		IgnoreAfter           *int      `json:"ignoreAfter,omitempty"`
+		Reasons               *[]string `json:"reasons,omitempty"`
+		NodeCreationThreshold *string   `json:"nodeCreationThreshold,omitempty"`
+	}
+)
+
 type NewMonitor struct {
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	Active      bool                   `json:"active"`
-	Sensors     []Sensor               `json:"sensors"`
-	Variables   map[string]interface{} `json:"variables"`
-	Sinks       Sinks                  `json:"sinks"`
-	SinkOptions SinkOptions            `json:"sinkOptions"`
-	IsDeleted   bool                   `json:"isDeleted"`
+	Name        string                              `json:"name"`
+	Type        string                              `json:"type"`
+	Active      bool                                `json:"active"`
+	Sensors     []Sensor                            `json:"sensors"`
+	Variables   ModelWorkflowConfigurationVariables `json:"variables,omitempty"`
+	Sinks       Sinks                               `json:"sinks,omitempty"`
+	SinkOptions SinkOptions                         `json:"sinkOptions,omitempty"`
+	IsDeleted   bool                                `json:"isDeleted"`
 }
 
 type Monitor struct {
-	Id          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	Active      bool                   `json:"active"`
-	Sensors     []Sensor               `json:"sensors"`
-	Variables   map[string]interface{} `json:"variables"`
-	Sinks       Sinks                  `json:"sinks"`
-	SinkOptions map[string]interface{} `json:"sinkOptions"`
-	CreatedAt   string                 `json:"createdAt"`
-	UpdatedAt   string                 `json:"ureatedAt"`
-	IsDeleted   bool                   `json:"isDeleted"`
+	Id          string                              `json:"id"`
+	Name        string                              `json:"name"`
+	Type        string                              `json:"type"`
+	Active      bool                                `json:"active"`
+	Sensors     []Sensor                            `json:"sensors"`
+	Variables   ModelWorkflowConfigurationVariables `json:"variables,omitempty"`
+	Sinks       Sinks                               `json:"sinks,omitempty"`
+	SinkOptions SinkOptions                         `json:"sinkOptions,omitempty"`
+	CreatedAt   string                              `json:"createdAt"`
+	UpdatedAt   string                              `json:"ureatedAt"`
+	IsDeleted   bool                                `json:"isDeleted"`
 }
 
 func (c *Client) GetMonitors() ([]Monitor, error) {
