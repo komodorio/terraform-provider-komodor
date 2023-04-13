@@ -33,8 +33,7 @@ func resourceKomodorMonitor() *schema.Resource {
 				Required: true,
 			},
 			"variables": {
-				Type:     schema.TypeMap,
-				Elem:     schema.TypeString,
+				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"sinks": {

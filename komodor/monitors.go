@@ -105,7 +105,7 @@ func (c *Client) GetMonitor(id string) (*Monitor, error) {
 	return &monitor, nil
 }
 
-func (c *Client) UpdateMonitor(id string, m *NewMonitor) (*Monitor, error) {
+func (c *Client) UpdateMonitor(id string, m *NewMonitor) ([]byte, error) {
 	jsonMonitor, err := json.Marshal(m)
 	if err != nil {
 		return nil, err
@@ -114,13 +114,8 @@ func (c *Client) UpdateMonitor(id string, m *NewMonitor) (*Monitor, error) {
 	if err != nil {
 		return nil, err
 	}
-	var monitor Monitor
-	err = json.Unmarshal(res, &monitor)
-	if err != nil {
-		return nil, err
-	}
 
-	return &monitor, nil
+	return res, nil
 }
 
 func (c *Client) CreateMonitor(m *NewMonitor) (*Monitor, error) {
