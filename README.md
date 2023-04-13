@@ -22,7 +22,7 @@ terraform {
   required_providers {
     komodor = {
       source  = "komodorio/komodor"
-      version = "~> 1.0.2"
+      version = "~> 1.0.3"
     }
   }
 }
