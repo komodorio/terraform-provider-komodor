@@ -46,6 +46,6 @@ func (c *Client) executeHttpRequest(method string, url string, body *[]byte) ([]
 	if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated || res.StatusCode == http.StatusNoContent {
 		return resBody, nil
 	} else {
-		return nil, fmt.Errorf("%d", res.StatusCode)
+		return nil, fmt.Errorf("%d %s", res.StatusCode, resBody)
 	}
 }
