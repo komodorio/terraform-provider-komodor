@@ -190,6 +190,14 @@ func resourceKomodorMonitorUpdate(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceKomodorMonitorDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// Delete monitor is not implemented in api
+	client := meta.(*Client)
+	id := d.Id()
+
+	log.Printf("[INFO] Deleting Monitor: %s", id)
+	if err := client.DeleteMonitor(id); err != nil {
+		return diag.Errorf("Error deleting monitor: %s", err)
+	}
+
+	d.SetId("")
 	return nil
 }

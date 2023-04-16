@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 const MonitorsUrl = DefaultEndpoint + "/monitors/config"
@@ -137,4 +138,13 @@ func (c *Client) CreateMonitor(m *NewMonitor) (*Monitor, error) {
 	}
 
 	return &monitor, nil
+}
+
+func (c *Client) DeleteMonitor(id string) error {
+	requestUrl := strings.Join([]string{MonitorsUrl, "/", id}, "")
+	_, err := c.executeHttpRequest(http.MethodDelete, requestUrl, nil)
+	if err != nil {
+		return err
+	}
+	return nil
 }
