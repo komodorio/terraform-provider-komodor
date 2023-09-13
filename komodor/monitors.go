@@ -45,6 +45,7 @@ type (
 	ModelWorkflowConfigurationVariables struct {
 		MinDuration           *int      `json:"duration,omitempty"`
 		MinAvailable          *string   `json:"minAvailable,omitempty"`
+		Categories            []string  `json:"categories,omitempty"`
 		CronJobCondition      *string   `json:"cronJobCondition,omitempty"`
 		ResolveAfter          *int      `json:"resolveAfter,omitempty"`
 		IgnoreAfter           *int      `json:"ignoreAfter,omitempty"`
