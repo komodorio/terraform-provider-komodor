@@ -113,18 +113,16 @@ EOF
 EOF  
   variables = <<EOF
 {
-  "reasons": [
-    "NonZeroExitCode",
-    "Unhealthy",
-    "OOMKilled",
-    "PodNotReady",
-    "ContainersNotReady",
-    "ReadinessGatesNotReady",
-    "BackOff",
-    "CrashLoopBackOff"
+  "categories": [
+    "*"
   ],
   "duration": 30,
   "minAvailable": "100%"
+}
+EOF 
+  sinks_options = <<EOF
+{
+  "notifyOn": ["*"]
 }
 EOF 
 }
