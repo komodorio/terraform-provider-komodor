@@ -99,7 +99,7 @@ func resourceKomodorMonitorCreate(ctx context.Context, d *schema.ResourceData, m
 		if err := json.Unmarshal([]byte(sinksOptionsJson.(string)), &sinksOptions); err != nil {
 			return diag.Errorf("Error creating sinks options statement structure: %s", err)
 		}
-		newMonitor.SinkOptions = sinksOptions
+		newMonitor.SinksOptions = sinksOptions
 	}
 
 	monitor, err := client.CreateMonitor(newMonitor)
@@ -179,7 +179,7 @@ func resourceKomodorMonitorUpdate(ctx context.Context, d *schema.ResourceData, m
 		if err := json.Unmarshal([]byte(sinksOptionsJson.(string)), &sinksOptions); err != nil {
 			return diag.Errorf("Error creating sinks options statement structure: %s", err)
 		}
-		newMonitor.SinkOptions = sinksOptions
+		newMonitor.SinksOptions = sinksOptions
 	}
 
 	_, err := client.UpdateMonitor(id, newMonitor)
