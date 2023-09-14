@@ -22,7 +22,7 @@ terraform {
   required_providers {
     komodor = {
       source  = "komodorio/komodor"
-      version = "~> 1.0.5"
+      version = "~> 1.0.6"
     }
   }
 }
@@ -59,13 +59,12 @@ mkdir -p $GOPATH/src/github.com/terraform-providers; cd "$_"
 git clone https://github.com/komodor/terraform-provider-komodor.git
 ```
 
-Change to the clone directory and run make tools to install the dependent tooling needed to test and build the provider.
+Change to the clone directory and run make to install the dependent tooling needed to test and build the provider.
 
 To compile the provider, run make build. This will build the provider and put the provider binary in the $GOPATH/bin directory.
 
 ```sh
 cd $GOPATH/src/github.com/komodor/terraform-provider-komodor
-make tools
-make build
+make 
 $GOPATH/bin/terraform-provider-komodor
 ```

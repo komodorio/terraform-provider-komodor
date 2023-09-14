@@ -45,6 +45,7 @@ type (
 	ModelWorkflowConfigurationVariables struct {
 		MinDuration           *int      `json:"duration,omitempty"`
 		MinAvailable          *string   `json:"minAvailable,omitempty"`
+		Categories            []string  `json:"categories,omitempty"`
 		CronJobCondition      *string   `json:"cronJobCondition,omitempty"`
 		ResolveAfter          *int      `json:"resolveAfter,omitempty"`
 		IgnoreAfter           *int      `json:"ignoreAfter,omitempty"`
@@ -54,14 +55,14 @@ type (
 )
 
 type NewMonitor struct {
-	Name        string                              `json:"name"`
-	Type        string                              `json:"type"`
-	Active      bool                                `json:"active"`
-	Sensors     []Sensor                            `json:"sensors"`
-	Variables   ModelWorkflowConfigurationVariables `json:"variables,omitempty"`
-	Sinks       Sinks                               `json:"sinks,omitempty"`
-	SinkOptions SinkOptions                         `json:"sinkOptions,omitempty"`
-	IsDeleted   bool                                `json:"isDeleted"`
+	Name         string                              `json:"name"`
+	Type         string                              `json:"type"`
+	Active       bool                                `json:"active"`
+	Sensors      []Sensor                            `json:"sensors"`
+	Variables    ModelWorkflowConfigurationVariables `json:"variables,omitempty"`
+	Sinks        Sinks                               `json:"sinks,omitempty"`
+	SinksOptions SinkOptions                         `json:"sinksOptions,omitempty"`
+	IsDeleted    bool                                `json:"isDeleted"`
 }
 
 type Monitor struct {
