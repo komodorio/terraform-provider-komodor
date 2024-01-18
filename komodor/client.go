@@ -36,7 +36,7 @@ func (c *Client) executeHttpRequest(method string, url string, body *[]byte) ([]
 	req.Header.Set("Content-Type", "application/json")
 	res, err := c.HttpClient.Do(req)
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 	defer res.Body.Close()
 	resBody, err := io.ReadAll(res.Body)
