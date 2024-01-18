@@ -32,7 +32,7 @@ type NewPolicy struct {
 }
 
 func (c *Client) GetPolicies() ([]Policy, error) {
-	res, err := c.executeHttpRequest(http.MethodGet, PoliciesUrl, nil)
+	res, _, err := c.executeHttpRequest(http.MethodGet, PoliciesUrl, nil)
 
 	if err != nil {
 		return nil, err
@@ -48,21 +48,21 @@ func (c *Client) GetPolicies() ([]Policy, error) {
 	return policies, nil
 }
 
-func (c *Client) GetPolicy(id string) (*Policy, error) {
+func (c *Client) GetPolicy(id string) (*Policy, int, error) {
 	var policy Policy
 
-	res, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(PoliciesUrl+"/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(PoliciesUrl+"/%s", id), nil)
 
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
 	err = json.Unmarshal(res, &policy)
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
-	return &policy, nil
+	return &policy, statusCode, nil
 }
 
 func (c *Client) GetPolicyByName(name string) (*Policy, error) {
@@ -87,7 +87,7 @@ func (c *Client) CreatePolicy(p *NewPolicy) (*Policy, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.executeHttpRequest(http.MethodPost, PoliciesUrl, &jsonPolicy)
+	res, _, err := c.executeHttpRequest(http.MethodPost, PoliciesUrl, &jsonPolicy)
 
 	if err != nil {
 		return nil, err
@@ -107,7 +107,7 @@ func (c *Client) DeletePolicy(id string) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.executeHttpRequest(http.MethodDelete, PoliciesUrl, &requestBody)
+	_, _, err = c.executeHttpRequest(http.MethodDelete, PoliciesUrl, &requestBody)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (c *Client) UpdatePolicy(id string, p *NewPolicy) (*Policy, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(PoliciesUrl+"/%s", id), &jsonPolicy)
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(PoliciesUrl+"/%s", id), &jsonPolicy)
 	if err != nil {
 		return nil, err
 	}

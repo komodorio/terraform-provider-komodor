@@ -56,7 +56,7 @@ Clone the repository:
 
 ```sh
 mkdir -p $GOPATH/src/github.com/terraform-providers; cd "$_"
-git clone https://github.com/komodor/terraform-provider-komodor.git
+git clone https://github.com/komodorio/terraform-provider-komodor.git
 ```
 
 Change to the clone directory and run make to install the dependent tooling needed to test and build the provider.

@@ -21,7 +21,7 @@ type NewRole struct {
 }
 
 func (c *Client) GetRoles() ([]Role, error) {
-	res, err := c.executeHttpRequest(http.MethodGet, RolesUrl, nil)
+	res, _, err := c.executeHttpRequest(http.MethodGet, RolesUrl, nil)
 
 	if err != nil {
 		return nil, err
@@ -53,21 +53,21 @@ func (c *Client) GetRoleByName(name string) (*Role, error) {
 	return targetRole, nil
 }
 
-func (c *Client) GetRole(id string) (*Role, error) {
+func (c *Client) GetRole(id string) (*Role, int, error) {
 	var role Role
 
-	res, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(RolesUrl+"/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(RolesUrl+"/%s", id), nil)
 
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
 	err = json.Unmarshal(res, &role)
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
-	return &role, nil
+	return &role, statusCode, nil
 }
 
 func (c *Client) CreateRole(role *NewRole) (*Role, error) {
@@ -76,7 +76,7 @@ func (c *Client) CreateRole(role *NewRole) (*Role, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.executeHttpRequest(http.MethodPost, RolesUrl, &requestBody)
+	res, _, err := c.executeHttpRequest(http.MethodPost, RolesUrl, &requestBody)
 
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func (c *Client) DeleteRole(id string) error {
 		return err
 	}
 
-	_, err = c.executeHttpRequest(http.MethodDelete, RolesUrl, &requestBody)
+	_, _, err = c.executeHttpRequest(http.MethodDelete, RolesUrl, &requestBody)
 	if err != nil {
 		return err
 	}
