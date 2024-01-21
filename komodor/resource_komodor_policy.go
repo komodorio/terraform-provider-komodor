@@ -74,9 +74,9 @@ func resourceKomodorPolicyRead(ctx context.Context, d *schema.ResourceData, meta
 	client := meta.(*Client)
 	id := d.Id()
 
-	policy, err := client.GetPolicy(id)
+	policy, statusCode, err := client.GetPolicy(id)
 	if err != nil {
-		if err.Error() == "404" {
+		if statusCode == 404 {
 			log.Printf("[DEBUG] Policy (%s) was not found - removing from state", d.Id())
 			d.SetId("")
 			return nil

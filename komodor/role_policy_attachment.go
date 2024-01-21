@@ -19,7 +19,7 @@ func (c *Client) AttachPolicy(policyId string, roleId string) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.executeHttpRequest(http.MethodPost, PolicyRoleAttachmentUrl, &requestBody)
+	_, _, err = c.executeHttpRequest(http.MethodPost, PolicyRoleAttachmentUrl, &requestBody)
 	if err != nil {
 		return err
 	}
@@ -27,20 +27,20 @@ func (c *Client) AttachPolicy(policyId string, roleId string) error {
 	return nil
 }
 
-func (c *Client) GetRolePoliciesObject(roleId string) ([]RolePolicy, error) {
+func (c *Client) GetRolePoliciesObject(roleId string) ([]RolePolicy, int, error) {
 	var rolePolicies []RolePolicy
 
-	res, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(DefaultEndpoint+"/rbac/roles/%s/policies", roleId), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(DefaultEndpoint+"/rbac/roles/%s/policies", roleId), nil)
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
 	err = json.Unmarshal([]byte(res), &rolePolicies)
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
-	return rolePolicies, nil
+	return rolePolicies, statusCode, nil
 }
 
 func (c *Client) DetachPolicy(policyId string, roleId string) error {
@@ -49,7 +49,7 @@ func (c *Client) DetachPolicy(policyId string, roleId string) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.executeHttpRequest(http.MethodDelete, PolicyRoleAttachmentUrl, &requestBody)
+	_, _, err = c.executeHttpRequest(http.MethodDelete, PolicyRoleAttachmentUrl, &requestBody)
 	if err != nil {
 		return err
 	}
