@@ -38,6 +38,7 @@ func Provider() *schema.Provider {
 			"komodor_role":                   resourceKomodorRole(),
 			"komodor_policy_role_attachment": resourcePolicyRoleAttachment(),
 			"komodor_monitor":                resourceKomodorMonitor(),
+			"komodor_action":                 resourceKomodorCustomK8sAction(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
