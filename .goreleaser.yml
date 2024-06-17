@@ -58,4 +58,15 @@ release:
       name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"
   # If you want to manually examine the release before its live, uncomment this line:
   # draft: true
-changelog: {}
+changelog:
+  use: git
+  filters:
+    exclude:
+      - '^docs:'
+  sort: asc
+  include:
+    - 'feat:'
+    - 'fix:'
+  exclude:
+    - 'chore:'
+    - 'docs:'
