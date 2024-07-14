@@ -61,24 +61,24 @@ func (c *Client) GetCustomK8sAction(id string) (*CustomK8sAction, int, error) {
 	return &customK8sAction, statusCode, nil
 }
 
-func (c *Client) CreateCustomK8sAction(p *NewCustomK8sAction) (*CustomK8sAction, error) {
+func (c *Client) CreateCustomK8sAction(p *NewCustomK8sAction) (*CustomK8sAction, int, error) {
 	jsonCustomK8sAction, err := json.Marshal(p)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	res, _, err := c.executeHttpRequest(http.MethodPost, CustomK8sActionUrl, &jsonCustomK8sAction)
+	res, statusCode, err := c.executeHttpRequest(http.MethodPost, CustomK8sActionUrl, &jsonCustomK8sAction)
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
 	var customK8sAction CustomK8sAction
 	err = json.Unmarshal(res, &customK8sAction)
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
-	return &customK8sAction, nil
+	return &customK8sAction, statusCode, nil
 }
 
 func (c *Client) DeleteCustomK8sAction(id string) error {

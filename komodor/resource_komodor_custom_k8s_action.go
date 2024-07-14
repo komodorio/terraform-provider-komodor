@@ -64,8 +64,11 @@ func resourceKomodorCustomK8sActionCreate(ctx context.Context, d *schema.Resourc
 		Ruleset:     customK8sActionStatements,
 	}
 
-	customK8sAction, err := client.CreateCustomK8sAction(newCustomK8sAction)
+	customK8sAction, statusCode, err := client.CreateCustomK8sAction(newCustomK8sAction)
 	if err != nil {
+		if statusCode == 409 {
+			return diag.Errorf("Action name '%s' is already in use or marked for deletion. Please choose a different name or try again later", actionName)
+		}
 		return diag.Errorf("Error creating Custom K8S Action: %s, %v", err, customK8sActionStatements)
 	}
 
