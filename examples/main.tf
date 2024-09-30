@@ -32,5 +32,3 @@ resource "komodor_policy_role_attachment" "my-attachement" {
 data "komodor_policy" "my-policy" {
   name = "default-read-only"
 }
-
-
