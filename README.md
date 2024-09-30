@@ -68,3 +68,9 @@ cd $GOPATH/src/github.com/komodor/terraform-provider-komodor
 make 
 $GOPATH/bin/terraform-provider-komodor
 ```
+
+To build the provider for a specific OS and architecture, run make with the OS_ARCH variable set to the desired target. For example, to build the provider for macOS ARM CPU, run make with OS_ARCH=darwin_arm64.
+
+```sh
+make OS_ARCH=darwin_arm64
+```
