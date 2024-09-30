@@ -9,8 +9,7 @@ import (
 const IntegrationsUrl string = DefaultEndpoint + "/integrations/kubernetes"
 
 type Kubernetes struct {
-	Id          string `json:"apiKey"`
-	ClusterName string `json:"clusterName"`
+	Id string `json:"apiKey"`
 }
 
 func (c *Client) GetKubernetesCluster(clusterName string) (*Kubernetes, int, error) {
@@ -26,8 +25,6 @@ func (c *Client) GetKubernetesCluster(clusterName string) (*Kubernetes, int, err
 	if err != nil {
 		return nil, statusCode, err
 	}
-
-	kubernetes.ClusterName = clusterName
 
 	return &kubernetes, statusCode, nil
 }
@@ -49,8 +46,6 @@ func (c *Client) CreateKubernetesCluster(name string) (*Kubernetes, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	kubernetes.ClusterName = name
 
 	return &kubernetes, nil
 }

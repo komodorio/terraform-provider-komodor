@@ -39,7 +39,7 @@ func resourceKomodorKubernetesCreate(ctx context.Context, d *schema.ResourceData
 
 	d.SetId(kubernetes.Id)
 
-	log.Printf("[INFO] Kubernetes cluster created successfully: %s", kubernetes.ClusterName)
+	log.Printf("[INFO] Kubernetes cluster created successfully: %s", clusterName)
 
 	return resourceKomodorKubernetesRead(ctx, d, meta)
 }
@@ -53,7 +53,7 @@ func resourceKomodorKubernetesDelete(ctx context.Context, d *schema.ResourceData
 		return diag.Errorf("Error deleting Kubernetes cluster: %s", err)
 	}
 
-	d.Set("clusterName", "")
+	d.Set("cluster_name", "")
 
 	return nil
 }
