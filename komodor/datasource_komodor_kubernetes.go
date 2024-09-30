@@ -17,8 +17,9 @@ func dataSourceKomodorKubernetes() *schema.Resource {
 				Description: "The id and api key of the cluster integration",
 			},
 			"cluster_name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the cluster; must be unique to a Komodor account",
 			},
 		},
 	}

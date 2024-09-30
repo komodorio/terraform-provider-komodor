@@ -25,9 +25,9 @@ description: |-
 ### Optional
 
 - `is_deleted` (Boolean)
-- `sinks` (Map of String)
-- `sinks_options` (Map of String)
-- `variables` (Map of String)
+- `sinks` (String)
+- `sinks_options` (String)
+- `variables` (String)
 
 ### Read-Only
 
