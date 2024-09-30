@@ -39,11 +39,13 @@ func Provider() *schema.Provider {
 			"komodor_policy_role_attachment": resourcePolicyRoleAttachment(),
 			"komodor_monitor":                resourceKomodorMonitor(),
 			"komodor_action":                 resourceKomodorCustomK8sAction(),
+			"komodor_kubernetes":             resourceKomodorKubernetes(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"komodor_role":   dataSourceKomodorRole(),
-			"komodor_policy": dataSourceKomodorPolicy(),
+			"komodor_role":       dataSourceKomodorRole(),
+			"komodor_policy":     dataSourceKomodorPolicy(),
+			"komodor_kubernetes": dataSourceKomodorKubernetes(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}
