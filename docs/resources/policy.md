@@ -20,6 +20,11 @@ description: |-
 - `name` (String)
 - `statements` (String)
 
+### Optional
+
+- `tags` (Map of String)
+- `type` (String)
+
 ### Read-Only
 
 - `created_at` (String)

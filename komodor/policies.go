@@ -9,8 +9,9 @@ import (
 const PoliciesUrl string = DefaultEndpoint + "/rbac/policies"
 
 type Resource struct {
-	Cluster    string   `json:"cluster"`
-	Namespaces []string `json:"namespaces"`
+	Cluster          string   `json:"cluster"`
+	Namespaces       []string `json:"namespaces,omitempty"`
+	NamespacePattern string   `json:"namespacePattern,omitempty"`
 }
 
 type Statement struct {
@@ -24,11 +25,15 @@ type Policy struct {
 	Statements []Statement `json:"statements"`
 	CreatedAt  string      `json:"createdAt"`
 	UpdatedAt  string      `json:"updatedAt"`
+	Type       string      `json:"type,omitempty"`
+	Tags       interface{} `json:"tags,omitempty"`
 }
 
 type NewPolicy struct {
 	Name       string      `json:"name"`
+	Type       string      `json:"type,omitempty"`
 	Statements []Statement `json:"statements"`
+	Tags       interface{} `json:"tags,omitempty"`
 }
 
 func (c *Client) GetPolicies() ([]Policy, error) {

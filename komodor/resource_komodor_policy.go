@@ -35,6 +35,16 @@ func resourceKomodorPolicy() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"type": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "static",
+				ValidateFunc: validation.StringInSlice([]string{"static", "wildcard", "dynamic_tag"}, false),
+			},
+			"tags": {
+				Type:     schema.TypeMap,
+				Optional: true,
+			},
 		},
 		CreateContext: resourceKomodorPolicyCreate,
 		ReadContext:   resourceKomodorPolicyRead,
@@ -46,6 +56,11 @@ func resourceKomodorPolicy() *schema.Resource {
 func resourceKomodorPolicyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 	name := d.Get("name").(string)
+	policyType := d.Get("type").(string)
+	if policyType == "" {
+		policyType = "static"
+	}
+	tags := d.Get("tags")
 
 	statementsJson := d.Get("statements")
 
@@ -56,7 +71,9 @@ func resourceKomodorPolicyCreate(ctx context.Context, d *schema.ResourceData, me
 
 	newPolicy := &NewPolicy{
 		Name:       name,
+		Type:       policyType,
 		Statements: statements,
+		Tags:       tags,
 	}
 
 	policy, err := client.CreatePolicy(newPolicy)
@@ -65,6 +82,8 @@ func resourceKomodorPolicyCreate(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	d.SetId(policy.Id)
+	d.Set("type", policyType)
+	d.Set("tags", policy.Tags)
 	log.Printf("[INFO] Policy created successfully. Policy Id: %s", policy.Id)
 
 	return resourceKomodorPolicyRead(ctx, d, meta)
@@ -85,6 +104,8 @@ func resourceKomodorPolicyRead(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	d.Set("name", policy.Name)
+	d.Set("type", policy.Type)
+	d.Set("tags", policy.Tags)
 	d.Set("statements", policy.Statements)
 	d.Set("created_at", policy.CreatedAt)
 	d.Set("updated_at", policy.UpdatedAt)
@@ -105,6 +126,8 @@ func resourceKomodorPolicyUpdate(ctx context.Context, d *schema.ResourceData, me
 
 	newPolicy := &NewPolicy{
 		Name:       d.Get("name").(string),
+		Type:       d.Get("type").(string),
+		Tags:       d.Get("tags"),
 		Statements: statements,
 	}
 
