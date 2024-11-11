@@ -25,5 +25,3 @@ description: |-
 - `id` (String) The id of the role
 - `is_default` (Boolean) Is default role
 - `updated_at` (String) The date and time of when the Role was last updated
-
-

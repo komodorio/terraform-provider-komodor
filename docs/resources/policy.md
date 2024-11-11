@@ -30,5 +30,3 @@ description: |-
 - `created_at` (String)
 - `id` (String) The ID of this resource.
 - `updated_at` (String)
-
-

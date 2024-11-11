@@ -25,5 +25,3 @@ description: |-
 - `id` (String) The id of the policy
 - `statements` (String) The policy's statements
 - `updated_at` (String) The date and time of when the Policy was last updated
-
-

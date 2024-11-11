@@ -25,5 +25,3 @@ description: |-
 - `id` (String) The ID of this resource.
 - `is_default` (Boolean)
 - `updated_at` (String)
-
-
