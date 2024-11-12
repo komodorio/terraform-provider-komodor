@@ -7,7 +7,7 @@ resource "komodor_policy" "komo-example-wildcard-policy" {
   type       = "wildcard"
   statements = <<EOF
 [{
-  "actions": [F
+  "actions": [
     "view:all"
   ],
   "resources": [{
