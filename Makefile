@@ -3,7 +3,7 @@ HOSTNAME=github.com
 NAMESPACE=komodorio
 NAME=komodor
 BINARY=terraform-provider-${NAME}
-VERSION=1.0.10
+VERSION=1.0.11
 OS_ARCH?=darwin_amd64
 
 default: install
@@ -24,3 +24,6 @@ test:
 
 testacc: 
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m   
+
+generate-docs:
+	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs

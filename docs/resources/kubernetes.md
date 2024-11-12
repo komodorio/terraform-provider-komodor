@@ -22,5 +22,3 @@ description: |-
 ### Read-Only
 
 - `id` (String) The id and api key of the cluster integration
-
-
