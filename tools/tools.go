@@ -1,6 +1,8 @@
+//go:build generate
+
 package tools
 
 import (
-	// document generation
+	// [tfplugindocs](https://github.com/hashicorp/terraform-plugin-docs).
 	_ "github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs"
 )

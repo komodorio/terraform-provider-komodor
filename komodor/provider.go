@@ -22,6 +22,7 @@ var APIKeyEnvVars = []string{KomodorAPIKeyEnvName, KomodorTokenEnvName}
 
 // Provider returns a schema.Provider for Komodor.
 func Provider() *schema.Provider {
+	// Some Provider
 	provider := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"api_key": {

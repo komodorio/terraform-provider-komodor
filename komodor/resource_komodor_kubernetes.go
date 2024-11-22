@@ -17,14 +17,17 @@ func resourceKomodorKubernetes() *schema.Resource {
 				Description: "The id and api key of the cluster integration",
 			},
 			"cluster_name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The name of the Kubernetes cluster",
 			},
 		},
 		CreateContext: resourceKomodorKubernetesCreate,
 		ReadContext:   resourceKomodorKubernetesRead,
 		DeleteContext: resourceKomodorKubernetesDelete,
+		Description: "Creates a new Komodor integration with a Kubernetes cluster.\n\n" +
+			"This integration allows Komodor to monitor and analyze the cluster's activity.",
 	}
 }
 

@@ -41,6 +41,8 @@ func resourceKomodorRole() *schema.Resource {
 		ReadContext:   resourceKomodorRoleRead,
 		UpdateContext: resourceKomodorRoleUpdate,
 		DeleteContext: resourceKomodorRoleDelete,
+		Description: "Creates a Komodor RBAC Role that when combined with a Policy,\n\n" +
+			"defines a set of actions one can perform on resources through the Komodor Platform",
 	}
 }
 

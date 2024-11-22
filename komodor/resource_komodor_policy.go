@@ -50,6 +50,7 @@ func resourceKomodorPolicy() *schema.Resource {
 		ReadContext:   resourceKomodorPolicyRead,
 		UpdateContext: resourceKomodorPolicyUpdate,
 		DeleteContext: resourceKomodorPolicyDelete,
+		Description:   "Creates a Komodor RBAC Policy",
 	}
 }
 

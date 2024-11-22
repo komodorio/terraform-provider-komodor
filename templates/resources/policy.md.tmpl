@@ -1,0 +1,28 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## Example Usage
+
+{{ tffile "examples/resources/komodor_policy/resource.tf" }}
+
+### Dyanmic Tags
+
+{{ tffile "examples/resources/komodor_policy/resource_dynamic.tf" }}
+
+### Wildcard Namespace
+
+{{ tffile "examples/resources/komodor_policy/resource_wildcard.tf" }}
+
+### With komodor_action
+
+{{ tffile "examples/resources/komodor_policy/resource_with_action.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}

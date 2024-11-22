@@ -22,6 +22,7 @@ func dataSourceKomodorKubernetes() *schema.Resource {
 				Description: "The name of the cluster; must be unique to a Komodor account",
 			},
 		},
+		Description: "Retrieves an existing Komodor Kubernetes cluster integration by name",
 	}
 }
 
