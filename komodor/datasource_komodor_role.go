@@ -10,7 +10,6 @@ import (
 func dataSourceKomodorRole() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceKomodorRoleRead,
-
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -37,6 +36,7 @@ func dataSourceKomodorRole() *schema.Resource {
 				Description: "Is default role",
 			},
 		},
+		Description: "Retrieves an existing Komodor Role by name",
 	}
 }
 

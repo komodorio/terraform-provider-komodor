@@ -36,6 +36,7 @@ func resourcePolicyRoleAttachment() *schema.Resource {
 		ReadContext:   resourcePolicyRoleAttachmentRead,
 		UpdateContext: resourcePolicyRoleAttachmentUpdate,
 		DeleteContext: resourcePolicyRoleAttachmentDelete,
+		Description:   "Creates a logical binding between a Komodor Role and a Komodor Policy",
 	}
 }
 

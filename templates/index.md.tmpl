@@ -1,0 +1,17 @@
+---
+page_title: "komodor Provider"
+description: |-
+  The Komodor provider provides lifecycle management of Komodor resources.
+---
+
+# {{ .ProviderShortName | upper }} Provider
+
+The Komodor provider provides lifecycle management of Komodor resources. It provides resources
+that allow Kubernetes clusters to be onboarded to the Komodor Platform as well as many other resources
+and datasources.
+
+## Example Usage
+
+{{ tffile "examples/provider/provider.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}

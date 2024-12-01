@@ -1,5 +1,5 @@
-resource  "komodor_kubernetes" "k8s_cluster" {
-    cluster_name = "cluster-test-diff"
+resource "komodor_kubernetes" "k8s_cluster" {
+  cluster_name = "cluster-test-diff"
 }
 
 data "komodor_kubernetes" "data_k8s_cluster" {

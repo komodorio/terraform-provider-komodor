@@ -38,6 +38,7 @@ func dataSourceKomodorPolicy() *schema.Resource {
 				Description: "The policy's statements",
 			},
 		},
+		Description: "Retrieves an existing Komodor Policy by name",
 	}
 }
 

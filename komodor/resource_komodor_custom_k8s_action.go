@@ -44,6 +44,7 @@ func resourceKomodorCustomK8sAction() *schema.Resource {
 		ReadContext:   resourceKomodorCustomK8sActionRead,
 		UpdateContext: resourceKomodorCustomK8sActionUpdate,
 		DeleteContext: resourceKomodorCustomK8sActionDelete,
+		Description:   "Creates a new Komodor RBAC action",
 	}
 }
 
