@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const MonitorsUrl = DefaultEndpoint + "/monitors/config"
+const MonitorsUrl = V2Endpoint + "/monitors/config"
 
 type (
 	ModelWorkflowConfigurationSensorFilters struct {

@@ -10,6 +10,7 @@ import (
 )
 
 const DefaultEndpoint = "https://api.komodor.com/mgmt/v1"
+const V2Endpoint = "https://api.komodor.com/api/v2"
 
 // KomodorAPIKeyEnvName name of env var for API key
 const KomodorAPIKeyEnvName = "KOMODOR_API_KEY"
