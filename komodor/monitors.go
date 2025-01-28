@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const MonitorsUrl = DefaultEndpoint + "/monitors/config"
+const MonitorsUrl = V2Endpoint + "/monitors/config"
 
 type (
 	ModelWorkflowConfigurationSensorFilters struct {
@@ -77,6 +77,14 @@ type Monitor struct {
 	CreatedAt   string                              `json:"createdAt"`
 	UpdatedAt   string                              `json:"ureatedAt"`
 	IsDeleted   bool                                `json:"isDeleted"`
+}
+
+type GetMonitorsData struct {
+	Monitors []Monitor `json:"monitors"`
+}
+
+type GetMonitorsResponse struct {
+	Data GetMonitorsData `json:"data"`
 }
 
 func (c *Client) GetMonitors() ([]Monitor, error) {
