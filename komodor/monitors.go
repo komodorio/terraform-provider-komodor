@@ -79,6 +79,14 @@ type Monitor struct {
 	IsDeleted   bool                                `json:"isDeleted"`
 }
 
+type GetMonitorsData struct {
+	Monitors []Monitor `json:"monitors"`
+}
+
+type GetMonitorsResponse struct {
+	Data GetMonitorsData `json:"data"`
+}
+
 func (c *Client) GetMonitors() ([]Monitor, error) {
 	res, _, err := c.executeHttpRequest(http.MethodGet, MonitorsUrl, nil)
 	if err != nil {
