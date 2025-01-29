@@ -40,7 +40,7 @@ Creates a new **Komodor monitor** to observe, detect, and analyze failures acros
 
 #### Valid Configurations:
 - **Valid Sinks**: `slack`, `teams`, `webhook`
-- **Valid notifyOn Options**:
+- **Valid notifyOn Options**: Only one option is valid:
   - `"Failure"`
   - `"Successful"`
   - `"All"`
@@ -67,7 +67,7 @@ EOF
 EOF
   sinks_options = <<EOF
 {
-  "notifyOn": ["Failure", "Successful"]
+  "notifyOn": ["Failure"]
 }
 EOF
 }
@@ -96,7 +96,7 @@ EOF
   - `"Other"`
 - **Valid notifyOn Options**: `["*"]`
   - `["*"]` (all categories)
-  - Or any one of the following:
+  - Or any one of the following: Each notifyOn categories must be included in the "Categories" field
     - `"Creating/Initializing"`
     - `"Scheduling"`
     - `"Container Creation"`
@@ -226,7 +226,7 @@ EOF
 ```terraform
 resource "komodor_monitor" "example-pvc-monitor" {
   name          = "example-pvc-monitor"
-  type          = "pvc"
+  type          = "PVC"
   active        = true
   sensors       = <<EOF
 [{
@@ -251,3 +251,154 @@ EOF
 }
 EOF
 }
+```
+
+---
+
+### CronJob Monitor
+
+#### Valid Configurations:
+- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+- **Valid Duration**: Must be an integer between **5** and **600** (inclusive).
+- **Valid CronJobCondition**: `"first"` or `"any"`.
+
+```terraform
+resource "komodor_monitor" "example-cronjob-monitor" {
+  name          = "example-cronjob-monitor"
+  type          = "cronJob"
+  active        = true
+  sensors       = <<EOF
+[{
+  "cluster": "kind-kind",
+  "namespaces": ["jobs-namespace"]
+}]
+EOF
+  sinks         = <<EOF
+{
+  "slack": ["cronjob-alerts"],
+  "teams": ["SRE-Team"],
+  "pagerduty": [{
+    "channel": "example-channel",
+    "integrationKey": "example-integration-key",
+    "pagerDutyAccountName": "example-pagerduty-account-name"
+  }]
+}
+EOF
+  variables     = <<EOF
+{
+  "duration": 120,
+  "cronJobCondition": "first"
+}
+EOF
+}
+```
+
+---
+
+### Job Monitor
+
+#### Valid Configurations:
+- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+```terraform
+resource "komodor_monitor" "example-job-monitor" {
+  name          = "example-job-monitor"
+  type          = "job"
+  active        = true
+  sensors       = <<EOF
+[{
+  "cluster": "kind-kind",
+  "namespaces": ["job-namespace"]
+}]
+EOF
+  sinks         = <<EOF
+{
+  "slack": ["job-alerts"],
+  "teams": ["SRE-Team"],
+  "pagerduty": [{
+    "channel": "example-channel",
+    "integrationKey": "example-integration-key",
+    "pagerDutyAccountName": "example-pagerduty-account-name"
+  }]
+}
+EOF
+}
+```
+
+---
+
+### Job Monitor
+
+#### Valid Configurations:
+- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+- **Valid Duration**: Must be an integer between **5** and **600** (inclusive).
+
+```terraform
+resource "komodor_monitor" "example-job-monitor" {
+  name          = "example-job-monitor"
+  type          = "job"
+  active        = true
+  sensors       = <<EOF
+[{
+  "cluster": "kind-kind",
+  "namespaces": ["job-namespace"]
+}]
+EOF
+  sinks         = <<EOF
+{
+  "slack": ["job-alerts"],
+  "teams": ["SRE-Team"],
+  "pagerduty": [{
+    "channel": "example-channel",
+    "integrationKey": "example-integration-key",
+    "pagerDutyAccountName": "example-pagerduty-account-name"
+  }]
+}
+EOF
+  variables     = <<EOF
+{
+  "duration": 300
+}
+EOF
+}
+```
+
+---
+
+### CronJob Monitor
+
+#### Valid Configurations:
+- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+- **Valid Duration**: Must be an integer between **5** and **600** (inclusive).
+- **Valid CronJobCondition**: `"first"` or `"any"`.
+
+```terraform
+resource "komodor_monitor" "example-cronjob-monitor" {
+  name          = "example-cronjob-monitor"
+  type          = "cronJob"
+  active        = true
+  sensors       = <<EOF
+[{
+  "cluster": "kind-kind",
+  "namespaces": ["jobs-namespace"]
+}]
+EOF
+  sinks         = <<EOF
+{
+  "slack": ["cronjob-alerts"],
+  "teams": ["SRE-Team"],
+  "pagerduty": [{
+    "channel": "example-channel",
+    "integrationKey": "example-integration-key",
+    "pagerDutyAccountName": "example-pagerduty-account-name"
+  }]
+}
+EOF
+  variables     = <<EOF
+{
+  "duration": 120,
+  "cronJobCondition": "first"
+}
+EOF
+}
+```

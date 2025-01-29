@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const MonitorsUrl = V2Endpoint + "/monitors/config"
+const MonitorsUrl = V2Endpoint + "/realtime-monitors/config"
 
 type (
 	ModelWorkflowConfigurationSensorFilters struct {
@@ -55,28 +55,28 @@ type (
 )
 
 type NewMonitor struct {
-	Name         string                              `json:"name"`
-	Type         string                              `json:"type"`
-	Active       bool                                `json:"active"`
-	Sensors      []Sensor                            `json:"sensors"`
-	Variables    ModelWorkflowConfigurationVariables `json:"variables,omitempty"`
-	Sinks        Sinks                               `json:"sinks,omitempty"`
-	SinksOptions SinkOptions                         `json:"sinksOptions,omitempty"`
-	IsDeleted    bool                                `json:"isDeleted"`
+	Name         string                               `json:"name"`
+	Type         string                               `json:"type"`
+	Active       bool                                 `json:"active"`
+	Sensors      []Sensor                             `json:"sensors"`
+	Variables    *ModelWorkflowConfigurationVariables `json:"variables,omitempty"`
+	Sinks        *Sinks                               `json:"sinks,omitempty"`
+	SinksOptions *SinkOptions                         `json:"sinksOptions,omitempty"`
+	IsDeleted    bool                                 `json:"isDeleted"`
 }
 
 type Monitor struct {
-	Id          string                              `json:"id"`
-	Name        string                              `json:"name"`
-	Type        string                              `json:"type"`
-	Active      bool                                `json:"active"`
-	Sensors     []Sensor                            `json:"sensors"`
-	Variables   ModelWorkflowConfigurationVariables `json:"variables,omitempty"`
-	Sinks       Sinks                               `json:"sinks,omitempty"`
-	SinkOptions SinkOptions                         `json:"sinkOptions,omitempty"`
-	CreatedAt   string                              `json:"createdAt"`
-	UpdatedAt   string                              `json:"ureatedAt"`
-	IsDeleted   bool                                `json:"isDeleted"`
+	Id          string                               `json:"id"`
+	Name        *string                              `json:"name"`
+	Type        string                               `json:"type"`
+	Active      bool                                 `json:"active"`
+	Sensors     []Sensor                             `json:"sensors"`
+	Variables   *ModelWorkflowConfigurationVariables `json:"variables,omitempty"`
+	Sinks       *Sinks                               `json:"sinks,omitempty"`
+	SinkOptions *SinkOptions                         `json:"sinkOptions,omitempty"`
+	CreatedAt   string                               `json:"createdAt"`
+	UpdatedAt   string                               `json:"updatedAt"`
+	IsDeleted   *bool                                `json:"isDeleted"`
 }
 
 type GetMonitorsData struct {
@@ -100,7 +100,7 @@ func (c *Client) GetMonitors() ([]Monitor, error) {
 		return nil, err
 	}
 
-	return monitors, nil
+	return response.Data.Monitors, nil
 }
 
 func (c *Client) GetMonitor(id string) (*Monitor, int, error) {
