@@ -85,7 +85,7 @@ func resourceKomodorMonitorCreate(ctx context.Context, d *schema.ResourceData, m
 		if err := json.Unmarshal([]byte(variablesJson.(string)), &variables); err != nil {
 			return diag.Errorf("Error creating variables statement structure: %s", err)
 		}
-		newMonitor.Variables = variables
+		newMonitor.Variables = &variables
 	}
 
 	if sinksJson, sinksJsonExists := d.GetOk("sinks"); sinksJsonExists {
@@ -93,7 +93,7 @@ func resourceKomodorMonitorCreate(ctx context.Context, d *schema.ResourceData, m
 		if err := json.Unmarshal([]byte(sinksJson.(string)), &sinks); err != nil {
 			return diag.Errorf("Error creating sinks statement structure: %s, %s", err, sinksJson)
 		}
-		newMonitor.Sinks = sinks
+		newMonitor.Sinks = &sinks
 	}
 
 	if sinksOptionsJson, sinksOptionsJsonExists := d.GetOk("sinks_options"); sinksOptionsJsonExists {
@@ -101,7 +101,7 @@ func resourceKomodorMonitorCreate(ctx context.Context, d *schema.ResourceData, m
 		if err := json.Unmarshal([]byte(sinksOptionsJson.(string)), &sinksOptions); err != nil {
 			return diag.Errorf("Error creating sinks options statement structure: %s", err)
 		}
-		newMonitor.SinksOptions = sinksOptions
+		newMonitor.SinksOptions = &sinksOptions
 	}
 
 	monitor, err := client.CreateMonitor(newMonitor)
@@ -165,7 +165,7 @@ func resourceKomodorMonitorUpdate(ctx context.Context, d *schema.ResourceData, m
 		if err := json.Unmarshal([]byte(variablesJson.(string)), &variables); err != nil {
 			return diag.Errorf("Error creating variables statement structure: %s", err)
 		}
-		newMonitor.Variables = variables
+		newMonitor.Variables = &variables
 	}
 
 	if sinksJson, sinksJsonExists := d.GetOk("sinks"); sinksJsonExists {
@@ -173,7 +173,7 @@ func resourceKomodorMonitorUpdate(ctx context.Context, d *schema.ResourceData, m
 		if err := json.Unmarshal([]byte(sinksJson.(string)), &sinks); err != nil {
 			return diag.Errorf("Error creating sinks statement structure: %s", err)
 		}
-		newMonitor.Sinks = sinks
+		newMonitor.Sinks = &sinks
 	}
 
 	if sinksOptionsJson, sinksOptionsJsonExists := d.GetOk("sinks_options"); sinksOptionsJsonExists {
@@ -181,7 +181,7 @@ func resourceKomodorMonitorUpdate(ctx context.Context, d *schema.ResourceData, m
 		if err := json.Unmarshal([]byte(sinksOptionsJson.(string)), &sinksOptions); err != nil {
 			return diag.Errorf("Error creating sinks options statement structure: %s", err)
 		}
-		newMonitor.SinksOptions = sinksOptions
+		newMonitor.SinksOptions = &sinksOptions
 	}
 
 	_, err := client.UpdateMonitor(id, newMonitor)

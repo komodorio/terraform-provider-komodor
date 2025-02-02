@@ -3,7 +3,7 @@ HOSTNAME=github.com
 NAMESPACE=komodorio
 NAME=komodor
 BINARY=terraform-provider-${NAME}
-VERSION=1.0.11
+VERSION=2.0.0
 OS_ARCH?=darwin_amd64
 
 default: install
