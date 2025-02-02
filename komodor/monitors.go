@@ -93,9 +93,9 @@ func (c *Client) GetMonitors() ([]Monitor, error) {
 		return nil, err
 	}
 
-	var monitors []Monitor
+	var response GetMonitorsResponse
 
-	err = json.Unmarshal(res, &monitors)
+	err = json.Unmarshal(res, &response)
 	if err != nil {
 		return nil, err
 	}
