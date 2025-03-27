@@ -88,18 +88,17 @@ resource "komodor_policy_v2" "selector_based_policy" {
       clusters   = ["prod-cluster"]
       namespaces = ["default"]
 
-      selectors = [
-        {
+      selectors {
           key   = "team"
           type  = "annotation"
           value = "platform"
-        },
-        {
-          key   = "env"
-          type  = "label"
-          value = "production"
-        }
-      ]
+      }
+
+      selectors {
+        key   = "env"
+        type  = "label"
+        value = "production"
+      }
     }
   }
 }
@@ -121,16 +120,23 @@ resource "komodor_policy_v2" "selector_pattern_policy" {
       clusters   = ["prod-cluster"]
       namespaces = ["default"]
 
-      selectors_patterns = [
-        {
-          key  = "team"
-          type = "annotation"
-          value = {
-            include = "team-*"
-            exclude = "team-internal"
-          }
+      selectors_patterns {
+        key  = "team"
+        type = "annotation"
+        value {
+          include = "team-*"
+          exclude = "team-internal"
         }
-      ]
+      }
+
+      selectors_patterns {
+        key  = "env"
+        type = "label"
+        value {
+          include = "production"
+          exclude = ""
+        }
+      }
     }
   }
 }

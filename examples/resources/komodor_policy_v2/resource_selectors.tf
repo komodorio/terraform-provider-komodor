@@ -9,18 +9,17 @@ resource "komodor_policy_v2" "selector_based_policy" {
       clusters   = ["prod-cluster"]
       namespaces = ["default"]
 
-      selectors = [
-        {
+      selectors {
           key   = "team"
           type  = "annotation"
           value = "platform"
-        },
-        {
-          key   = "env"
-          type  = "label"
-          value = "production"
-        }
-      ]
+      }
+
+      selectors {
+        key   = "env"
+        type  = "label"
+        value = "production"
+      }
     }
   }
 }
