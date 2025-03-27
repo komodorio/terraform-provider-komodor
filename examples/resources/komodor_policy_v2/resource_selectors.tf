@@ -10,9 +10,9 @@ resource "komodor_policy_v2" "selector_based_policy" {
       namespaces = ["default"]
 
       selectors {
-          key   = "team"
-          type  = "annotation"
-          value = "platform"
+        key   = "team"
+        type  = "annotation"
+        value = "platform"
       }
 
       selectors {
