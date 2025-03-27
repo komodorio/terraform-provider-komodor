@@ -1,0 +1,57 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: "RBAC & Policies"
+description: |-
+  {{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+This resource allows you to define and manage **RBAC policies in Komodor**, specifying what actions are allowed and which clusters, namespaces, and workloads they apply to.
+
+Each policy consists of one or more `statements`, which define:
+- The `actions` that are allowed (see list of supported actions in komodor web app).
+- The scope of resources the actions apply to, using fields like `clusters`, `namespaces`, `selectors`, or pattern-based filters.
+
+This is useful for implementing fine-grained access control across environments.
+
+## Example Usage
+
+### Basic Policy
+
+Defines a policy that allows read-only access to a known cluster and set of namespaces.
+
+{{ tffile "examples/resources/komodor_policy_v2/resource.tf" }}
+
+### Wildcard Cluster and/or Namespace
+
+Targets resources in clusters and namespaces that match patterns (e.g., `team-*`), while excluding certain ones (e.g., `team-internal`).
+
+{{ tffile "examples/resources/komodor_policy_v2/resource_wildcard.tf" }}
+
+### With Selectors
+
+Uses label selectors to target specific workloads, e.g., resources labeled with `team=platform` and `env=production`.
+
+{{ tffile "examples/resources/komodor_policy_v2/resource_selectors.tf" }}
+
+### With Selector Patterns
+
+Matches resources by label keys using include/exclude value patterns.
+
+{{ tffile "examples/resources/komodor_policy_v2/resource_selector_patterns.tf" }}
+
+## Argument Reference
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+This resource can be imported using the policy ID:
+
+```sh
+terraform import komodor_policy_v2.example <policy_id>
+```
+
