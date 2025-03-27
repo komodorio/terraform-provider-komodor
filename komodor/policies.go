@@ -7,6 +7,7 @@ import (
 )
 
 const PoliciesUrl string = DefaultEndpoint + "/rbac/policies"
+const PoliciesUrlV2 string = V2Endpoint + "/rbac/policies"
 
 type Resource struct {
 	Cluster          string   `json:"cluster"`
@@ -14,9 +15,53 @@ type Resource struct {
 	NamespacePattern string   `json:"namespacePattern,omitempty"`
 }
 
+// Pattern defines model for Pattern.
+type Pattern struct {
+	Exclude string `json:"exclude"`
+	Include string `json:"include"`
+}
+
+// SelectorType defines model for SelectorType.
+type SelectorType string
+
+// Selector defines model for Selector.
+type Selector struct {
+	Key   string       `json:"key"`
+	Type  SelectorType `json:"type"`
+	Value string       `json:"value"`
+}
+
+// SelectorPattern defines model for SelectorPattern.
+type SelectorPattern struct {
+	Key   string       `json:"key"`
+	Type  SelectorType `json:"type"`
+	Value Pattern      `json:"value"`
+}
+
+type ResourcesScope struct {
+	// Clusters List of cluster names
+	Clusters []string `json:"clusters"`
+
+	// ClustersPatterns Patterns for clusters
+	ClustersPatterns []Pattern `json:"clustersPatterns"`
+
+	// Namespaces List of namespace names
+	Namespaces []string `json:"namespaces"`
+
+	// NamespacesPatterns Patterns for namespaces
+	NamespacesPatterns []Pattern `json:"namespacesPatterns"`
+
+	// Selectors Key-value pairs
+	Selectors []Selector `json:"selectors"`
+
+	// SelectorsPatterns Key-pattern pairs
+	SelectorsPatterns []SelectorPattern `json:"selectorsPatterns"`
+}
+
 type Statement struct {
-	Actions   []string   `json:"actions"`
-	Resources []Resource `json:"resources"`
+	Actions        []string        `json:"actions"`
+	Resources      *[]Resource     `json:"resources,omitempty"`
+	ResourcesScope *ResourcesScope `json:"resourcesScope,omitempty"`
 }
 
 type Policy struct {
@@ -86,13 +131,21 @@ func (c *Client) GetPolicyByName(name string) (*Policy, error) {
 	return targetPolicy, nil
 }
 
-func (c *Client) CreatePolicy(p *NewPolicy) (*Policy, error) {
+func (c *Client) CreatePolicyV1(p *NewPolicy) (*Policy, error) {
+	return c.CreatePolicy(p, PoliciesUrl)
+}
+
+func (c *Client) CreatePolicyV2(p *NewPolicy) (*Policy, error) {
+	return c.CreatePolicy(p, PoliciesUrlV2)
+}
+
+func (c *Client) CreatePolicy(p *NewPolicy, beUrl string) (*Policy, error) {
 	jsonPolicy, err := json.Marshal(p)
 
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPost, PoliciesUrl, &jsonPolicy)
+	res, _, err := c.executeHttpRequest(http.MethodPost, beUrl, &jsonPolicy)
 
 	if err != nil {
 		return nil, err
@@ -119,12 +172,20 @@ func (c *Client) DeletePolicy(id string) error {
 	return nil
 }
 
-func (c *Client) UpdatePolicy(id string, p *NewPolicy) (*Policy, error) {
+func (c *Client) UpdatePolicyV1(id string, p *NewPolicy) (*Policy, error) {
+	return c.UpdatePolicy(id, p, PoliciesUrl)
+}
+
+func (c *Client) UpdatePolicyV2(id string, p *NewPolicy) (*Policy, error) {
+	return c.UpdatePolicy(id, p, PoliciesUrlV2)
+}
+
+func (c *Client) UpdatePolicy(id string, p *NewPolicy, beUrl string) (*Policy, error) {
 	jsonPolicy, err := json.Marshal(p)
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(PoliciesUrl+"/%s", id), &jsonPolicy)
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(beUrl+"/%s", id), &jsonPolicy)
 	if err != nil {
 		return nil, err
 	}

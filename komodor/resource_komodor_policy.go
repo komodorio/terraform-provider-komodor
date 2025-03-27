@@ -77,7 +77,7 @@ func resourceKomodorPolicyCreate(ctx context.Context, d *schema.ResourceData, me
 		Tags:       tags,
 	}
 
-	policy, err := client.CreatePolicy(newPolicy)
+	policy, err := client.CreatePolicyV1(newPolicy)
 	if err != nil {
 		return diag.Errorf("Error creating policy: %s", err)
 	}
@@ -132,7 +132,7 @@ func resourceKomodorPolicyUpdate(ctx context.Context, d *schema.ResourceData, me
 		Statements: statements,
 	}
 
-	_, err := client.UpdatePolicy(id, newPolicy)
+	_, err := client.UpdatePolicyV1(id, newPolicy)
 
 	if err != nil {
 		return diag.Errorf("Error updating policy: %s", err)
