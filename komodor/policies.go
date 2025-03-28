@@ -81,27 +81,10 @@ type NewPolicy struct {
 	Tags       interface{} `json:"tags,omitempty"`
 }
 
-func (c *Client) GetPolicies() ([]Policy, error) {
-	res, _, err := c.executeHttpRequest(http.MethodGet, PoliciesUrl, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var policies []Policy
-
-	err = json.Unmarshal(res, &policies)
-	if err != nil {
-		return nil, err
-	}
-
-	return policies, nil
-}
-
-func (c *Client) GetPolicy(id string) (*Policy, int, error) {
+func (c *Client) GetPolicy(nameOrId string) (*Policy, int, error) {
 	var policy Policy
 
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(PoliciesUrl+"/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(PoliciesUrlV2+"/%s", nameOrId), nil)
 
 	if err != nil {
 		return nil, statusCode, err
@@ -115,22 +98,7 @@ func (c *Client) GetPolicy(id string) (*Policy, int, error) {
 	return &policy, statusCode, nil
 }
 
-func (c *Client) GetPolicyByName(name string) (*Policy, error) {
-	allPolicies, err := c.GetPolicies()
-	if err != nil {
-		return nil, err
-	}
-	var targetPolicy *Policy
-	for _, policy := range allPolicies {
-		if policy.Name == name {
-			targetPolicy = &policy
-			break
-		}
-	}
-
-	return targetPolicy, nil
-}
-
+// Create Policy
 func (c *Client) CreatePolicyV1(p *NewPolicy) (*Policy, error) {
 	return c.CreatePolicy(p, PoliciesUrl)
 }
@@ -160,17 +128,27 @@ func (c *Client) CreatePolicy(p *NewPolicy, beUrl string) (*Policy, error) {
 	return &policy, nil
 }
 
-func (c *Client) DeletePolicy(id string) error {
+func (c *Client) DeletePolicyV1(id string) error {
+	return c.DeletePolicy(id, PoliciesUrl)
+}
+
+func (c *Client) DeletePolicyV2(id string) error {
+	return c.DeletePolicy(id, PoliciesUrlV2)
+}
+
+func (c *Client) DeletePolicy(id string, beUrl string) error {
 	requestBody, err := json.Marshal(map[string]string{"id": id})
 	if err != nil {
 		return err
 	}
-	_, _, err = c.executeHttpRequest(http.MethodDelete, PoliciesUrl, &requestBody)
+	_, _, err = c.executeHttpRequest(http.MethodDelete, beUrl, &requestBody)
 	if err != nil {
 		return err
 	}
 	return nil
 }
+
+// Update Policy
 
 func (c *Client) UpdatePolicyV1(id string, p *NewPolicy) (*Policy, error) {
 	return c.UpdatePolicy(id, p, PoliciesUrl)

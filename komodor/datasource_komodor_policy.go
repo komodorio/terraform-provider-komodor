@@ -3,6 +3,7 @@ package komodor
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -45,9 +46,13 @@ func dataSourceKomodorPolicy() *schema.Resource {
 func dataSourceKomodorPolicyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 	name := d.Get("name").(string)
-	policy, err := client.GetPolicyByName(name)
+	policy, statusCode, err := client.GetPolicy(name)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if statusCode == http.StatusNotFound {
+		return diag.Errorf("Policy not found")
 	}
 
 	jsonStatements, err := json.Marshal(policy.Statements)
