@@ -147,7 +147,7 @@ func resourceKomodorPolicyDelete(ctx context.Context, d *schema.ResourceData, me
 	id := d.Id()
 
 	log.Printf("[INFO] Deleting Policy: %s", id)
-	if err := client.DeletePolicy(id); err != nil {
+	if err := client.DeletePolicyV1(id); err != nil {
 		return diag.Errorf("Error deleting policy: %s", err)
 	}
 

@@ -129,19 +129,20 @@ func (c *Client) CreatePolicy(p *NewPolicy, beUrl string) (*Policy, error) {
 }
 
 func (c *Client) DeletePolicyV1(id string) error {
-	return c.DeletePolicy(id, PoliciesUrl)
-}
-
-func (c *Client) DeletePolicyV2(id string) error {
-	return c.DeletePolicy(id, PoliciesUrlV2)
-}
-
-func (c *Client) DeletePolicy(id string, beUrl string) error {
 	requestBody, err := json.Marshal(map[string]string{"id": id})
 	if err != nil {
 		return err
 	}
-	_, _, err = c.executeHttpRequest(http.MethodDelete, beUrl, &requestBody)
+	return c.DeletePolicy(id, PoliciesUrl, requestBody)
+}
+
+func (c *Client) DeletePolicyV2(id string) error {
+	urlWithId := fmt.Sprintf(PoliciesUrlV2+"/%s", id)
+	return c.DeletePolicy(id, urlWithId, nil)
+}
+
+func (c *Client) DeletePolicy(id string, beUrl string, requestBody []byte) error {
+	_, _, err := c.executeHttpRequest(http.MethodDelete, beUrl, &requestBody)
 	if err != nil {
 		return err
 	}

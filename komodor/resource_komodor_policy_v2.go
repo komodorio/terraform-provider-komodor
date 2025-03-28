@@ -344,7 +344,7 @@ func resourceKomodorPolicyV2Create(ctx context.Context, d *schema.ResourceData, 
 
 	log.Printf("[INFO] Policy created successfully. Policy Id: %s", policy.Id)
 
-	return resourceKomodorPolicyRead(ctx, d, meta)
+	return resourceKomodorPolicyV2Read(ctx, d, meta)
 }
 
 func resourceKomodorPolicyV2Read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -377,7 +377,7 @@ func resourceKomodorPolicyV2Update(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	log.Printf("[INFO] Policy %s successfully updated", d.Id())
-	return resourceKomodorPolicyRead(ctx, d, meta)
+	return resourceKomodorPolicyV2Read(ctx, d, meta)
 }
 
 func resourceKomodorPolicyV2Delete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -385,7 +385,7 @@ func resourceKomodorPolicyV2Delete(ctx context.Context, d *schema.ResourceData, 
 	id := d.Id()
 
 	log.Printf("[INFO] Deleting Policy: %s", id)
-	if err := client.DeletePolicy(id); err != nil {
+	if err := client.DeletePolicyV2(id); err != nil {
 		return diag.Errorf("Error deleting policy: %s", err)
 	}
 
