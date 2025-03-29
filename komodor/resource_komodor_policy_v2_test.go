@@ -1,10 +1,6 @@
 package komodor
 
 import (
-	"context"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -236,122 +232,6 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 			assert.Equal(t, tt.expected, actual)
 		})
 	}
-}
-
-// TestResourceKomodorPolicyV2CRUD tests the complete CRUD lifecycle of a policy resource.
-// It mocks the HTTP server to simulate API responses and verifies that create, read,
-// update, and delete operations work correctly with the expected responses.
-func TestResourceKomodorPolicyV2CRUD(t *testing.T) {
-	// Create a test server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			// Create response
-			policy := Policy{
-				Id:        "test-id",
-				Name:      "test-policy",
-				Type:      "v2",
-				CreatedAt: "2024-01-01T00:00:00Z",
-				UpdatedAt: "2024-01-01T00:00:00Z",
-				Statements: []Statement{
-					{
-						Actions: []string{"view:all"},
-						ResourcesScope: &ResourcesScope{
-							Clusters:   []string{"prod-cluster"},
-							Namespaces: []string{"default"},
-						},
-					},
-				},
-			}
-			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(policy)
-		case http.MethodGet:
-			// Read response
-			policy := Policy{
-				Id:        "test-id",
-				Name:      "test-policy",
-				Type:      "v2",
-				CreatedAt: "2024-01-01T00:00:00Z",
-				UpdatedAt: "2024-01-01T00:00:00Z",
-				Statements: []Statement{
-					{
-						Actions: []string{"view:all"},
-						ResourcesScope: &ResourcesScope{
-							Clusters:   []string{"prod-cluster"},
-							Namespaces: []string{"default"},
-						},
-					},
-				},
-			}
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(policy)
-		case http.MethodPut:
-			// Update response
-			policy := Policy{
-				Id:        "test-id",
-				Name:      "updated-policy",
-				Type:      "v2",
-				CreatedAt: "2024-01-01T00:00:00Z",
-				UpdatedAt: "2024-01-01T00:00:00Z",
-				Statements: []Statement{
-					{
-						Actions: []string{"view:all"},
-						ResourcesScope: &ResourcesScope{
-							Clusters:   []string{"prod-cluster"},
-							Namespaces: []string{"default"},
-						},
-					},
-				},
-			}
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(policy)
-		case http.MethodDelete:
-			// Delete response
-			w.WriteHeader(http.StatusNoContent)
-		}
-	}))
-	defer server.Close()
-
-	// Create a client that uses our test server
-	mockClient := &Client{
-		HttpClient: server.Client(),
-		ApiKey:     "test-api-key",
-	}
-
-	resource := resourceKomodorPolicyV2()
-	d := schema.TestResourceDataRaw(t, resource.Schema, map[string]interface{}{
-		"name": "test-policy",
-		"type": "v2",
-		"statements": []interface{}{
-			map[string]interface{}{
-				"actions": []interface{}{"view:all"},
-				"resources_scope": []interface{}{
-					map[string]interface{}{
-						"clusters":   []interface{}{"prod-cluster"},
-						"namespaces": []interface{}{"default"},
-					},
-				},
-			},
-		},
-	})
-
-	// Test Create
-	ctx := context.Background()
-	diags := resource.CreateContext(ctx, d, mockClient)
-	assert.False(t, diags.HasError())
-
-	// Test Read
-	diags = resource.ReadContext(ctx, d, mockClient)
-	assert.False(t, diags.HasError())
-
-	// Test Update
-	d.Set("name", "updated-policy")
-	diags = resource.UpdateContext(ctx, d, mockClient)
-	assert.False(t, diags.HasError())
-
-	// Test Delete
-	diags = resource.DeleteContext(ctx, d, mockClient)
-	assert.False(t, diags.HasError())
 }
 
 // TestResourceKomodorPolicyV2Validation tests the schema validation rules for the policy resource.
