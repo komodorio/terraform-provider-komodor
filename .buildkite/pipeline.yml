@@ -1,0 +1,18 @@
+steps:
+  - label: ":test_tube: Run Unit Tests"
+    command:
+      - "go mod download"
+      - "go test -v ./komodor/..."
+    env:
+      GO_VERSION: "1.23"
+    agents:
+      queue: "default"
+    plugins:
+      - docker#v5.12.0:
+          image: golang:${GO_VERSION}
+          workdir: /go/src/github.com/komodorio/terraform-provider-komodor
+          volumes:
+            - ".:/go/src/github.com/komodorio/terraform-provider-komodor"
+          environment:
+            - GO111MODULE=on
+            - CGO_ENABLED=0 
