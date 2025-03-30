@@ -21,7 +21,6 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 			name: "basic policy",
 			config: map[string]interface{}{
 				"name": "test-policy",
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"actions": []interface{}{"view:all"},
@@ -36,7 +35,6 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 			},
 			expected: &NewPolicy{
 				Name: "test-policy",
-				Type: "v2",
 				Statements: []Statement{
 					{
 						Actions: []string{"view:all"},
@@ -56,7 +54,6 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 			name: "policy with patterns",
 			config: map[string]interface{}{
 				"name": "pattern-policy",
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"actions": []interface{}{"view:all"},
@@ -81,7 +78,6 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 			},
 			expected: &NewPolicy{
 				Name: "pattern-policy",
-				Type: "v2",
 				Statements: []Statement{
 					{
 						Actions: []string{"view:all"},
@@ -101,7 +97,6 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 			name: "policy with selectors",
 			config: map[string]interface{}{
 				"name": "selector-policy",
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"actions": []interface{}{"get", "list", "watch"},
@@ -128,7 +123,6 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 			},
 			expected: &NewPolicy{
 				Name: "selector-policy",
-				Type: "v2",
 				Statements: []Statement{
 					{
 						Actions: []string{"get", "list", "watch"},
@@ -151,7 +145,6 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 			name: "policy with selector patterns",
 			config: map[string]interface{}{
 				"name": "selector-pattern-policy",
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"actions": []interface{}{"get", "list"},
@@ -188,7 +181,6 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 			},
 			expected: &NewPolicy{
 				Name: "selector-pattern-policy",
-				Type: "v2",
 				Statements: []Statement{
 					{
 						Actions: []string{"get", "list"},
@@ -246,7 +238,6 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 		{
 			name: "missing required name",
 			config: map[string]interface{}{
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"actions": []interface{}{"view:all"},
@@ -265,7 +256,6 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 			name: "missing required statements",
 			config: map[string]interface{}{
 				"name": "test-policy",
-				"type": "v2",
 			},
 			wantErr: true,
 		},
@@ -292,7 +282,6 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 			name: "missing required actions in statement",
 			config: map[string]interface{}{
 				"name": "test-policy",
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"resources_scope": []interface{}{
@@ -310,7 +299,6 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 			name: "missing required resources_scope in statement",
 			config: map[string]interface{}{
 				"name": "test-policy",
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"actions": []interface{}{"view:all"},
@@ -323,7 +311,6 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 			name: "invalid selector type",
 			config: map[string]interface{}{
 				"name": "test-policy",
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"actions": []interface{}{"view:all"},
@@ -349,7 +336,6 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 			name: "invalid selector pattern type",
 			config: map[string]interface{}{
 				"name": "test-policy",
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"actions": []interface{}{"view:all"},
@@ -380,7 +366,6 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 			name: "missing required include in pattern",
 			config: map[string]interface{}{
 				"name": "test-policy",
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"actions": []interface{}{"view:all"},
@@ -402,7 +387,6 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 			name: "missing required exclude in pattern",
 			config: map[string]interface{}{
 				"name": "test-policy",
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"actions": []interface{}{"view:all"},
@@ -424,7 +408,6 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 			name: "valid configuration",
 			config: map[string]interface{}{
 				"name": "test-policy",
-				"type": "v2",
 				"statements": []interface{}{
 					map[string]interface{}{
 						"actions": []interface{}{"view:all"},
