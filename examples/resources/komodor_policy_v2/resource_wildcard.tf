@@ -1,6 +1,5 @@
 resource "komodor_policy_v2" "pattern_based_policy" {
   name = "pattern-read-policy"
-  type = "v2"
 
   statements {
     actions = ["view:all"]

@@ -1,9 +1,8 @@
 resource "komodor_policy_v2" "selector_based_policy" {
-  name = "selector-read-policy"
-  type = "v2"
+  name = "selector-view-policy"
 
   statements {
-    actions = ["get", "list", "watch"]
+    actions = ["view:nodes", "view:namespaces"]
 
     resources_scope {
       clusters   = ["prod-cluster"]

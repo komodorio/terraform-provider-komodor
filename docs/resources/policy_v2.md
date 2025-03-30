@@ -26,7 +26,6 @@ Defines a policy that allows read-only access to a known cluster and set of name
 ```terraform
 resource "komodor_policy_v2" "simple_policy" {
   name = "simple-read-policy"
-  type = "v2"
 
   statements {
     actions = ["view:all"]
@@ -34,6 +33,33 @@ resource "komodor_policy_v2" "simple_policy" {
     resources_scope {
       clusters   = ["prod-cluster"]
       namespaces = ["default", "kube-system"]
+    }
+  }
+}
+
+resource "komodor_policy_v2" "admin_policy" {
+  name = "admin-policy"
+
+  statements {
+    actions = [
+      "manage:kubeconfig",
+      "view:audit",
+      "manage:users",
+      "manage:agents",
+      "manage:account-access",
+      "manage:trackedkeys"
+    ]
+
+    resources_scope {
+      clusters_patterns {
+        include = "*"
+        exclude = ""
+      }
+
+      namespaces_patterns {
+        include = "*"
+        exclude = ""
+      }
     }
   }
 }
@@ -46,7 +72,6 @@ Targets resources in clusters and namespaces that match patterns (e.g., `team-*`
 ```terraform
 resource "komodor_policy_v2" "pattern_based_policy" {
   name = "pattern-read-policy"
-  type = "v2"
 
   statements {
     actions = ["view:all"]
@@ -73,15 +98,14 @@ resource "komodor_policy_v2" "pattern_based_policy" {
 
 ### With Selectors
 
-Uses label selectors to target specific workloads, e.g., resources labeled with `team=platform` and `env=production`.
+Uses `Tracked keys` to target specific workloads, e.g., resources labeled with `team=platform` and `env=production`.
 
 ```terraform
 resource "komodor_policy_v2" "selector_based_policy" {
-  name = "selector-read-policy"
-  type = "v2"
+  name = "selector-view-policy"
 
   statements {
-    actions = ["get", "list", "watch"]
+    actions = ["view:nodes", "view:namespaces"]
 
     resources_scope {
       clusters   = ["prod-cluster"]
@@ -109,11 +133,10 @@ Matches resources by label keys using include/exclude value patterns.
 
 ```terraform
 resource "komodor_policy_v2" "selector_pattern_policy" {
-  name = "selector-pattern-policy"
-  type = "v2"
+  name = "selector-pattern-view-policy"
 
   statements {
-    actions = ["get", "list"]
+    actions = ["view:nodes", "view:namespaces"]
 
     resources_scope {
       clusters   = ["prod-cluster"]
@@ -150,10 +173,6 @@ resource "komodor_policy_v2" "selector_pattern_policy" {
 
 - `name` (String)
 - `statements` (Block List, Min: 1) (see [below for nested schema](#nestedblock--statements))
-
-### Optional
-
-- `type` (String)
 
 ### Read-Only
 

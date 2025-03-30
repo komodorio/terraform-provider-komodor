@@ -90,12 +90,6 @@ func resourceKomodorPolicyV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "v2",
-				ValidateFunc: validation.StringInSlice([]string{"v2"}, false),
-			},
 		},
 	}
 }
@@ -148,7 +142,6 @@ func selectorPatternSchema() *schema.Resource {
 func expandPolicy(d *schema.ResourceData) *NewPolicy {
 	return &NewPolicy{
 		Name:       d.Get("name").(string),
-		Type:       d.Get("type").(string),
 		Statements: expandStatements(d.Get("statements").([]interface{})),
 	}
 }
@@ -246,7 +239,6 @@ func expandSelectorPatterns(list []interface{}) []SelectorPattern {
 
 func flattenPolicy(policy *Policy, d *schema.ResourceData) error {
 	d.Set("name", policy.Name)
-	d.Set("type", policy.Type)
 	d.Set("statements", flattenStatements(policy.Statements))
 	return nil
 }

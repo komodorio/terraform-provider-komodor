@@ -1,6 +1,5 @@
 resource "komodor_policy_v2" "simple_policy" {
   name = "simple-read-policy"
-  type = "v2"
 
   statements {
     actions = ["view:all"]
@@ -12,3 +11,29 @@ resource "komodor_policy_v2" "simple_policy" {
   }
 }
 
+resource "komodor_policy_v2" "admin_policy" {
+  name = "admin-policy"
+
+  statements {
+    actions = [
+      "manage:kubeconfig",
+      "view:audit",
+      "manage:users",
+      "manage:agents",
+      "manage:account-access",
+      "manage:trackedkeys"
+    ]
+
+    resources_scope {
+      clusters_patterns {
+        include = "*"
+        exclude = ""
+      }
+
+      namespaces_patterns {
+        include = "*"
+        exclude = ""
+      }
+    }
+  }
+}

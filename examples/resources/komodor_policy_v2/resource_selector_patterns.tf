@@ -1,9 +1,8 @@
 resource "komodor_policy_v2" "selector_pattern_policy" {
-  name = "selector-pattern-policy"
-  type = "v2"
+  name = "selector-pattern-view-policy"
 
   statements {
-    actions = ["get", "list"]
+    actions = ["view:nodes", "view:namespaces"]
 
     resources_scope {
       clusters   = ["prod-cluster"]
