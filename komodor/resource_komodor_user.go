@@ -25,6 +25,7 @@ func resourceKomodorUser() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.NoZeroValues,
+				ForceNew:     true,
 			},
 			"created_at": {
 				Type:     schema.TypeString,

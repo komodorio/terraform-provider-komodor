@@ -11,7 +11,7 @@ import (
 
 const (
 	UsersV2Url string = V2Endpoint + "/users"
-	UsersV1Url string = DefaultEndpoint + "/users"
+	UsersV1Url string = DefaultEndpoint + "/rbac/users"
 )
 
 type User struct {
@@ -55,7 +55,7 @@ func (c *Client) GetUserByEmail(email string) (*User, error) {
 
 func (c *Client) GetUser(id string) (*User, int, error) {
 	var user User
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(UsersV1Url+"/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(UsersV1Url+"/%s", id), nil) // TODO: replace with v2 (after implementation)
 	if err != nil {
 		return nil, statusCode, err
 	}
@@ -121,7 +121,6 @@ func (c *Client) getUsers(req *getUsersParams) ([]User, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	res, _, err := c.executeHttpRequest(http.MethodGet, UsersV2Url, &requestBody)
 	if err != nil {
 		return nil, err
