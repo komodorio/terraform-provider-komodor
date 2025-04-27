@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/samber/lo"
 )
 
 func resourceKomodorWorkspace() *schema.Resource {
@@ -91,10 +92,20 @@ func resourceKomodorWorkspace() *schema.Resource {
 // Expand (from TF -> GO)
 
 func expandWorkspace(d *schema.ResourceData) *NewWorkspace {
+	scopes := d.Get("scopes").([]interface{})
+	expandedScopes := lo.Map(scopes, func(item interface{}, _ int) ResourcesScope {
+		data := item.(map[string]interface{})
+		scope := expandResourcesScope([]interface{}{data})
+		if scope == nil {
+			return ResourcesScope{}
+		}
+		return *scope
+	})
+
 	return &NewWorkspace{
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
-		Scopes:      expandResourcesScope(d.Get("scopes").([]interface{})),
+		Scopes:      expandedScopes,
 	}
 }
 
@@ -103,7 +114,10 @@ func expandWorkspace(d *schema.ResourceData) *NewWorkspace {
 func flattenWorkspace(workspace *Workspace, d *schema.ResourceData) error {
 	d.Set("name", workspace.Name)
 	d.Set("description", workspace.Description)
-	d.Set("scopes", flattenResourcesScope(workspace.Scopes))
+	scopesList := lo.Map(workspace.Scopes, func(scope ResourcesScope, _ int) interface{} {
+		return flattenResourcesScope(&scope)
+	})
+	d.Set("scopes", scopesList)
 	d.Set("created_at", workspace.CreatedAt)
 	d.Set("updated_at", workspace.LastUpdated)
 	d.Set("author_email", workspace.AuthorEmail)
