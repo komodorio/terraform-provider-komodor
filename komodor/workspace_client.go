@@ -28,7 +28,7 @@ func (c *Client) CreateWorkspace(workspace *NewWorkspace) (*Workspace, error) {
 		return nil, fmt.Errorf("failed to marshal workspace: %w", err)
 	}
 
-	resBody, statusCode, err := c.executeHttpRequest("POST", "/api/v2/workspaces", &body)
+	resBody, statusCode, err := c.executeHttpRequest("POST", V2Endpoint+"/workspaces", &body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create workspace: %w", err)
 	}
@@ -46,7 +46,7 @@ func (c *Client) CreateWorkspace(workspace *NewWorkspace) (*Workspace, error) {
 }
 
 func (c *Client) GetWorkspace(id string) (*Workspace, int, error) {
-	resBody, statusCode, err := c.executeHttpRequest("GET", fmt.Sprintf("/api/v2/workspaces/%s", id), nil)
+	resBody, statusCode, err := c.executeHttpRequest("GET", fmt.Sprintf(V2Endpoint+"/workspaces/%s", id), nil)
 	if err != nil {
 		return nil, statusCode, fmt.Errorf("failed to get workspace: %w", err)
 	}
@@ -69,7 +69,7 @@ func (c *Client) UpdateWorkspace(id string, workspace *NewWorkspace) (*Workspace
 		return nil, fmt.Errorf("failed to marshal workspace: %w", err)
 	}
 
-	resBody, statusCode, err := c.executeHttpRequest("PUT", fmt.Sprintf("/api/v2/workspaces/%s", id), &body)
+	resBody, statusCode, err := c.executeHttpRequest("PUT", fmt.Sprintf(V2Endpoint+"/workspaces/%s", id), &body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update workspace: %w", err)
 	}
@@ -87,7 +87,7 @@ func (c *Client) UpdateWorkspace(id string, workspace *NewWorkspace) (*Workspace
 }
 
 func (c *Client) DeleteWorkspace(id string) error {
-	_, statusCode, err := c.executeHttpRequest("DELETE", fmt.Sprintf("/api/v2/workspaces/%s", id), nil)
+	_, statusCode, err := c.executeHttpRequest("DELETE", fmt.Sprintf(V2Endpoint+"/workspaces/%s", id), nil)
 	if err != nil {
 		return fmt.Errorf("failed to delete workspace: %w", err)
 	}

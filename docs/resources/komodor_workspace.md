@@ -2,6 +2,8 @@
 
 This resource allows you to create and manage Komodor workspaces. Workspaces are used to organize and scope your Kubernetes resources in Komodor.
 
+> **Note**: When using selectors and selectors patterns in workspaces, make sure to configure the tracked keys in the [Settings Page](https://app.komodor.com/settings/tracked-keys). For more information about workspace creation and optimization, see the [Komodor documentation](https://help.komodor.com/hc/en-us/articles/25537329198866-Workspaces-Creation-Optimisation).
+
 ## Example Usage
 
 ```hcl

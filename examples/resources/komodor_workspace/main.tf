@@ -44,18 +44,14 @@ resource "komodor_workspace" "selector" {
   description = "A workspace using selector-based scopes"
 
   scopes {
-    selectors {
+    selectors_patterns {
       key   = "environment"
       type  = "label"
-      value = "production"
-    }
-    selectors_patterns {
-      key  = "team"
-      type = "label"
       value {
-        include = "team-*"
-        exclude = "team-ops-*"
+        include = "prod-*"
+        exclude = ""
       }
     }
+    clusters = ["cluster-1", "cluster-3"]
   }
 } 
