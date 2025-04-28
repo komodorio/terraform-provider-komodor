@@ -7,6 +7,7 @@ import (
 )
 
 const PoliciesUrl string = DefaultEndpoint + "/rbac/policies"
+const PoliciesUrlV2 string = V2Endpoint + "/rbac/policies"
 
 type Resource struct {
 	Cluster          string   `json:"cluster"`
@@ -14,9 +15,53 @@ type Resource struct {
 	NamespacePattern string   `json:"namespacePattern,omitempty"`
 }
 
+// Pattern defines model for Pattern.
+type Pattern struct {
+	Exclude string `json:"exclude"`
+	Include string `json:"include"`
+}
+
+// SelectorType defines model for SelectorType.
+type SelectorType string
+
+// Selector defines model for Selector.
+type Selector struct {
+	Key   string       `json:"key"`
+	Type  SelectorType `json:"type"`
+	Value string       `json:"value"`
+}
+
+// SelectorPattern defines model for SelectorPattern.
+type SelectorPattern struct {
+	Key   string       `json:"key"`
+	Type  SelectorType `json:"type"`
+	Value Pattern      `json:"value"`
+}
+
+type ResourcesScope struct {
+	// Clusters List of cluster names
+	Clusters []string `json:"clusters"`
+
+	// ClustersPatterns Patterns for clusters
+	ClustersPatterns []Pattern `json:"clustersPatterns"`
+
+	// Namespaces List of namespace names
+	Namespaces []string `json:"namespaces"`
+
+	// NamespacesPatterns Patterns for namespaces
+	NamespacesPatterns []Pattern `json:"namespacesPatterns"`
+
+	// Selectors Key-value pairs
+	Selectors []Selector `json:"selectors"`
+
+	// SelectorsPatterns Key-pattern pairs
+	SelectorsPatterns []SelectorPattern `json:"selectorsPatterns"`
+}
+
 type Statement struct {
-	Actions   []string   `json:"actions"`
-	Resources []Resource `json:"resources"`
+	Actions        []string        `json:"actions"`
+	Resources      *[]Resource     `json:"resources,omitempty"`
+	ResourcesScope *ResourcesScope `json:"resourcesScope,omitempty"`
 }
 
 type Policy struct {
@@ -36,27 +81,10 @@ type NewPolicy struct {
 	Tags       interface{} `json:"tags,omitempty"`
 }
 
-func (c *Client) GetPolicies() ([]Policy, error) {
-	res, _, err := c.executeHttpRequest(http.MethodGet, PoliciesUrl, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var policies []Policy
-
-	err = json.Unmarshal(res, &policies)
-	if err != nil {
-		return nil, err
-	}
-
-	return policies, nil
-}
-
-func (c *Client) GetPolicy(id string) (*Policy, int, error) {
+func (c *Client) GetPolicy(nameOrId string) (*Policy, int, error) {
 	var policy Policy
 
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(PoliciesUrl+"/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(PoliciesUrlV2+"/%s", nameOrId), nil)
 
 	if err != nil {
 		return nil, statusCode, err
@@ -70,29 +98,22 @@ func (c *Client) GetPolicy(id string) (*Policy, int, error) {
 	return &policy, statusCode, nil
 }
 
-func (c *Client) GetPolicyByName(name string) (*Policy, error) {
-	allPolicies, err := c.GetPolicies()
-	if err != nil {
-		return nil, err
-	}
-	var targetPolicy *Policy
-	for _, policy := range allPolicies {
-		if policy.Name == name {
-			targetPolicy = &policy
-			break
-		}
-	}
-
-	return targetPolicy, nil
+// Create Policy
+func (c *Client) CreatePolicyV1(p *NewPolicy) (*Policy, error) {
+	return c.CreatePolicy(p, PoliciesUrl)
 }
 
-func (c *Client) CreatePolicy(p *NewPolicy) (*Policy, error) {
+func (c *Client) CreatePolicyV2(p *NewPolicy) (*Policy, error) {
+	return c.CreatePolicy(p, PoliciesUrlV2)
+}
+
+func (c *Client) CreatePolicy(p *NewPolicy, beUrl string) (*Policy, error) {
 	jsonPolicy, err := json.Marshal(p)
 
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPost, PoliciesUrl, &jsonPolicy)
+	res, _, err := c.executeHttpRequest(http.MethodPost, beUrl, &jsonPolicy)
 
 	if err != nil {
 		return nil, err
@@ -107,24 +128,43 @@ func (c *Client) CreatePolicy(p *NewPolicy) (*Policy, error) {
 	return &policy, nil
 }
 
-func (c *Client) DeletePolicy(id string) error {
+func (c *Client) DeletePolicyV1(id string) error {
 	requestBody, err := json.Marshal(map[string]string{"id": id})
 	if err != nil {
 		return err
 	}
-	_, _, err = c.executeHttpRequest(http.MethodDelete, PoliciesUrl, &requestBody)
+	return c.DeletePolicy(id, PoliciesUrl, requestBody)
+}
+
+func (c *Client) DeletePolicyV2(id string) error {
+	urlWithId := fmt.Sprintf(PoliciesUrlV2+"/%s", id)
+	return c.DeletePolicy(id, urlWithId, nil)
+}
+
+func (c *Client) DeletePolicy(id string, beUrl string, requestBody []byte) error {
+	_, _, err := c.executeHttpRequest(http.MethodDelete, beUrl, &requestBody)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Client) UpdatePolicy(id string, p *NewPolicy) (*Policy, error) {
+// Update Policy
+
+func (c *Client) UpdatePolicyV1(id string, p *NewPolicy) (*Policy, error) {
+	return c.UpdatePolicy(id, p, PoliciesUrl)
+}
+
+func (c *Client) UpdatePolicyV2(id string, p *NewPolicy) (*Policy, error) {
+	return c.UpdatePolicy(id, p, PoliciesUrlV2)
+}
+
+func (c *Client) UpdatePolicy(id string, p *NewPolicy, beUrl string) (*Policy, error) {
 	jsonPolicy, err := json.Marshal(p)
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(PoliciesUrl+"/%s", id), &jsonPolicy)
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(beUrl+"/%s", id), &jsonPolicy)
 	if err != nil {
 		return nil, err
 	}
