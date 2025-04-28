@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/samber/lo"
 )
 
 const UsersUrl string = V2Endpoint + "/users"
@@ -26,14 +24,6 @@ type NewUser struct {
 
 type UpdateUser struct {
 	DisplayName string `json:"displayName"`
-}
-
-type getUsersParams struct {
-	IsDeleted *bool `json:"isDeleted,omitempty"`
-}
-
-func (c *Client) GetUsers() ([]User, error) {
-	return c.getUsers(&getUsersParams{IsDeleted: lo.ToPtr(false)})
 }
 
 func (c *Client) GetUser(idOrEmail string) (*User, int, error) {
@@ -94,23 +84,4 @@ func (c *Client) UpdateUser(id string, p *UpdateUser) (*User, error) {
 func (c *Client) DeleteUser(id string) error {
 	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(UsersUrl+"/%s", id), nil)
 	return err
-}
-
-func (c *Client) getUsers(req *getUsersParams) ([]User, error) {
-	requestBody, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-	res, _, err := c.executeHttpRequest(http.MethodGet, UsersUrl, &requestBody)
-	if err != nil {
-		return nil, err
-	}
-
-	var users []User
-	err = json.Unmarshal(res, &users)
-	if err != nil {
-		return nil, err
-	}
-
-	return users, nil
 }
