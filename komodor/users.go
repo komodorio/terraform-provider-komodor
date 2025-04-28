@@ -29,28 +29,16 @@ type UpdateUser struct {
 }
 
 type getUsersParams struct {
-	Email     *string `json:"email,omitempty"`
-	IsDeleted *bool   `json:"isDeleted,omitempty"`
+	IsDeleted *bool `json:"isDeleted,omitempty"`
 }
 
 func (c *Client) GetUsers() ([]User, error) {
 	return c.getUsers(&getUsersParams{IsDeleted: lo.ToPtr(false)})
 }
 
-func (c *Client) GetUserByEmail(email string) (*User, error) {
-	users, err := c.getUsers(&getUsersParams{Email: &email, IsDeleted: lo.ToPtr(false)})
-	if err != nil {
-		return nil, err
-	}
-	if len(users) == 0 {
-		return nil, nil
-	}
-	return &users[0], nil
-}
-
-func (c *Client) GetUser(id string) (*User, int, error) {
+func (c *Client) GetUser(idOrEmail string) (*User, int, error) {
 	var user User
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(UsersUrl+"/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(UsersUrl+"/%s", idOrEmail), nil)
 	if err != nil {
 		return nil, statusCode, err
 	}

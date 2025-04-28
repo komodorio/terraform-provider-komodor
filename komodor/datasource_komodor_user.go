@@ -42,7 +42,7 @@ func dataSourceKomodorUser() *schema.Resource {
 func dataSourceKomodorUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 	email := d.Get("email").(string)
-	user, err := client.GetUserByEmail(email)
+	user, _, err := client.GetUser(email)
 	if err != nil {
 		return diag.Errorf("Could not get user by email %s", email)
 	}
