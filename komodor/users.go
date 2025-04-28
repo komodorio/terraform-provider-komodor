@@ -2,25 +2,20 @@ package komodor
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/samber/lo"
 )
 
-const (
-	UsersV2Url string = V2Endpoint + "/users"
-	UsersV1Url string = DefaultEndpoint + "/rbac/users"
-)
+const UsersUrl string = V2Endpoint + "/users"
 
 type User struct {
-	Id          string  `json:"id"`
-	DisplayName string  `json:"displayName"`
-	Email       string  `json:"email"`
-	CreatedAt   string  `json:"createdAt"`
-	UpdatedAt   string  `json:"updatedAt"`
-	DeletedAt   *string `json:"deletedAt,omitempty"`
+	Id          string `json:"id"`
+	DisplayName string `json:"displayName"`
+	Email       string `json:"email"`
+	CreatedAt   string `json:"createdAt"`
+	UpdatedAt   string `json:"updatedAt"`
 }
 
 type NewUser struct {
@@ -55,7 +50,7 @@ func (c *Client) GetUserByEmail(email string) (*User, error) {
 
 func (c *Client) GetUser(id string) (*User, int, error) {
 	var user User
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(UsersV1Url+"/%s", id), nil) // TODO: replace with v2 (after implementation)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(UsersUrl+"/%s", id), nil)
 	if err != nil {
 		return nil, statusCode, err
 	}
@@ -63,9 +58,6 @@ func (c *Client) GetUser(id string) (*User, int, error) {
 	err = json.Unmarshal(res, &user)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
-	}
-	if user.DeletedAt != nil {
-		return nil, http.StatusNotFound, errors.New("user not found")
 	}
 
 	return &user, statusCode, nil
@@ -77,7 +69,7 @@ func (c *Client) CreateUser(user *NewUser) (*User, error) {
 		return nil, err
 	}
 
-	res, _, err := c.executeHttpRequest(http.MethodPost, UsersV2Url, &requestBody)
+	res, _, err := c.executeHttpRequest(http.MethodPost, UsersUrl, &requestBody)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +89,7 @@ func (c *Client) UpdateUser(id string, p *UpdateUser) (*User, error) {
 		return nil, err
 	}
 
-	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(UsersV2Url+"/%s", id), &jsonUser)
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(UsersUrl+"/%s", id), &jsonUser)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +104,7 @@ func (c *Client) UpdateUser(id string, p *UpdateUser) (*User, error) {
 }
 
 func (c *Client) DeleteUser(id string) error {
-	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(UsersV2Url+"/%s", id), nil)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(UsersUrl+"/%s", id), nil)
 	return err
 }
 
@@ -121,7 +113,7 @@ func (c *Client) getUsers(req *getUsersParams) ([]User, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodGet, UsersV2Url, &requestBody)
+	res, _, err := c.executeHttpRequest(http.MethodGet, UsersUrl, &requestBody)
 	if err != nil {
 		return nil, err
 	}
