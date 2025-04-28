@@ -53,5 +53,9 @@ resource "komodor_workspace" "selector" {
       }
     }
     clusters = ["cluster-1", "cluster-3"]
+    namespaces_patterns {
+      include = "*"
+      exclude = ""
+    }
   }
 } 
