@@ -44,6 +44,7 @@ func Provider() *schema.Provider {
 			"komodor_action":                 resourceKomodorCustomK8sAction(),
 			"komodor_kubernetes":             resourceKomodorKubernetes(),
 			"komodor_workspace":              resourceKomodorWorkspace(),
+			"komodor_user":                   resourceKomodorUser(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -51,6 +52,7 @@ func Provider() *schema.Provider {
 			"komodor_policy":     dataSourceKomodorPolicy(),
 			"komodor_policy_v2":  dataSourceKomodorPolicy(),
 			"komodor_kubernetes": dataSourceKomodorKubernetes(),
+			"komodor_user":       dataSourceKomodorUser(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

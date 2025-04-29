@@ -5,7 +5,7 @@ go 1.23.7
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.21.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.36.1
-	github.com/samber/lo v1.49.1
+	github.com/samber/lo v1.50.0
 	github.com/stretchr/testify v1.10.0
 )
 
