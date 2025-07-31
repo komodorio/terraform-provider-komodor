@@ -107,9 +107,9 @@ resource "komodor_workspace" "selector" {
 Optional:
 
 - `clusters` (List of String)
-- `clusters_patterns` (Block List) (see [below for nested schema](#nestedblock--scopes--clusters_patterns))
+- `clusters_patterns` (Block List, Max: 1) (see [below for nested schema](#nestedblock--scopes--clusters_patterns))
 - `namespaces` (List of String)
-- `namespaces_patterns` (Block List) (see [below for nested schema](#nestedblock--scopes--namespaces_patterns))
+- `namespaces_patterns` (Block List, Max: 1) (see [below for nested schema](#nestedblock--scopes--namespaces_patterns))
 - `selectors` (Block List) (see [below for nested schema](#nestedblock--scopes--selectors))
 - `selectors_patterns` (Block List) (see [below for nested schema](#nestedblock--scopes--selectors_patterns))
 
