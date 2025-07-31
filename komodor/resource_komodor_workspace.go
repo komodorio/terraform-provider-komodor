@@ -50,8 +50,8 @@ func resourceKomodorWorkspace() *schema.Resource {
 								Type: schema.TypeString,
 							},
 						},
-						"clusters_patterns":   patternListSchema(),
-						"namespaces_patterns": patternListSchema(),
+						"clusters_patterns":   patternListMaxOneSchema(),
+						"namespaces_patterns": patternListMaxOneSchema(),
 						"selectors": {
 							Type:     schema.TypeList,
 							Optional: true,

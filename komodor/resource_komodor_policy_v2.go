@@ -59,8 +59,8 @@ func resourceKomodorPolicyV2() *schema.Resource {
 											Type: schema.TypeString,
 										},
 									},
-									"clusters_patterns":   patternListSchema(),
-									"namespaces_patterns": patternListSchema(),
+									"clusters_patterns":   patternListMaxOneSchema(),
+									"namespaces_patterns": patternListMaxOneSchema(),
 									"selectors": {
 										Type:     schema.TypeList,
 										Optional: true,
@@ -94,10 +94,15 @@ func resourceKomodorPolicyV2() *schema.Resource {
 	}
 }
 
-func patternListSchema() *schema.Schema {
+func patternListMaxOneSchema() *schema.Schema {
+	return patternListSchema(1)
+}
+
+func patternListSchema(maxItems int) *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
 		Optional: true,
+		MaxItems: maxItems,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"include": {Type: schema.TypeString, Required: true},

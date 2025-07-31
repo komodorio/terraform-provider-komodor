@@ -405,6 +405,64 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "unsupported amount of patterns in resources_scopes clusters_patterns",
+			config: map[string]interface{}{
+				"name": "test-policy",
+				"statements": []interface{}{
+					map[string]interface{}{
+						"actions": []interface{}{"view:all"},
+						"resources_scope": []interface{}{
+							map[string]interface{}{
+								"clusters_patterns": []interface{}{
+									map[string]interface{}{
+										"include": "prod-*",
+									},
+									map[string]interface{}{
+										"include": "stg-*",
+									},
+								},
+								"namespaces_patterns": []interface{}{
+									map[string]interface{}{
+										"include": "prod-*",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "unsupported amount of patterns in resources_scopes namespaces_patterns",
+			config: map[string]interface{}{
+				"name": "test-policy",
+				"statements": []interface{}{
+					map[string]interface{}{
+						"actions": []interface{}{"view:all"},
+						"resources_scope": []interface{}{
+							map[string]interface{}{
+								"clusters_patterns": []interface{}{
+									map[string]interface{}{
+										"include": "prod-*",
+									},
+								},
+								"namespaces_patterns": []interface{}{
+									map[string]interface{}{
+										"include": "prod-*",
+									},
+									map[string]interface{}{
+										"include": "stg-*",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "valid configuration",
 			config: map[string]interface{}{
 				"name": "test-policy",
