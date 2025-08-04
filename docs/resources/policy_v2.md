@@ -194,9 +194,9 @@ Required:
 Optional:
 
 - `clusters` (List of String)
-- `clusters_patterns` (Block List) (see [below for nested schema](#nestedblock--statements--resources_scope--clusters_patterns))
+- `clusters_patterns` (Block List, Max: 1) (see [below for nested schema](#nestedblock--statements--resources_scope--clusters_patterns))
 - `namespaces` (List of String)
-- `namespaces_patterns` (Block List) (see [below for nested schema](#nestedblock--statements--resources_scope--namespaces_patterns))
+- `namespaces_patterns` (Block List, Max: 1) (see [below for nested schema](#nestedblock--statements--resources_scope--namespaces_patterns))
 - `selectors` (Block List) (see [below for nested schema](#nestedblock--statements--resources_scope--selectors))
 - `selectors_patterns` (Block List) (see [below for nested schema](#nestedblock--statements--resources_scope--selectors_patterns))
 
