@@ -27,3 +27,5 @@ terraform
 
 .vscode/
 .idea/
+
+dev_test_state/
