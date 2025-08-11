@@ -38,6 +38,7 @@ func (c *Client) prepareRequest(method, url string, body *[]byte) (*http.Request
 
 	req.Header.Set("x-api-key", c.ApiKey)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Terraform (terraform-provider-komodor); Go-http-client/1.1")
 
 	return req, nil
 }
