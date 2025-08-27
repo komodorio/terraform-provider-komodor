@@ -12,12 +12,12 @@ resource "komodor_policy_v2" "pattern_based_policy" {
 
       clusters_patterns {
         include = "staging-*"
-        exclude = "staging-legacy"
+        exclude = "staging-legacy-*"
       }
 
       namespaces_patterns {
         include = "team-*"
-        exclude = "team-internal"
+        exclude = "team-internal-*"
       }
     }
   }

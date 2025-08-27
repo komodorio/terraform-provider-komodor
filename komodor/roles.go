@@ -6,14 +6,20 @@ import (
 	"net/http"
 )
 
-const RolesUrl string = DefaultEndpoint + "/rbac/roles"
+const RolesUrl string = V2Endpoint + "/rbac/roles"
+
+type PolicyRole struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
 
 type Role struct {
-	Id        string `json:"id"`
-	Name      string `json:"name"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
-	IsDefault bool   `json:"isDefault"`
+	Id        string       `json:"id"`
+	Name      string       `json:"name"`
+	CreatedAt string       `json:"createdAt"`
+	UpdatedAt string       `json:"updatedAt"`
+	IsDefault bool         `json:"isDefault"`
+	Policies  []PolicyRole `json:"policies"`
 }
 
 type NewRole struct {
