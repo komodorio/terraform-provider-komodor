@@ -98,12 +98,7 @@ func (c *Client) CreateRole(role *NewRole) (*Role, error) {
 }
 
 func (c *Client) DeleteRole(id string) error {
-	requestBody, err := json.Marshal(map[string]string{"id": id})
-	if err != nil {
-		return err
-	}
-
-	_, _, err = c.executeHttpRequest(http.MethodDelete, RolesUrl, &requestBody)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(RolesUrl+"/%s", id), nil)
 	if err != nil {
 		return err
 	}
