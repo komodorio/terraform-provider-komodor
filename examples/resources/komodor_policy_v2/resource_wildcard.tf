@@ -7,7 +7,7 @@ resource "komodor_policy_v2" "pattern_based_policy" {
     resources_scope {
       clusters_patterns {
         include = "prod-*"
-        exclude = "prod-legacy"
+        exclude = "prod-legacy-*"
       }
 
       clusters_patterns {
