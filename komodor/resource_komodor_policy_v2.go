@@ -260,16 +260,6 @@ func flattenStatements(statements []Statement) []interface{} {
 	})
 }
 
-func flattenResources(resources []Resource) []interface{} {
-	return lo.Map(resources, func(r Resource, _ int) interface{} {
-		return map[string]interface{}{
-			"cluster":           r.Cluster,
-			"namespaces":        toInterfaceList(r.Namespaces),
-			"namespace_pattern": r.NamespacePattern,
-		}
-	})
-}
-
 func toInterfaceList(strs []string) []interface{} {
 	return lo.Map(strs, func(s string, _ int) interface{} {
 		return s
@@ -334,7 +324,7 @@ func resourceKomodorPolicyV2Create(ctx context.Context, d *schema.ResourceData, 
 
 	policy, err := client.CreatePolicyV2(newPolicy)
 	if err != nil {
-		return diag.Errorf("Error creating policy: %s", err)
+		return diag.Errorf("Error creating policy V2: %s", err)
 	}
 
 	d.SetId(policy.Id)

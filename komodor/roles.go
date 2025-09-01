@@ -6,14 +6,20 @@ import (
 	"net/http"
 )
 
-const RolesUrl string = DefaultEndpoint + "/rbac/roles"
+const RolesUrl string = V2Endpoint + "/rbac/roles"
+
+type PolicyRole struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
 
 type Role struct {
-	Id        string `json:"id"`
-	Name      string `json:"name"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
-	IsDefault bool   `json:"isDefault"`
+	Id        string       `json:"id"`
+	Name      string       `json:"name"`
+	CreatedAt string       `json:"createdAt"`
+	UpdatedAt string       `json:"updatedAt"`
+	IsDefault bool         `json:"isDefault"`
+	Policies  []PolicyRole `json:"policies"`
 }
 
 type NewRole struct {
@@ -92,12 +98,7 @@ func (c *Client) CreateRole(role *NewRole) (*Role, error) {
 }
 
 func (c *Client) DeleteRole(id string) error {
-	requestBody, err := json.Marshal(map[string]string{"id": id})
-	if err != nil {
-		return err
-	}
-
-	_, _, err = c.executeHttpRequest(http.MethodDelete, RolesUrl, &requestBody)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(RolesUrl+"/%s", id), nil)
 	if err != nil {
 		return err
 	}

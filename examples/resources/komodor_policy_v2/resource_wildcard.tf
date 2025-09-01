@@ -7,17 +7,17 @@ resource "komodor_policy_v2" "pattern_based_policy" {
     resources_scope {
       clusters_patterns {
         include = "prod-*"
-        exclude = "prod-legacy"
+        exclude = "prod-legacy-*"
       }
 
       clusters_patterns {
         include = "staging-*"
-        exclude = "staging-legacy"
+        exclude = "staging-legacy-*"
       }
 
       namespaces_patterns {
         include = "team-*"
-        exclude = "team-internal"
+        exclude = "team-internal-*"
       }
     }
   }

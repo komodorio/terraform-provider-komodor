@@ -13,7 +13,7 @@ resource "komodor_policy_v2" "selector_pattern_policy" {
         type = "annotation"
         value {
           include = "team-*"
-          exclude = "team-internal"
+          exclude = "team-internal-*"
         }
       }
 

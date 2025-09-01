@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-const IntegrationsUrl string = DefaultEndpoint + "/integrations/kubernetes"
+const IntegrationsUrl string = V2Endpoint + "/integrations/kubernetes"
 
 type Kubernetes struct {
 	Id string `json:"apiKey"`

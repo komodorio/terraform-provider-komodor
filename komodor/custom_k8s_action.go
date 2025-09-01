@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-const CustomK8sActionUrl string = DefaultEndpoint + "/rbac/actions"
+const CustomK8sActionUrl string = V2Endpoint + "/rbac/actions"
 
 type CustomK8sActionStatement struct {
 	ApiGroups []string `json:"apiGroups"`

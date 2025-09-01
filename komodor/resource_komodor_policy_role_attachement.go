@@ -73,7 +73,7 @@ func resourcePolicyRoleAttachmentRead(ctx context.Context, d *schema.ResourceDat
 	pl := make([]string, 0)
 
 	for _, r := range rolePolicyObject {
-		pl = append(pl, r.PolicyId)
+		pl = append(pl, r.Id)
 	}
 
 	log.Printf("Policies attached to role %s are: %s", roleId, pl)
