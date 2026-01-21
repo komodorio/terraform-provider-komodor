@@ -9,14 +9,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
+// Default US endpoints (kept for backward compatibility)
 const DefaultEndpoint = "https://api.komodor.com/mgmt/v1"
 const V2Endpoint = "https://api.komodor.com/api/v2"
+
+// Default US API base URL
+const DefaultAPIBaseURL = "https://api.komodor.com"
 
 // KomodorAPIKeyEnvName name of env var for API key
 const KomodorAPIKeyEnvName = "KOMODOR_API_KEY"
 
 // KomodorTokenEnvName name of env var for API key
 const KomodorTokenEnvName = "KOMODOR_TOKEN"
+
+// KomodorAPIURLEnvName name of env var for API URL
+const KomodorAPIURLEnvName = "KOMODOR_API_URL"
 
 // APIKeyEnvVars names of env var for API key
 var APIKeyEnvVars = []string{KomodorAPIKeyEnvName, KomodorTokenEnvName}
@@ -32,6 +39,12 @@ func Provider() *schema.Provider {
 				DefaultFunc:  schema.MultiEnvDefaultFunc(APIKeyEnvVars, nil),
 				Description:  "The API key for operations. Alternatively, can be configured using the `KOMODOR_API_KEY` or `KOMODOR_TOKEN` environment variables.",
 				ValidateFunc: validation.StringMatch(regexp.MustCompile("[0-9a-f-]{36}"), "API key must be 36 characters long and only contain characters 0-9 and a-f and '-' character(all lowercased)"),
+			},
+			"api_url": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc(KomodorAPIURLEnvName, DefaultAPIBaseURL),
+				Description: "The base URL for the Komodor API. Defaults to `https://api.komodor.com` for US region. For EU region, use `https://api.eu.komodor.com`. Alternatively, can be configured using the `KOMODOR_API_URL` environment variable.",
 			},
 		},
 
@@ -65,6 +78,10 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	if apiKey == "" {
 		return nil, diag.Errorf("[ERROR] api_key must be set, can't continue")
 	}
-	client := NewClient(apiKey)
+	apiURL := d.Get("api_url").(string)
+	if apiURL == "" {
+		apiURL = DefaultAPIBaseURL
+	}
+	client := NewClient(apiKey, apiURL)
 	return client, nil
 }

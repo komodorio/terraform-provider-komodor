@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-const CustomK8sActionUrl string = V2Endpoint + "/rbac/actions"
 
 type CustomK8sActionStatement struct {
 	ApiGroups []string `json:"apiGroups"`
@@ -30,7 +29,7 @@ type NewCustomK8sAction struct {
 }
 
 func (c *Client) GetCustomK8sActions() ([]CustomK8sAction, error) {
-	res, _, err := c.executeHttpRequest(http.MethodGet, CustomK8sActionUrl, nil)
+	res, _, err := c.executeHttpRequest(http.MethodGet, c.GetV2Endpoint()+"/rbac/actions", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +47,7 @@ func (c *Client) GetCustomK8sActions() ([]CustomK8sAction, error) {
 func (c *Client) GetCustomK8sAction(id string) (*CustomK8sAction, int, error) {
 	var customK8sAction CustomK8sAction
 
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(CustomK8sActionUrl+"/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetV2Endpoint()+"/rbac/actions/%s", id), nil)
 	if err != nil {
 		return nil, statusCode, err
 	}
@@ -67,7 +66,7 @@ func (c *Client) CreateCustomK8sAction(p *NewCustomK8sAction) (*CustomK8sAction,
 		return nil, 0, err
 	}
 
-	res, statusCode, err := c.executeHttpRequest(http.MethodPost, CustomK8sActionUrl, &jsonCustomK8sAction)
+	res, statusCode, err := c.executeHttpRequest(http.MethodPost, c.GetV2Endpoint()+"/rbac/actions", &jsonCustomK8sAction)
 	if err != nil {
 		return nil, statusCode, err
 	}
@@ -82,7 +81,7 @@ func (c *Client) CreateCustomK8sAction(p *NewCustomK8sAction) (*CustomK8sAction,
 }
 
 func (c *Client) DeleteCustomK8sAction(id string) error {
-	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(CustomK8sActionUrl+"/%s", id), nil)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(c.GetV2Endpoint()+"/rbac/actions/%s", id), nil)
 	if err != nil {
 		return err
 	}
@@ -95,7 +94,7 @@ func (c *Client) UpdateCustomK8sAction(id string, p *NewCustomK8sAction) (*Custo
 		return nil, err
 	}
 
-	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(CustomK8sActionUrl+"/%s", id), &jsonCustomK8sAction)
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(c.GetV2Endpoint()+"/rbac/actions/%s", id), &jsonCustomK8sAction)
 	if err != nil {
 		return nil, err
 	}

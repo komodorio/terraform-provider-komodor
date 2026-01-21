@@ -11,17 +11,29 @@ import (
 type Client struct {
 	HttpClient *http.Client
 	ApiKey     string
+	BaseURL    string
 }
 
 type ApiKeyResponse struct {
 	Valid bool `json:"valid"`
 }
 
-func NewClient(apiKey string) *Client {
+func NewClient(apiKey string, baseURL string) *Client {
 	return &Client{
 		HttpClient: http.DefaultClient,
 		ApiKey:     apiKey,
+		BaseURL:    baseURL,
 	}
+}
+
+// GetDefaultEndpoint returns the v1 management API endpoint
+func (c *Client) GetDefaultEndpoint() string {
+	return c.BaseURL + "/mgmt/v1"
+}
+
+// GetV2Endpoint returns the v2 API endpoint
+func (c *Client) GetV2Endpoint() string {
+	return c.BaseURL + "/api/v2"
 }
 
 // prepareRequest creates a new HTTP request with the necessary headers

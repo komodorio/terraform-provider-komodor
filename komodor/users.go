@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-const UsersUrl string = V2Endpoint + "/users"
 
 type User struct {
 	Id          string `json:"id"`
@@ -28,7 +27,7 @@ type UpdateUser struct {
 
 func (c *Client) GetUser(idOrEmail string) (*User, int, error) {
 	var user User
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(UsersUrl+"/%s", idOrEmail), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetV2Endpoint()+"/users/%s", idOrEmail), nil)
 	if err != nil {
 		return nil, statusCode, err
 	}
@@ -47,7 +46,7 @@ func (c *Client) CreateUser(user *NewUser) (*User, error) {
 		return nil, err
 	}
 
-	res, _, err := c.executeHttpRequest(http.MethodPost, UsersUrl, &requestBody)
+	res, _, err := c.executeHttpRequest(http.MethodPost, c.GetV2Endpoint()+"/users", &requestBody)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +66,7 @@ func (c *Client) UpdateUser(id string, p *UpdateUser) (*User, error) {
 		return nil, err
 	}
 
-	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(UsersUrl+"/%s", id), &jsonUser)
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(c.GetV2Endpoint()+"/users/%s", id), &jsonUser)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +81,6 @@ func (c *Client) UpdateUser(id string, p *UpdateUser) (*User, error) {
 }
 
 func (c *Client) DeleteUser(id string) error {
-	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(UsersUrl+"/%s", id), nil)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(c.GetV2Endpoint()+"/users/%s", id), nil)
 	return err
 }

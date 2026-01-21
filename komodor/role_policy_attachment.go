@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-const PolicyRoleAttachmentUrl string = V2Endpoint + "/rbac/roles/policies"
 
 type RolePolicy struct {
 	RoleId   string `json:"roleId"`
@@ -19,7 +18,7 @@ func (c *Client) AttachPolicy(policyId string, roleId string) error {
 	if err != nil {
 		return err
 	}
-	_, _, err = c.executeHttpRequest(http.MethodPost, PolicyRoleAttachmentUrl, &requestBody)
+	_, _, err = c.executeHttpRequest(http.MethodPost, c.GetV2Endpoint()+"/rbac/roles/policies", &requestBody)
 	if err != nil {
 		return err
 	}
@@ -30,7 +29,7 @@ func (c *Client) AttachPolicy(policyId string, roleId string) error {
 func (c *Client) GetRolePoliciesObject(roleId string) ([]PolicyRole, int, error) {
 	var role Role
 
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(V2Endpoint+"/rbac/roles/%s", roleId), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetV2Endpoint()+"/rbac/roles/%s", roleId), nil)
 	if err != nil {
 		return nil, statusCode, err
 	}
@@ -49,7 +48,7 @@ func (c *Client) DetachPolicy(policyId string, roleId string) error {
 	if err != nil {
 		return err
 	}
-	_, _, err = c.executeHttpRequest(http.MethodDelete, PolicyRoleAttachmentUrl, &requestBody)
+	_, _, err = c.executeHttpRequest(http.MethodDelete, c.GetV2Endpoint()+"/rbac/roles/policies", &requestBody)
 	if err != nil {
 		return err
 	}
