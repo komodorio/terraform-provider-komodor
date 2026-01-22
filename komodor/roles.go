@@ -26,7 +26,7 @@ type NewRole struct {
 }
 
 func (c *Client) GetRoles() ([]Role, error) {
-	res, _, err := c.executeHttpRequest(http.MethodGet, c.GetV2Endpoint()+"/rbac/roles", nil)
+	res, _, err := c.executeHttpRequest(http.MethodGet, c.GetRolesUrl(), nil)
 
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (c *Client) GetRoleByName(name string) (*Role, error) {
 func (c *Client) GetRole(id string) (*Role, int, error) {
 	var role Role
 
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetV2Endpoint()+"/rbac/roles/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetRolesUrl()+"/%s", id), nil)
 
 	if err != nil {
 		return nil, statusCode, err
@@ -81,7 +81,7 @@ func (c *Client) CreateRole(role *NewRole) (*Role, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPost, c.GetV2Endpoint()+"/rbac/roles", &requestBody)
+	res, _, err := c.executeHttpRequest(http.MethodPost, c.GetRolesUrl(), &requestBody)
 
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func (c *Client) CreateRole(role *NewRole) (*Role, error) {
 }
 
 func (c *Client) DeleteRole(id string) error {
-	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(c.GetV2Endpoint()+"/rbac/roles/%s", id), nil)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(c.GetRolesUrl()+"/%s", id), nil)
 	if err != nil {
 		return err
 	}

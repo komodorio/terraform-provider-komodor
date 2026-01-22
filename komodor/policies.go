@@ -82,7 +82,7 @@ type NewPolicy struct {
 func (c *Client) GetPolicy(nameOrId string) (*Policy, int, error) {
 	var policy Policy
 
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetV2Endpoint()+"/rbac/policies/%s", nameOrId), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetPoliciesUrlV2()+"/%s", nameOrId), nil)
 
 	if err != nil {
 		return nil, statusCode, err
@@ -98,11 +98,11 @@ func (c *Client) GetPolicy(nameOrId string) (*Policy, int, error) {
 
 // Create Policy
 func (c *Client) CreatePolicyV1(p *NewPolicy) (*Policy, error) {
-	return c.CreatePolicy(p, c.GetDefaultEndpoint()+"/rbac/policies")
+	return c.CreatePolicy(p, c.GetPoliciesUrl())
 }
 
 func (c *Client) CreatePolicyV2(p *NewPolicy) (*Policy, error) {
-	return c.CreatePolicy(p, c.GetV2Endpoint()+"/rbac/policies")
+	return c.CreatePolicy(p, c.GetPoliciesUrlV2())
 }
 
 func (c *Client) CreatePolicy(p *NewPolicy, beUrl string) (*Policy, error) {
@@ -131,11 +131,11 @@ func (c *Client) DeletePolicyV1(id string) error {
 	if err != nil {
 		return err
 	}
-	return c.DeletePolicy(id, c.GetDefaultEndpoint()+"/rbac/policies", requestBody)
+	return c.DeletePolicy(id, c.GetPoliciesUrl(), requestBody)
 }
 
 func (c *Client) DeletePolicyV2(id string) error {
-	urlWithId := fmt.Sprintf(c.GetV2Endpoint()+"/rbac/policies/%s", id)
+	urlWithId := fmt.Sprintf(c.GetPoliciesUrlV2()+"/%s", id)
 	return c.DeletePolicy(id, urlWithId, nil)
 }
 
@@ -150,11 +150,11 @@ func (c *Client) DeletePolicy(id string, beUrl string, requestBody []byte) error
 // Update Policy
 
 func (c *Client) UpdatePolicyV1(id string, p *NewPolicy) (*Policy, error) {
-	return c.UpdatePolicy(id, p, c.GetDefaultEndpoint()+"/rbac/policies")
+	return c.UpdatePolicy(id, p, c.GetPoliciesUrl())
 }
 
 func (c *Client) UpdatePolicyV2(id string, p *NewPolicy) (*Policy, error) {
-	return c.UpdatePolicy(id, p, c.GetV2Endpoint()+"/rbac/policies")
+	return c.UpdatePolicy(id, p, c.GetPoliciesUrlV2())
 }
 
 func (c *Client) UpdatePolicy(id string, p *NewPolicy, beUrl string) (*Policy, error) {

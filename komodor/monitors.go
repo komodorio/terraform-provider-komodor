@@ -86,7 +86,7 @@ type GetMonitorsResponse struct {
 }
 
 func (c *Client) GetMonitors() ([]Monitor, error) {
-	res, _, err := c.executeHttpRequest(http.MethodGet, c.GetV2Endpoint()+"/realtime-monitors/config", nil)
+	res, _, err := c.executeHttpRequest(http.MethodGet, c.GetMonitorsUrl(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (c *Client) GetMonitors() ([]Monitor, error) {
 }
 
 func (c *Client) GetMonitor(id string) (*Monitor, int, error) {
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetV2Endpoint()+"/realtime-monitors/config/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetMonitorsUrl()+"/%s", id), nil)
 	if err != nil {
 		return nil, statusCode, err
 	}
@@ -120,7 +120,7 @@ func (c *Client) UpdateMonitor(id string, m *NewMonitor) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(c.GetV2Endpoint()+"/realtime-monitors/config/%s", id), &jsonMonitor)
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(c.GetMonitorsUrl()+"/%s", id), &jsonMonitor)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (c *Client) CreateMonitor(m *NewMonitor) (*Monitor, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPost, c.GetV2Endpoint()+"/realtime-monitors/config", &jsonMonitor)
+	res, _, err := c.executeHttpRequest(http.MethodPost, c.GetMonitorsUrl(), &jsonMonitor)
 
 	if err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func (c *Client) CreateMonitor(m *NewMonitor) (*Monitor, error) {
 }
 
 func (c *Client) DeleteMonitor(id string) error {
-	requestUrl := c.GetV2Endpoint() + "/realtime-monitors/config/" + id
+	requestUrl := c.GetMonitorsUrl() + "/" + id
 	_, _, err := c.executeHttpRequest(http.MethodDelete, requestUrl, nil)
 	if err != nil {
 		return err
