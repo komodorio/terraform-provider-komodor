@@ -9,10 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-// Default US endpoints (kept for backward compatibility)
-const DefaultEndpoint = "https://api.komodor.com/mgmt/v1"
-const V2Endpoint = "https://api.komodor.com/api/v2"
-
 // Default US API base URL
 const DefaultAPIBaseURL = "https://api.komodor.com"
 
@@ -79,9 +75,6 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		return nil, diag.Errorf("[ERROR] api_key must be set, can't continue")
 	}
 	apiURL := d.Get("api_url").(string)
-	if apiURL == "" {
-		apiURL = DefaultAPIBaseURL
-	}
 	client := NewClient(apiKey, apiURL)
 	return client, nil
 }

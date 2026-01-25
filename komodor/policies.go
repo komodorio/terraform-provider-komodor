@@ -82,7 +82,7 @@ type NewPolicy struct {
 func (c *Client) GetPolicy(nameOrId string) (*Policy, int, error) {
 	var policy Policy
 
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetPoliciesUrlV2()+"/%s", nameOrId), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf("%s/%s", c.GetPoliciesUrlV2(), nameOrId), nil)
 
 	if err != nil {
 		return nil, statusCode, err
@@ -135,7 +135,7 @@ func (c *Client) DeletePolicyV1(id string) error {
 }
 
 func (c *Client) DeletePolicyV2(id string) error {
-	urlWithId := fmt.Sprintf(c.GetPoliciesUrlV2()+"/%s", id)
+	urlWithId := fmt.Sprintf("%s/%s", c.GetPoliciesUrlV2(), id)
 	return c.DeletePolicy(id, urlWithId, nil)
 }
 
@@ -162,7 +162,7 @@ func (c *Client) UpdatePolicy(id string, p *NewPolicy, beUrl string) (*Policy, e
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(beUrl+"/%s", id), &jsonPolicy)
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf("%s/%s", beUrl, id), &jsonPolicy)
 	if err != nil {
 		return nil, err
 	}

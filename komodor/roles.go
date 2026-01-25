@@ -61,7 +61,7 @@ func (c *Client) GetRoleByName(name string) (*Role, error) {
 func (c *Client) GetRole(id string) (*Role, int, error) {
 	var role Role
 
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetRolesUrl()+"/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf("%s/%s", c.GetRolesUrl(), id), nil)
 
 	if err != nil {
 		return nil, statusCode, err
@@ -97,7 +97,7 @@ func (c *Client) CreateRole(role *NewRole) (*Role, error) {
 }
 
 func (c *Client) DeleteRole(id string) error {
-	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(c.GetRolesUrl()+"/%s", id), nil)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetRolesUrl(), id), nil)
 	if err != nil {
 		return err
 	}

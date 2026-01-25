@@ -27,7 +27,7 @@ type UpdateUser struct {
 
 func (c *Client) GetUser(idOrEmail string) (*User, int, error) {
 	var user User
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetUsersUrl()+"/%s", idOrEmail), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf("%s/%s", c.GetUsersUrl(), idOrEmail), nil)
 	if err != nil {
 		return nil, statusCode, err
 	}
@@ -66,7 +66,7 @@ func (c *Client) UpdateUser(id string, p *UpdateUser) (*User, error) {
 		return nil, err
 	}
 
-	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(c.GetUsersUrl()+"/%s", id), &jsonUser)
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf("%s/%s", c.GetUsersUrl(), id), &jsonUser)
 	if err != nil {
 		return nil, err
 	}
@@ -81,6 +81,6 @@ func (c *Client) UpdateUser(id string, p *UpdateUser) (*User, error) {
 }
 
 func (c *Client) DeleteUser(id string) error {
-	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(c.GetUsersUrl()+"/%s", id), nil)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetUsersUrl(), id), nil)
 	return err
 }

@@ -102,7 +102,7 @@ func (c *Client) GetMonitors() ([]Monitor, error) {
 }
 
 func (c *Client) GetMonitor(id string) (*Monitor, int, error) {
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetMonitorsUrl()+"/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf("%s/%s", c.GetMonitorsUrl(), id), nil)
 	if err != nil {
 		return nil, statusCode, err
 	}
@@ -120,7 +120,7 @@ func (c *Client) UpdateMonitor(id string, m *NewMonitor) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(c.GetMonitorsUrl()+"/%s", id), &jsonMonitor)
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf("%s/%s", c.GetMonitorsUrl(), id), &jsonMonitor)
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +148,7 @@ func (c *Client) CreateMonitor(m *NewMonitor) (*Monitor, error) {
 }
 
 func (c *Client) DeleteMonitor(id string) error {
-	requestUrl := c.GetMonitorsUrl() + "/" + id
-	_, _, err := c.executeHttpRequest(http.MethodDelete, requestUrl, nil)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetMonitorsUrl(), id), nil)
 	if err != nil {
 		return err
 	}

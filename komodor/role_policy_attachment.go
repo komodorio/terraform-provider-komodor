@@ -29,7 +29,7 @@ func (c *Client) AttachPolicy(policyId string, roleId string) error {
 func (c *Client) GetRolePoliciesObject(roleId string) ([]PolicyRole, int, error) {
 	var role Role
 
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetRolesUrl()+"/%s", roleId), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf("%s/%s", c.GetRolesUrl(), roleId), nil)
 	if err != nil {
 		return nil, statusCode, err
 	}

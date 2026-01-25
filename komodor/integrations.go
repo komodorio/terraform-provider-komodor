@@ -12,7 +12,7 @@ type Kubernetes struct {
 }
 
 func (c *Client) GetKubernetesCluster(clusterName string) (*Kubernetes, int, error) {
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(c.GetIntegrationsUrl()+"/%s", clusterName), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf("%s/%s", c.GetIntegrationsUrl(), clusterName), nil)
 
 	if err != nil {
 		return nil, statusCode, err
@@ -50,7 +50,7 @@ func (c *Client) CreateKubernetesCluster(name string) (*Kubernetes, error) {
 }
 
 func (c *Client) DeleteKubernetesCluster(id string) error {
-	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(c.GetIntegrationsUrl()+"/%s", id), nil)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetIntegrationsUrl(), id), nil)
 	if err != nil {
 		return err
 	}
