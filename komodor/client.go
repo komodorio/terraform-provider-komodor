@@ -11,17 +11,74 @@ import (
 type Client struct {
 	HttpClient *http.Client
 	ApiKey     string
+	BaseURL    string
 }
 
 type ApiKeyResponse struct {
 	Valid bool `json:"valid"`
 }
 
-func NewClient(apiKey string) *Client {
+func NewClient(apiKey string, baseURL string) *Client {
 	return &Client{
 		HttpClient: http.DefaultClient,
 		ApiKey:     apiKey,
+		BaseURL:    baseURL,
 	}
+}
+
+// GetDefaultEndpoint returns the v1 management API endpoint
+func (c *Client) GetDefaultEndpoint() string {
+	return c.BaseURL + "/mgmt/v1"
+}
+
+// GetV2Endpoint returns the v2 API endpoint
+func (c *Client) GetV2Endpoint() string {
+	return c.BaseURL + "/api/v2"
+}
+
+// GetCustomK8sActionUrl returns the custom K8s actions endpoint
+func (c *Client) GetCustomK8sActionUrl() string {
+	return c.GetV2Endpoint() + "/rbac/actions"
+}
+
+// GetUsersUrl returns the users endpoint
+func (c *Client) GetUsersUrl() string {
+	return c.GetV2Endpoint() + "/users"
+}
+
+// GetRolesUrl returns the roles endpoint
+func (c *Client) GetRolesUrl() string {
+	return c.GetV2Endpoint() + "/rbac/roles"
+}
+
+// GetPoliciesUrl returns the v1 policies endpoint
+func (c *Client) GetPoliciesUrl() string {
+	return c.GetDefaultEndpoint() + "/rbac/policies"
+}
+
+// GetPoliciesUrlV2 returns the v2 policies endpoint
+func (c *Client) GetPoliciesUrlV2() string {
+	return c.GetV2Endpoint() + "/rbac/policies"
+}
+
+// GetMonitorsUrl returns the monitors endpoint
+func (c *Client) GetMonitorsUrl() string {
+	return c.GetV2Endpoint() + "/realtime-monitors/config"
+}
+
+// GetIntegrationsUrl returns the Kubernetes integrations endpoint
+func (c *Client) GetIntegrationsUrl() string {
+	return c.GetV2Endpoint() + "/integrations/kubernetes"
+}
+
+// GetWorkspacesUrl returns the workspaces endpoint
+func (c *Client) GetWorkspacesUrl() string {
+	return c.GetV2Endpoint() + "/workspaces"
+}
+
+// GetPolicyRoleAttachmentUrl returns the policy role attachment endpoint
+func (c *Client) GetPolicyRoleAttachmentUrl() string {
+	return c.GetV2Endpoint() + "/rbac/roles/policies"
 }
 
 // prepareRequest creates a new HTTP request with the necessary headers

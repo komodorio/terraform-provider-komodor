@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-const RolesUrl string = V2Endpoint + "/rbac/roles"
 
 type PolicyRole struct {
 	Id   string `json:"id"`
@@ -27,7 +26,7 @@ type NewRole struct {
 }
 
 func (c *Client) GetRoles() ([]Role, error) {
-	res, _, err := c.executeHttpRequest(http.MethodGet, RolesUrl, nil)
+	res, _, err := c.executeHttpRequest(http.MethodGet, c.GetRolesUrl(), nil)
 
 	if err != nil {
 		return nil, err
@@ -62,7 +61,7 @@ func (c *Client) GetRoleByName(name string) (*Role, error) {
 func (c *Client) GetRole(id string) (*Role, int, error) {
 	var role Role
 
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(RolesUrl+"/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf("%s/%s", c.GetRolesUrl(), id), nil)
 
 	if err != nil {
 		return nil, statusCode, err
@@ -82,7 +81,7 @@ func (c *Client) CreateRole(role *NewRole) (*Role, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPost, RolesUrl, &requestBody)
+	res, _, err := c.executeHttpRequest(http.MethodPost, c.GetRolesUrl(), &requestBody)
 
 	if err != nil {
 		return nil, err
@@ -98,7 +97,7 @@ func (c *Client) CreateRole(role *NewRole) (*Role, error) {
 }
 
 func (c *Client) DeleteRole(id string) error {
-	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf(RolesUrl+"/%s", id), nil)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetRolesUrl(), id), nil)
 	if err != nil {
 		return err
 	}

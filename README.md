@@ -46,6 +46,25 @@ provider "komodor" {
 }
 ```
 
+### Using EU Region
+
+To use the Komodor EU region, set the `api_url` parameter:
+
+```tf
+provider "komodor" {
+  api_key = var.komodor_api_key
+  api_url = "https://api.eu.komodor.com"
+}
+```
+
+Alternatively, you can set the `KOMODOR_API_URL` environment variable:
+
+```sh
+export KOMODOR_API_URL="https://api.eu.komodor.com"
+```
+
+By default, the provider uses `https://api.komodor.com` (US region) if `api_url` is not specified.
+
 To see examples of how to use this provider, check out the `examples` directory in the source code [here](/examples).
 
 ## Developing The Provider

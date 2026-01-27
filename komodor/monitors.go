@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 )
 
-const MonitorsUrl = V2Endpoint + "/realtime-monitors/config"
 
 type (
 	ModelWorkflowConfigurationSensorFilters struct {
@@ -88,7 +86,7 @@ type GetMonitorsResponse struct {
 }
 
 func (c *Client) GetMonitors() ([]Monitor, error) {
-	res, _, err := c.executeHttpRequest(http.MethodGet, MonitorsUrl, nil)
+	res, _, err := c.executeHttpRequest(http.MethodGet, c.GetMonitorsUrl(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +102,7 @@ func (c *Client) GetMonitors() ([]Monitor, error) {
 }
 
 func (c *Client) GetMonitor(id string) (*Monitor, int, error) {
-	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf(MonitorsUrl+"/%s", id), nil)
+	res, statusCode, err := c.executeHttpRequest(http.MethodGet, fmt.Sprintf("%s/%s", c.GetMonitorsUrl(), id), nil)
 	if err != nil {
 		return nil, statusCode, err
 	}
@@ -122,7 +120,7 @@ func (c *Client) UpdateMonitor(id string, m *NewMonitor) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf(MonitorsUrl+"/%s", id), &jsonMonitor)
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf("%s/%s", c.GetMonitorsUrl(), id), &jsonMonitor)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +133,7 @@ func (c *Client) CreateMonitor(m *NewMonitor) (*Monitor, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, _, err := c.executeHttpRequest(http.MethodPost, MonitorsUrl, &jsonMonitor)
+	res, _, err := c.executeHttpRequest(http.MethodPost, c.GetMonitorsUrl(), &jsonMonitor)
 
 	if err != nil {
 		return nil, err
@@ -150,8 +148,7 @@ func (c *Client) CreateMonitor(m *NewMonitor) (*Monitor, error) {
 }
 
 func (c *Client) DeleteMonitor(id string) error {
-	requestUrl := strings.Join([]string{MonitorsUrl, "/", id}, "")
-	_, _, err := c.executeHttpRequest(http.MethodDelete, requestUrl, nil)
+	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetMonitorsUrl(), id), nil)
 	if err != nil {
 		return err
 	}
