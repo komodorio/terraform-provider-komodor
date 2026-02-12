@@ -6,13 +6,19 @@ import (
 	"net/http"
 )
 
+type UserRoleResponse struct {
+	Id         string `json:"id"`
+	Name       string `json:"name"`
+	Expiration string `json:"expiration,omitempty"`
+}
 
 type User struct {
-	Id          string `json:"id"`
-	DisplayName string `json:"displayName"`
-	Email       string `json:"email"`
-	CreatedAt   string `json:"createdAt"`
-	UpdatedAt   string `json:"updatedAt"`
+	Id          string             `json:"id"`
+	DisplayName string             `json:"displayName"`
+	Email       string             `json:"email"`
+	CreatedAt   string             `json:"createdAt"`
+	UpdatedAt   string             `json:"updatedAt"`
+	Roles       []UserRoleResponse `json:"roles"`
 }
 
 type NewUser struct {
