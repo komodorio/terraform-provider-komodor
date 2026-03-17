@@ -81,6 +81,11 @@ func (c *Client) GetPolicyRoleAttachmentUrl() string {
 	return c.GetV2Endpoint() + "/rbac/roles/policies"
 }
 
+// GetKnowledgeBaseUrl returns the Klaudia Knowledge Base files endpoint
+func (c *Client) GetKnowledgeBaseUrl() string {
+	return c.GetV2Endpoint() + "/klaudia/knowledge-base/files"
+}
+
 // prepareRequest creates a new HTTP request with the necessary headers
 func (c *Client) prepareRequest(method, url string, body *[]byte) (*http.Request, error) {
 	var reader io.Reader
@@ -147,4 +152,32 @@ func (c *Client) executeHttpRequest(method string, url string, body *[]byte) ([]
 	}
 
 	return c.executeWithRetry(req, maxRetries, retryDelay)
+}
+
+// executeMultipartRequest sends a multipart/form-data request (e.g. for file uploads).
+func (c *Client) executeMultipartRequest(method, url string, body *bytes.Buffer, contentType string) ([]byte, int, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("x-api-key", c.ApiKey)
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("User-Agent", "Terraform (terraform-provider-komodor); Go-http-client/1.1")
+
+	res, err := c.HttpClient.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, res.StatusCode, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated {
+		return resBody, res.StatusCode, nil
+	}
+
+	return resBody, res.StatusCode, fmt.Errorf("received error response: %d %s", res.StatusCode, resBody)
 }

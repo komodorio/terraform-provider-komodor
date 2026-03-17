@@ -1,0 +1,21 @@
+# Page title auto-generated from resource name
+
+Manages a file in the Komodor Klaudia Knowledge Base.
+
+Knowledge Base files provide contextual runbook-style documentation that Klaudia AI uses when performing root cause analysis (RCA). Files can be optionally scoped to specific clusters.
+
+> **Note:** Because the API does not support in-place file updates, any change to `filename`, `content`, or `clusters` will cause the resource to be destroyed and re-created.
+
+## Example Usage
+
+{{ tffile "examples/resources/komodor_knowledge_base_file/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Knowledge Base files can be imported using their file ID:
+
+```
+terraform import komodor_knowledge_base_file.example <file-id>
+```
