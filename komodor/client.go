@@ -154,30 +154,57 @@ func (c *Client) executeHttpRequest(method string, url string, body *[]byte) ([]
 	return c.executeWithRetry(req, maxRetries, retryDelay)
 }
 
-// executeMultipartRequest sends a multipart/form-data request (e.g. for file uploads).
+// executeMultipartRequest sends a multipart/form-data request (e.g. for file uploads)
+// with the same retry logic used by executeHttpRequest.
 func (c *Client) executeMultipartRequest(method, url string, body *bytes.Buffer, contentType string) ([]byte, int, error) {
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("x-api-key", c.ApiKey)
-	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("User-Agent", "Terraform (terraform-provider-komodor); Go-http-client/1.1")
+	maxRetries := 3
+	retryDelay := 5 * time.Second
 
-	res, err := c.HttpClient.Do(req)
-	if err != nil {
-		return nil, 0, fmt.Errorf("request failed: %w", err)
-	}
-	defer res.Body.Close()
+	// Capture the body bytes so the request can be retried if needed.
+	bodyBytes := body.Bytes()
 
-	resBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("failed to read response body: %w", err)
+	var (
+		res     *http.Response
+		resBody []byte
+	)
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		req, reqErr := http.NewRequest(method, url, bytes.NewReader(bodyBytes))
+		if reqErr != nil {
+			return nil, 0, fmt.Errorf("failed to create request: %w", reqErr)
+		}
+		req.Header.Set("x-api-key", c.ApiKey)
+		req.Header.Set("Content-Type", contentType)
+		req.Header.Set("User-Agent", "Terraform (terraform-provider-komodor); Go-http-client/1.1")
+
+		var doErr error
+		res, doErr = c.HttpClient.Do(req)
+		if doErr != nil {
+			return nil, 0, fmt.Errorf("request failed: %w", doErr)
+		}
+
+		var readErr error
+		resBody, readErr = io.ReadAll(res.Body)
+		res.Body.Close()
+		if readErr != nil {
+			return nil, res.StatusCode, fmt.Errorf("failed to read response body: %w", readErr)
+		}
+
+		if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated || res.StatusCode == http.StatusNoContent {
+			return resBody, res.StatusCode, nil
+		}
+
+		// Retry only for 502 status code
+		if res.StatusCode == http.StatusBadGateway {
+			fmt.Printf("Retry attempt %d/%d for status %d\n", attempt+1, maxRetries, res.StatusCode)
+			time.Sleep(retryDelay)
+			continue
+		}
+
+		// Return on non-retryable status codes
+		return resBody, res.StatusCode, fmt.Errorf("received error response: %d %s", res.StatusCode, resBody)
 	}
 
-	if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated {
-		return resBody, res.StatusCode, nil
-	}
-
-	return resBody, res.StatusCode, fmt.Errorf("received error response: %d %s", res.StatusCode, resBody)
+	// If retries exhausted, return last response
+	return resBody, res.StatusCode, fmt.Errorf("request failed after %d retries with status: %d", maxRetries, res.StatusCode)
 }
