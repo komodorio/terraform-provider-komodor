@@ -29,7 +29,6 @@ func resourceKomodorKnowledgeBaseFile() *schema.Resource {
 				ForceNew:     true,
 				Sensitive:    true,
 				ValidateFunc: validation.NoZeroValues,
-				Sensitive:    true,
 				Description:  "The text content of the file to upload to the Knowledge Base.",
 			},
 			"clusters": {
