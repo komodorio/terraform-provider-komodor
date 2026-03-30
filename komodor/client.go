@@ -2,27 +2,56 @@ package komodor
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
+)
+
+const (
+	maxRetries   = 2 // 1 initial attempt + 2 retries = 3 total, matching the original behavior
+	retryWaitMin = 5 * time.Second
+	retryWaitMax = 5 * time.Second
+	userAgent    = "Terraform (terraform-provider-komodor); Go-http-client/1.1"
 )
 
 type Client struct {
-	HttpClient *http.Client
-	ApiKey     string
-	BaseURL    string
+	retryClient *retryablehttp.Client
+	ApiKey      string
+	BaseURL     string
 }
 
 type ApiKeyResponse struct {
 	Valid bool `json:"valid"`
 }
 
+// checkRetry is the retry policy for the Komodor client.
+// It retries on network-level errors and on HTTP 502 Bad Gateway responses.
+func checkRetry(_ context.Context, resp *http.Response, err error) (bool, error) {
+	if err != nil {
+		return true, err
+	}
+	if resp != nil && resp.StatusCode == http.StatusBadGateway {
+		return true, nil
+	}
+	return false, nil
+}
+
 func NewClient(apiKey string, baseURL string) *Client {
+	rc := retryablehttp.NewClient()
+	rc.RetryMax = maxRetries
+	rc.RetryWaitMin = retryWaitMin
+	rc.RetryWaitMax = retryWaitMax
+	rc.CheckRetry = checkRetry
+	rc.Logger = nil // suppress default stderr output; Terraform SDK handles provider logging
+
 	return &Client{
-		HttpClient: http.DefaultClient,
-		ApiKey:     apiKey,
-		BaseURL:    baseURL,
+		retryClient: rc,
+		ApiKey:      apiKey,
+		BaseURL:     baseURL,
 	}
 }
 
@@ -86,98 +115,60 @@ func (c *Client) GetKnowledgeBaseUrl() string {
 	return c.GetV2Endpoint() + "/klaudia/knowledge-base/files"
 }
 
-// prepareRequest creates a new HTTP request with the necessary headers
-func (c *Client) prepareRequest(method, url string, body *[]byte) (*http.Request, error) {
-	var reader io.Reader
-	if body != nil {
-		reader = bytes.NewReader(*body)
-	}
-
-	req, err := http.NewRequest(method, url, reader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("x-api-key", c.ApiKey)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Terraform (terraform-provider-komodor); Go-http-client/1.1")
-
-	return req, nil
-}
-
-// executeWithRetry executes the HTTP request with retry logic for certain status codes
-func (c *Client) executeWithRetry(req *http.Request, maxRetries int, retryDelay time.Duration) ([]byte, int, error) {
-	var res *http.Response
-	var resBody []byte
-	var err error
-
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		res, err = c.HttpClient.Do(req)
-		if err != nil {
-			return nil, 0, fmt.Errorf("request failed: %w", err)
-		}
-
-		resBody, err = io.ReadAll(res.Body)
-		res.Body.Close()
-		if err != nil {
-			return nil, res.StatusCode, fmt.Errorf("failed to read response body: %w", err)
-		}
-
-		if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated || res.StatusCode == http.StatusNoContent {
-			return resBody, res.StatusCode, nil
-		}
-
-		// Retry only for 502 status code
-		if res.StatusCode == http.StatusBadGateway {
-			fmt.Printf("Retry attempt %d/%d for status %d\n", attempt+1, maxRetries, res.StatusCode)
-			time.Sleep(retryDelay)
-			continue
-		}
-
-		// Return on non-retryable status codes
-		return resBody, res.StatusCode, fmt.Errorf("received error response: %d %s", res.StatusCode, resBody)
-	}
-
-	// If retries exhausted, return last response
-	return resBody, res.StatusCode, fmt.Errorf("request failed after %d retries with status: %d", maxRetries, res.StatusCode)
-}
-
-func (c *Client) executeHttpRequest(method string, url string, body *[]byte) ([]byte, int, error) {
-	maxRetries := 3
-	retryDelay := 5 * time.Second
-
-	req, err := c.prepareRequest(method, url, body)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return c.executeWithRetry(req, maxRetries, retryDelay)
-}
-
-// executeMultipartRequest sends a multipart/form-data request (e.g. for file uploads).
-func (c *Client) executeMultipartRequest(method, url string, body *bytes.Buffer, contentType string) ([]byte, int, error) {
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to create request: %w", err)
-	}
+// setCommonHeaders sets the authentication, content-type, and user-agent headers on
+// a retryablehttp request, avoiding duplication across request helpers.
+func (c *Client) setCommonHeaders(req *retryablehttp.Request, contentType string) {
 	req.Header.Set("x-api-key", c.ApiKey)
 	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("User-Agent", "Terraform (terraform-provider-komodor); Go-http-client/1.1")
+	req.Header.Set("User-Agent", userAgent)
+}
 
-	res, err := c.HttpClient.Do(req)
+// doRequest executes a prepared retryablehttp request, reads the response body, and
+// returns an error for any non-2xx status code.  Retry logic is handled by the
+// retryablehttp.Client configured in NewClient.
+func (c *Client) doRequest(req *retryablehttp.Request) ([]byte, int, error) {
+	resp, err := c.retryClient.Do(req)
 	if err != nil {
 		return nil, 0, fmt.Errorf("request failed: %w", err)
 	}
-	defer res.Body.Close()
+	defer resp.Body.Close()
 
-	resBody, err := io.ReadAll(res.Body)
+	resBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("failed to read response body: %w", err)
+		return nil, resp.StatusCode, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated {
-		return resBody, res.StatusCode, nil
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusNoContent {
+		return resBody, resp.StatusCode, nil
 	}
 
-	return resBody, res.StatusCode, fmt.Errorf("received error response: %d %s", res.StatusCode, resBody)
+	return resBody, resp.StatusCode, fmt.Errorf("received error response: %d %s", resp.StatusCode, resBody)
+}
+
+// executeHttpRequest sends a JSON request with automatic retry handling.
+func (c *Client) executeHttpRequest(method string, url string, body *[]byte) ([]byte, int, error) {
+	var bodyArg interface{}
+	if body != nil {
+		bodyArg = *body
+	}
+
+	req, err := retryablehttp.NewRequest(method, url, bodyArg)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to create request: %w", err)
+	}
+	c.setCommonHeaders(req, "application/json")
+
+	return c.doRequest(req)
+}
+
+// executeMultipartRequest sends a multipart/form-data request (e.g. for file uploads)
+// with automatic retry handling.
+func (c *Client) executeMultipartRequest(method, url string, body *bytes.Buffer, contentType string) ([]byte, int, error) {
+	req, err := retryablehttp.NewRequest(method, url, body.Bytes())
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to create request: %w", err)
+	}
+	c.setCommonHeaders(req, contentType)
+
+	return c.doRequest(req)
 }

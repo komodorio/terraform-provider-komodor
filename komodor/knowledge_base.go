@@ -9,21 +9,21 @@ import (
 	"net/http"
 )
 
-// KnowledgebaseScopedClusters defines the cluster scoping for a knowledge base file.
-type KnowledgebaseScopedClusters struct {
+// KnowledgeBaseScopedClusters defines the cluster scoping for a knowledge base file.
+type KnowledgeBaseScopedClusters struct {
 	Include []string `json:"include,omitempty"`
 	Exclude []string `json:"exclude,omitempty"`
 }
 
 // KnowledgeBaseFile represents a file stored in the Komodor Klaudia Knowledge Base.
 type KnowledgeBaseFile struct {
-	Id             string                        `json:"id"`
-	Name           string                        `json:"name"`
-	Size           int64                         `json:"size"`
-	Clusters       *KnowledgebaseScopedClusters  `json:"clusters,omitempty"`
-	IsBlueprint    bool                          `json:"isBlueprint"`
-	UploadedAt     string                        `json:"uploadedAt"`
-	CreatedByEmail string                        `json:"createdByEmail"`
+	Id             string                       `json:"id"`
+	Name           string                       `json:"name"`
+	Size           int64                        `json:"size"`
+	Clusters       *KnowledgeBaseScopedClusters `json:"clusters,omitempty"`
+	IsBlueprint    bool                         `json:"isBlueprint"`
+	UploadedAt     string                       `json:"uploadedAt"`
+	CreatedByEmail string                       `json:"createdByEmail"`
 }
 
 // KnowledgeBaseListResponse is the API response for listing knowledge base files.
@@ -75,7 +75,7 @@ func (c *Client) GetKnowledgeBaseFile(id string) (*KnowledgeBaseFile, int, error
 }
 
 // UploadKnowledgeBaseFile uploads a single file to the Klaudia Knowledge Base.
-func (c *Client) UploadKnowledgeBaseFile(filename string, content []byte, clusters *KnowledgebaseScopedClusters) (*KnowledgeBaseFile, error) {
+func (c *Client) UploadKnowledgeBaseFile(filename string, content []byte, clusters *KnowledgeBaseScopedClusters) (*KnowledgeBaseFile, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
@@ -147,6 +147,11 @@ func (c *Client) DeleteKnowledgeBaseFiles(ids []string) (*KnowledgeBaseDeleteRes
 	res, _, err := c.executeHttpRequest(http.MethodDelete, c.GetKnowledgeBaseUrl(), &body)
 	if err != nil {
 		return nil, err
+	}
+
+	// Some APIs return 204 No Content or an empty body for successful deletes.
+	if len(res) == 0 {
+		return &KnowledgeBaseDeleteResponse{}, nil
 	}
 
 	var deleteResp KnowledgeBaseDeleteResponse

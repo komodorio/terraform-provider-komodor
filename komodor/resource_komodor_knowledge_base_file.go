@@ -27,6 +27,7 @@ func resourceKomodorKnowledgeBaseFile() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
+				Sensitive:    true,
 				ValidateFunc: validation.NoZeroValues,
 				Description:  "The text content of the file to upload to the Knowledge Base.",
 			},
@@ -39,13 +40,13 @@ func resourceKomodorKnowledgeBaseFile() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"include": {
-							Type:        schema.TypeList,
+							Type:        schema.TypeSet,
 							Optional:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
 							Description: "List of cluster names that this file applies to.",
 						},
 						"exclude": {
-							Type:        schema.TypeList,
+							Type:        schema.TypeSet,
 							Optional:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
 							Description: "List of cluster names to exclude from this file's scope.",
@@ -87,8 +88,8 @@ func resourceKomodorKnowledgeBaseFile() *schema.Resource {
 }
 
 // expandKnowledgeBaseClusters converts the Terraform schema clusters block into a
-// KnowledgebaseScopedClusters struct. Returns nil if no clusters are configured.
-func expandKnowledgeBaseClusters(d *schema.ResourceData) *KnowledgebaseScopedClusters {
+// KnowledgeBaseScopedClusters struct. Returns nil if no clusters are configured.
+func expandKnowledgeBaseClusters(d *schema.ResourceData) *KnowledgeBaseScopedClusters {
 	raw, ok := d.GetOk("clusters")
 	if !ok {
 		return nil
@@ -98,14 +99,14 @@ func expandKnowledgeBaseClusters(d *schema.ResourceData) *KnowledgebaseScopedClu
 		return nil
 	}
 	m := list[0].(map[string]interface{})
-	clusters := &KnowledgebaseScopedClusters{}
-	if includes, ok := m["include"].([]interface{}); ok {
-		for _, v := range includes {
+	clusters := &KnowledgeBaseScopedClusters{}
+	if includeSet, ok := m["include"].(*schema.Set); ok {
+		for _, v := range includeSet.List() {
 			clusters.Include = append(clusters.Include, v.(string))
 		}
 	}
-	if excludes, ok := m["exclude"].([]interface{}); ok {
-		for _, v := range excludes {
+	if excludeSet, ok := m["exclude"].(*schema.Set); ok {
+		for _, v := range excludeSet.List() {
 			clusters.Exclude = append(clusters.Exclude, v.(string))
 		}
 	}
@@ -146,11 +147,23 @@ func resourceKomodorKnowledgeBaseFileRead(ctx context.Context, d *schema.Resourc
 		return diag.Errorf("Error reading Knowledge Base file: %s", err)
 	}
 
-	d.Set("filename", file.Name)
-	d.Set("size", int(file.Size))
-	d.Set("uploaded_at", file.UploadedAt)
-	d.Set("created_by_email", file.CreatedByEmail)
-	d.Set("is_blueprint", file.IsBlueprint)
+	var diags diag.Diagnostics
+
+	if err := d.Set("filename", file.Name); err != nil {
+		diags = append(diags, diag.Errorf("Error setting filename: %s", err)...)
+	}
+	if err := d.Set("size", int(file.Size)); err != nil {
+		diags = append(diags, diag.Errorf("Error setting size: %s", err)...)
+	}
+	if err := d.Set("uploaded_at", file.UploadedAt); err != nil {
+		diags = append(diags, diag.Errorf("Error setting uploaded_at: %s", err)...)
+	}
+	if err := d.Set("created_by_email", file.CreatedByEmail); err != nil {
+		diags = append(diags, diag.Errorf("Error setting created_by_email: %s", err)...)
+	}
+	if err := d.Set("is_blueprint", file.IsBlueprint); err != nil {
+		diags = append(diags, diag.Errorf("Error setting is_blueprint: %s", err)...)
+	}
 
 	if file.Clusters != nil {
 		clustersData := []interface{}{
@@ -159,10 +172,16 @@ func resourceKomodorKnowledgeBaseFileRead(ctx context.Context, d *schema.Resourc
 				"exclude": file.Clusters.Exclude,
 			},
 		}
-		d.Set("clusters", clustersData)
+		if err := d.Set("clusters", clustersData); err != nil {
+			diags = append(diags, diag.Errorf("Error setting clusters: %s", err)...)
+		}
+	} else {
+		if err := d.Set("clusters", nil); err != nil {
+			diags = append(diags, diag.Errorf("Error clearing clusters: %s", err)...)
+		}
 	}
 
-	return nil
+	return diags
 }
 
 func resourceKomodorKnowledgeBaseFileDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
