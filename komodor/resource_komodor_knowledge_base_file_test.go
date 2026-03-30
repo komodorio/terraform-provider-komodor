@@ -114,11 +114,9 @@ func TestDeleteKnowledgeBaseFilesEmptyResponse(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := &Client{
-		HttpClient: server.Client(),
-		ApiKey:     "test-key",
-		BaseURL:    server.URL,
-	}
+	client := NewClient("test-key", server.URL)
+	// Route requests through the test server's transport.
+	client.retryClient.HTTPClient = server.Client()
 
 	resp, err := client.DeleteKnowledgeBaseFiles([]string{"file-id-1"})
 	require.NoError(t, err)
