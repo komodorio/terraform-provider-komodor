@@ -6,42 +6,29 @@ resource "komodor_monitor" "example-availability-monitor" {
 [{
   "cluster": "kind-kind",
   "exclude": {
-    "services": ["default/service-to-exclude"]
+    "services": ["default/excluded-service"]
   },
-  "services": [
-    "default/service-to-include"
-  ],
+  "services": ["default/important-service"],
   "condition": "and",
   "namespaces": ["default"]
 }]
 EOF
   sinks         = <<EOF
 {
-  "slack": [
-    "default"
-  ],
-  "teams": [
-    "default"
-  ],
-  "pagerduty": [{
-    "channel": "example-channel",
-    "integrationKey": "example-pagerduty-integration-key",
-    "pagerDutyAccountName": "example-pagerduty-account-name"
-  }]
+  "slack": ["availability-alerts"],
+  "teams": ["SRE-Team"]
 }
-EOF  
+EOF
   variables     = <<EOF
 {
-  "categories": [
-    "*"
-  ],
+  "categories": ["Creating/Initializing", "Unhealthy - failed probes"],
   "duration": 30,
   "minAvailable": "100%"
 }
-EOF 
+EOF
   sinks_options = <<EOF
 {
   "notifyOn": ["*"]
 }
-EOF 
+EOF
 }
