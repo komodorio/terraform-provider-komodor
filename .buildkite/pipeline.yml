@@ -18,10 +18,17 @@ x-config:
   # Common Go environment variable sets.
   go_env: &go_env
     - GO111MODULE=on
+    - GOFLAGS=-buildvcs=false
 
   go_build_env: &go_build_env
     - GO111MODULE=on
     - CGO_ENABLED=0
+    - GOFLAGS=-buildvcs=false
+
+  go_test_env: &go_test_env
+    - GO111MODULE=on
+    - CGO_ENABLED=1
+    - GOFLAGS=-buildvcs=false
 
 steps:
   # ── Stage 1 & 2 & 3: Code Quality, Tests, Static Checks (all parallel) ──
@@ -75,7 +82,7 @@ steps:
     plugins:
       - docker#v5.12.0:
           <<: *golang_docker
-          environment: *go_build_env
+          environment: *go_test_env
 
   - label: ":hammer: Build"
     command: go build -v ./...
@@ -96,7 +103,7 @@ steps:
 
   - label: ":terraform: Examples fmt"
     command: |
-      # Install terraform
+      apt-get update -qq && apt-get install -y -qq unzip
       curl -fsSL https://releases.hashicorp.com/terraform/1.9.0/terraform_1.9.0_linux_amd64.zip -o /tmp/tf.zip
       unzip -q /tmp/tf.zip -d /usr/local/bin
       terraform fmt -check -recursive examples/
@@ -106,7 +113,9 @@ steps:
           <<: *golang_docker
 
   - label: ":terraform: Examples validate"
-    command: bash scripts/validate-examples.sh
+    command: |
+      apt-get update -qq && apt-get install -y -qq unzip
+      bash scripts/validate-examples.sh
     agents: *dind
     plugins:
       - docker#v5.12.0:
@@ -120,6 +129,7 @@ steps:
       - docker#v5.12.0:
           <<: *golang_docker
           image: goreleaser/goreleaser:latest
+          entrypoint: /bin/sh
 
   - wait
 
