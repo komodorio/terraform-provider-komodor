@@ -1,6 +1,6 @@
 ---
 page_title: "komodor_policy_v2 Resource - terraform-provider-komodor"
-subcategory: "RBAC & Policies"
+subcategory: ""
 description: |-
     Creates a Komodor RBAC Policy
 ---
