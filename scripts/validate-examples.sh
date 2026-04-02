@@ -61,7 +61,7 @@ validate_dir() {
   # Skip injection if any .tf file in the directory already declares required_providers.
   # This file is removed immediately after validation regardless of outcome.
   local injected_this_run=0
-  if ! grep -rl "required_providers" "${dir}"*.tf &>/dev/null; then
+  if ! grep -rl "required_providers" "${dir}" --include="*.tf" &>/dev/null; then
     cat > "${injected}" <<'EOF'
 terraform {
   required_providers {
@@ -74,14 +74,20 @@ EOF
     injected_this_run=1
   fi
 
+  terraform -chdir="${dir}" init -no-color > /dev/null
+
   local result=0
   # Suppress the expected dev-override warning; surface everything else.
-  terraform -chdir="${dir}" validate -no-color 2>&1 \
+  # Capture terraform's exit code separately — grep -v exits 1 when all lines
+  # are filtered out (i.e. success), which would produce false failures.
+  local tf_output
+  tf_output=$(terraform -chdir="${dir}" validate -no-color 2>&1) || result=1
+  echo "${tf_output}" \
     | grep -v "Provider development overrides are in effect" \
     | grep -v "komodorio/komodor in" \
     | grep -v "The behavior may therefore not match" \
     | grep -v "applying changes may cause" \
-    || result=1
+    || true
 
   [ "${injected_this_run}" -eq 1 ] && rm -f "${injected}"
 

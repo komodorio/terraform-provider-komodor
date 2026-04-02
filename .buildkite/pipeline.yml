@@ -55,7 +55,7 @@ steps:
     plugins:
       - docker#v5.12.0:
           <<: *golang_docker
-          image: golangci/golangci-lint:latest
+          image: golangci/golangci-lint:v2.11.4
 
   - label: ":test_tube: Unit Tests"
     command: go test -count=1 -v ./komodor/... -timeout 60s
