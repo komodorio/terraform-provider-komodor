@@ -30,7 +30,7 @@ testacc:
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m   
 
 generate-docs:
-	GO111MODULE=on go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+	GO111MODULE=on GOFLAGS=-buildvcs=false go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name komodor
 
 fmt:
 	gofmt -w .

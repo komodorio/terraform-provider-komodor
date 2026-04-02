@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_workspace Resource - terraform-provider-komodor"
+page_title: "komodor_workspace Resource - komodor"
 subcategory: ""
 description: |-
     Creates a Komodor Workspace

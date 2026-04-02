@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_monitor Resource - terraform-provider-komodor"
+page_title: "komodor_monitor Resource - komodor"
 subcategory: ""
 description: |-
   Creates a new Komodor monitor which allows Komodor to monitor, detect, and analyze failures around infrastructure.

@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_user Data Source - terraform-provider-komodor"
+page_title: "komodor_user Data Source - komodor"
 subcategory: ""
 description: |-
   Retrieves an existing Komodor User by email
