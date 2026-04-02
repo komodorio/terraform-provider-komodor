@@ -1,51 +1,38 @@
 # ── YAML Anchors ──────────────────────────────────────────────────────────
 # Resolved at parse time; the x-config key is ignored by Buildkite.
 x-config:
-  golang_image: &golang_image "golang:1.23"
-
   agents: &dind
     builder: "dind"
 
-  # Base Docker plugin config: image + workdir + volume mount.
-  # Merge into any docker#v5.12.0 step with "<<: *golang_docker".
-  # Override individual keys (e.g. image:) after the merge as needed.
+  # Docker plugin config for steps that genuinely need a specific image.
   golang_docker: &golang_docker
-    image: *golang_image
     workdir: /workspace
     volumes:
       - ".:/workspace"
 
   # Common Go environment variable sets.
   go_env: &go_env
-    - GO111MODULE=on
-    - GOFLAGS=-buildvcs=false
+    GO111MODULE: "on"
+    GOFLAGS: "-buildvcs=false"
 
   go_build_env: &go_build_env
-    - GO111MODULE=on
-    - CGO_ENABLED=0
-    - GOFLAGS=-buildvcs=false
-
-  go_test_env: &go_test_env
-    - GO111MODULE=on
-    - CGO_ENABLED=1
-    - GOFLAGS=-buildvcs=false
+    GO111MODULE: "on"
+    CGO_ENABLED: "0"
+    GOFLAGS: "-buildvcs=false"
 
 steps:
   # ── Stage 1 & 2 & 3: Code Quality, Tests, Static Checks (all parallel) ──
 
   - label: ":lint-roller: fmt check"
     command: |
-      unformatted=$(gofmt -l .)
+      unformatted=$$(gofmt -l .)
       if [ -n "$$unformatted" ]; then
         echo "The following files need formatting (run: gofmt -w .):"
         echo "$$unformatted"
         exit 1
       fi
     agents: *dind
-    plugins:
-      - docker#v5.12.0:
-          <<: *golang_docker
-          environment: *go_env
+    env: *go_env
 
   - label: ":package: mod tidy"
     command: |
@@ -55,18 +42,12 @@ steps:
         exit 1
       fi
     agents: *dind
-    plugins:
-      - docker#v5.12.0:
-          <<: *golang_docker
-          environment: *go_env
+    env: *go_env
 
   - label: ":mag: vet"
     command: go vet ./...
     agents: *dind
-    plugins:
-      - docker#v5.12.0:
-          <<: *golang_docker
-          environment: *go_build_env
+    env: *go_build_env
 
   - label: ":rotating_light: lint"
     command: golangci-lint run --timeout=5m
@@ -77,74 +58,50 @@ steps:
           image: golangci/golangci-lint:latest
 
   - label: ":test_tube: Unit Tests"
-    command: go mod download && go test -race -count=1 -v ./komodor/... -timeout 60s
+    command: go test -race -count=1 -v ./komodor/... -timeout 60s
     agents: *dind
-    plugins:
-      - docker#v5.12.0:
-          <<: *golang_docker
-          environment: *go_test_env
+    env:
+      GO111MODULE: "on"
+      CGO_ENABLED: "1"
+      GOFLAGS: "-buildvcs=false"
 
   - label: ":hammer: Build"
     command: go build -v ./...
     agents: *dind
-    plugins:
-      - docker#v5.12.0:
-          <<: *golang_docker
-          environment: *go_build_env
+    env: *go_build_env
 
   - label: ":books: Docs Check"
     command: bash scripts/check-docs.sh
     soft_fail: true
     agents: *dind
-    plugins:
-      - docker#v5.12.0:
-          <<: *golang_docker
-          environment: *go_env
+    env: *go_env
 
   - label: ":terraform: Examples fmt"
-    command: |
-      apt-get update -qq && apt-get install -y -qq unzip
-      curl -fsSL https://releases.hashicorp.com/terraform/1.9.0/terraform_1.9.0_linux_amd64.zip -o /tmp/tf.zip
-      unzip -q /tmp/tf.zip -d /usr/local/bin
-      terraform fmt -check -recursive examples/
+    command: terraform fmt -check -recursive examples/
     agents: *dind
-    plugins:
-      - docker#v5.12.0:
-          <<: *golang_docker
 
   - label: ":terraform: Examples validate"
-    command: |
-      apt-get update -qq && apt-get install -y -qq unzip
-      bash scripts/validate-examples.sh
+    command: bash scripts/validate-examples.sh
     agents: *dind
-    plugins:
-      - docker#v5.12.0:
-          <<: *golang_docker
-          environment: *go_build_env
+    env: *go_build_env
 
   - label: ":rocket: GoReleaser check"
     command: |
-      GORELEASER_VERSION=$(curl -fsSLI -o /dev/null -w "%{url_effective}" https://github.com/goreleaser/goreleaser/releases/latest | sed "s|.*/tag/||")
+      GORELEASER_VERSION=$$(curl -fsSLI -o /dev/null -w "%{url_effective}" https://github.com/goreleaser/goreleaser/releases/latest | sed "s|.*/tag/||")
       curl -fsSL "https://github.com/goreleaser/goreleaser/releases/download/$${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz" \
-        | tar -xz -C /usr/local/bin goreleaser
-      goreleaser check
+        | tar -xz -C /tmp goreleaser
+      /tmp/goreleaser check
     agents: *dind
-    plugins:
-      - docker#v5.12.0:
-          <<: *golang_docker
-          environment: *go_env
+    env: *go_env
 
   - wait
 
   # ── Stage 4: Acceptance Test Coverage (no credentials needed) ─────────
 
   - label: ":white_check_mark: Acc Test Coverage"
-    command: go mod download && go test -v -run TestAccCoverage ./komodor/...
+    command: go test -v -run TestAccCoverage ./komodor/...
     agents: *dind
-    plugins:
-      - docker#v5.12.0:
-          <<: *golang_docker
-          environment: *go_env
+    env: *go_env
 
   - wait
 
@@ -161,10 +118,7 @@ steps:
       - zacharymctague/aws-ssm#v1.0.0:
           parameters:
             KOMODOR_API_KEY: /app/ci/terraform-provider/KOMODOR-API-KEY
-      - docker#v5.12.0:
-          <<: *golang_docker
-          environment:
-            - GO111MODULE=on
-            - CGO_ENABLED=0
-            - KOMODOR_API_KEY
-            - KOMODOR_API_URL   # optional: override for EU region (https://api.eu.komodor.com)
+    env:
+      GO111MODULE: "on"
+      KOMODOR_API_KEY: "$KOMODOR_API_KEY"
+      KOMODOR_API_URL: "$KOMODOR_API_URL"
