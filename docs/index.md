@@ -18,6 +18,8 @@ and datasources.
 
 provider "komodor" {
   api_key = "KOMODOR_API_KEY"
+  # Optional: For EU region, uncomment the line below:
+  # api_url = "https://api.eu.komodor.com"
 }
 ```
 
@@ -27,3 +29,4 @@ provider "komodor" {
 ### Optional
 
 - `api_key` (String) The API key for operations. Alternatively, can be configured using the `KOMODOR_API_KEY` or `KOMODOR_TOKEN` environment variables.
+- `api_url` (String) The base URL for the Komodor API. Defaults to `https://api.komodor.com` for US region. For EU region, use `https://api.eu.komodor.com`. Alternatively, can be configured using the `KOMODOR_API_URL` environment variable.
