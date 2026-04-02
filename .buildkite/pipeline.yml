@@ -124,7 +124,7 @@ steps:
 
   - label: ":rocket: GoReleaser check"
     command: |
-      GORELEASER_VERSION=$(curl -fsSLI -o /dev/null -w "%{url_effective}" https://github.com/goreleaser/goreleaser/releases/latest | grep -oP 'v[\d.]+$')
+      GORELEASER_VERSION=$(curl -fsSLI -o /dev/null -w "%{url_effective}" https://github.com/goreleaser/goreleaser/releases/latest | sed 's|.*/tag/||')
       curl -fsSL "https://github.com/goreleaser/goreleaser/releases/download/${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz" \
         | tar -xz -C /usr/local/bin goreleaser
       goreleaser check
