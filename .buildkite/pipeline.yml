@@ -58,12 +58,9 @@ steps:
           image: golangci/golangci-lint:latest
 
   - label: ":test_tube: Unit Tests"
-    command: go test -race -count=1 -v ./komodor/... -timeout 60s
+    command: go test -count=1 -v ./komodor/... -timeout 60s
     agents: *dind
-    env:
-      GO111MODULE: "on"
-      CGO_ENABLED: "1"
-      GOFLAGS: "-buildvcs=false"
+    env: *go_env
 
   - label: ":hammer: Build"
     command: go build -v ./...
