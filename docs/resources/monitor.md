@@ -2,15 +2,12 @@
 page_title: "komodor_monitor Resource - terraform-provider-komodor"
 subcategory: ""
 description: |-
-  Creates a new Komodor monitor which allows Komodor
-  to monitor, detect, and analyze failures around infrastructure.
+  Creates a new Komodor monitor which allows Komodor to monitor, detect, and analyze failures around infrastructure.
 ---
 
 # komodor_monitor (Resource)
 
-Creates a new Komodor monitor which allows Komodor
-
-to monitor, detect, and analyze failures around infrastructure.
+Creates a new Komodor monitor which allows Komodor to monitor, detect, and analyze failures around infrastructure.
 
 ## Example Usage
 
@@ -413,17 +410,17 @@ EOF
 
 ### Required
 
-- `active` (Boolean)
-- `name` (String)
-- `sensors` (String)
-- `type` (String)
+- `active` (Boolean) Indicates whether the monitor is enabled.
+- `name` (String) The name of the monitor.
+- `sensors` (String) JSON-encoded list defining the scope of monitoring (clusters, namespaces, services, etc.).
+- `type` (String) The monitor type. Must be one of: `availability`, `node`, `PVC`, `job`, `cronJob`, `deploy`, or `workflow`.
 
 ### Optional
 
-- `is_deleted` (Boolean)
-- `sinks` (String)
-- `sinks_options` (String)
-- `variables` (String)
+- `is_deleted` (Boolean) Indicates whether the monitor has been marked for deletion. Defaults to `false`.
+- `sinks` (String) JSON-encoded notification channels for the monitor (e.g., Slack, Teams, PagerDuty, Opsgenie, Webhook).
+- `sinks_options` (String) JSON-encoded additional notification settings such as `notifyOn`. Valid values depend on the monitor type.
+- `variables` (String) JSON-encoded additional settings required for specific monitor types (e.g., `duration`, `categories`, `nodeCreationThreshold`).
 
 ### Read-Only
 
