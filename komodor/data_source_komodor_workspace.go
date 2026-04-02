@@ -49,8 +49,8 @@ func dataSourceKomodorWorkspace() *schema.Resource {
 								Type: schema.TypeString,
 							},
 						},
-						"clusters_patterns":   patternListMaxOneSchema(),
-						"namespaces_patterns": patternListMaxOneSchema(),
+						"clusters_patterns":   patternListComputedSchema(),
+						"namespaces_patterns": patternListComputedSchema(),
 						"selectors": {
 							Type:     schema.TypeList,
 							Computed: true,
@@ -100,6 +100,8 @@ func dataSourceKomodorWorkspaceRead(ctx context.Context, d *schema.ResourceData,
 		}
 		return diag.Errorf("Error reading Workspace: %s", err)
 	}
+
+	d.SetId(id)
 
 	if err := flattenWorkspace(workspace, d); err != nil {
 		return diag.Errorf("Error flattening workspace: %s", err)

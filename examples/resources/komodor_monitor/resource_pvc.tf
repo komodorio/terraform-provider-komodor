@@ -1,14 +1,14 @@
 resource "komodor_monitor" "example-pvc-monitor" {
-  name          = "example-pvc-monitor"
-  type          = "PVC"
-  active        = true
-  sensors       = <<EOF
+  name      = "example-pvc-monitor"
+  type      = "PVC"
+  active    = true
+  sensors   = <<EOF
 [{
   "cluster": "kind-kind",
   "namespaces": ["storage-namespace"]
 }]
 EOF
-  sinks         = <<EOF
+  sinks     = <<EOF
 {
   "slack": ["storage-alerts"],
   "teams": ["Storage-Team"],
@@ -19,7 +19,7 @@ EOF
   }]
 }
 EOF
-  variables     = <<EOF
+  variables = <<EOF
 {
   "duration": 300
 }

@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_policy Data Source - terraform-provider-komodor"
+page_title: "komodor_policy Data Source - komodor"
 subcategory: ""
 description: |-
   Retrieves an existing Komodor Policy by name

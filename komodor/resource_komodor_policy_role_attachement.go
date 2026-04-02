@@ -77,7 +77,9 @@ func resourcePolicyRoleAttachmentRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	log.Printf("Policies attached to role %s are: %s", roleId, pl)
-	d.Set("policies", pl)
+	if err := d.Set("policies", pl); err != nil {
+		return diag.Errorf("error setting policies: %s", err)
+	}
 
 	return nil
 }

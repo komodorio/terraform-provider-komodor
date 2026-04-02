@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-
 type CustomK8sActionStatement struct {
 	ApiGroups []string `json:"apiGroups"`
 	Resources []string `json:"resources"`
@@ -24,6 +23,11 @@ type CustomK8sAction struct {
 
 type NewCustomK8sAction struct {
 	Action      string                     `json:"action"`
+	Description string                     `json:"description"`
+	Ruleset     []CustomK8sActionStatement `json:"k8sRuleset"`
+}
+
+type UpdateCustomK8sAction struct {
 	Description string                     `json:"description"`
 	Ruleset     []CustomK8sActionStatement `json:"k8sRuleset"`
 }
@@ -89,7 +93,11 @@ func (c *Client) DeleteCustomK8sAction(id string) error {
 }
 
 func (c *Client) UpdateCustomK8sAction(id string, p *NewCustomK8sAction) (*CustomK8sAction, error) {
-	jsonCustomK8sAction, err := json.Marshal(p)
+	update := &UpdateCustomK8sAction{
+		Description: p.Description,
+		Ruleset:     p.Ruleset,
+	}
+	jsonCustomK8sAction, err := json.Marshal(update)
 	if err != nil {
 		return nil, err
 	}

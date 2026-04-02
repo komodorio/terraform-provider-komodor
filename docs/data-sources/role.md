@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_role Data Source - terraform-provider-komodor"
+page_title: "komodor_role Data Source - komodor"
 subcategory: ""
 description: |-
   Retrieves an existing Komodor Role by name

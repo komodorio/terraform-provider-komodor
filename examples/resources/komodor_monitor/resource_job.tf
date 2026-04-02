@@ -1,14 +1,14 @@
 resource "komodor_monitor" "example-job-monitor" {
-  name          = "example-job-monitor"
-  type          = "job"
-  active        = true
-  sensors       = <<EOF
+  name      = "example-job-monitor"
+  type      = "job"
+  active    = true
+  sensors   = <<EOF
 [{
   "cluster": "kind-kind",
   "namespaces": ["job-namespace"]
 }]
 EOF
-  sinks         = <<EOF
+  sinks     = <<EOF
 {
   "slack": ["job-alerts"],
   "teams": ["SRE-Team"],
@@ -19,7 +19,7 @@ EOF
   }]
 }
 EOF
-  variables     = <<EOF
+  variables = <<EOF
 {
   "duration": 300
 }

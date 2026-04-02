@@ -1,4 +1,4 @@
-resource "komodor_monitor" "example-availability-monitor" {
+resource "komodor_monitor" "example-deploy-monitor" {
   name          = "example-availability-monitor"
   type          = "availability"
   active        = true
