@@ -157,30 +157,38 @@ func resourceKomodorMonitorRead(ctx context.Context, d *schema.ResourceData, met
 		return diag.Errorf("error setting type: %s", err)
 	}
 
-	if sensorsJSON, err := json.Marshal(monitor.Sensors); err == nil {
-		if err := d.Set("sensors", string(sensorsJSON)); err != nil {
-			return diag.Errorf("error setting sensors: %s", err)
-		}
+	sensorsJSON, err := json.Marshal(monitor.Sensors)
+	if err != nil {
+		return diag.Errorf("error marshaling sensors: %s", err)
+	}
+	if err := d.Set("sensors", string(sensorsJSON)); err != nil {
+		return diag.Errorf("error setting sensors: %s", err)
 	}
 	if monitor.Sinks != nil {
-		if sinksJSON, err := json.Marshal(monitor.Sinks); err == nil {
-			if err := d.Set("sinks", string(sinksJSON)); err != nil {
-				return diag.Errorf("error setting sinks: %s", err)
-			}
+		sinksJSON, err := json.Marshal(monitor.Sinks)
+		if err != nil {
+			return diag.Errorf("error marshaling sinks: %s", err)
+		}
+		if err := d.Set("sinks", string(sinksJSON)); err != nil {
+			return diag.Errorf("error setting sinks: %s", err)
 		}
 	}
 	if monitor.SinkOptions != nil {
-		if sinksOptionsJSON, err := json.Marshal(monitor.SinkOptions); err == nil {
-			if err := d.Set("sinks_options", string(sinksOptionsJSON)); err != nil {
-				return diag.Errorf("error setting sinks_options: %s", err)
-			}
+		sinksOptionsJSON, err := json.Marshal(monitor.SinkOptions)
+		if err != nil {
+			return diag.Errorf("error marshaling sinks_options: %s", err)
+		}
+		if err := d.Set("sinks_options", string(sinksOptionsJSON)); err != nil {
+			return diag.Errorf("error setting sinks_options: %s", err)
 		}
 	}
 	if monitor.Variables != nil {
-		if variablesJSON, err := json.Marshal(monitor.Variables); err == nil {
-			if err := d.Set("variables", string(variablesJSON)); err != nil {
-				return diag.Errorf("error setting variables: %s", err)
-			}
+		variablesJSON, err := json.Marshal(monitor.Variables)
+		if err != nil {
+			return diag.Errorf("error marshaling variables: %s", err)
+		}
+		if err := d.Set("variables", string(variablesJSON)); err != nil {
+			return diag.Errorf("error setting variables: %s", err)
 		}
 	}
 
