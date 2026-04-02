@@ -123,16 +123,13 @@ steps:
           environment: *go_build_env
 
   - label: ":rocket: GoReleaser check"
-    command: |
-      GORELEASER_VERSION=$(curl -fsSL https://api.github.com/repos/goreleaser/goreleaser/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
-      curl -fsSL "https://github.com/goreleaser/goreleaser/releases/download/${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz" \
-        | tar -xz -C /usr/local/bin goreleaser
-      goreleaser check
+    command: goreleaser check
     agents: *dind
     plugins:
       - docker#v5.12.0:
           <<: *golang_docker
-          environment: *go_env
+          image: goreleaser/goreleaser:latest
+          entrypoint: ""
 
   - wait
 
