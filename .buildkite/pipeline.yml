@@ -124,13 +124,13 @@ steps:
 
   - label: ":rocket: GoReleaser check"
     command: |
-      curl -sSfL https://raw.githubusercontent.com/goreleaser/goreleaser/main/install.sh | sh -s -- -b /usr/local/bin
+      go install github.com/goreleaser/goreleaser/v2@latest
       goreleaser check
     agents: *dind
     plugins:
       - docker#v5.12.0:
           <<: *golang_docker
-          environment: *go_env
+          environment: *go_build_env
 
   - wait
 
