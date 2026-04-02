@@ -1,14 +1,157 @@
+# ── YAML Anchors ──────────────────────────────────────────────────────────
+# Resolved at parse time; the x-config key is ignored by Buildkite.
+x-config:
+  golang_image: &golang_image "golang:1.23"
+
+  agents: &dind
+    builder: "dind"
+
+  # Base Docker plugin config: image + workdir + volume mount.
+  # Merge into any docker#v5.12.0 step with "<<: *golang_docker".
+  # Override individual keys (e.g. image:) after the merge as needed.
+  golang_docker: &golang_docker
+    image: *golang_image
+    workdir: /workspace
+    volumes:
+      - ".:/workspace"
+
+  # Common Go environment variable sets.
+  go_env: &go_env
+    - GO111MODULE=on
+
+  go_build_env: &go_build_env
+    - GO111MODULE=on
+    - CGO_ENABLED=0
+
 steps:
-  - label: ":test_tube: Run Unit Tests"
-    command: go mod download; go test -v ./komodor/...
-    agents:
-      builder: "dind"
+  # ── Stage 1 & 2 & 3: Code Quality, Tests, Static Checks (all parallel) ──
+
+  - label: ":lint-roller: fmt check"
+    command: |
+      unformatted=$(gofmt -l .)
+      if [ -n "$$unformatted" ]; then
+        echo "The following files need formatting (run: gofmt -w .):"
+        echo "$$unformatted"
+        exit 1
+      fi
+    agents: *dind
     plugins:
       - docker#v5.12.0:
-          image: golang:1.23
-          workdir: /go/src/github.com/komodorio/terraform-provider-komodor
-          volumes:
-            - ".:/go/src/github.com/komodorio/terraform-provider-komodor"
+          <<: *golang_docker
+          environment: *go_env
+
+  - label: ":package: mod tidy"
+    command: |
+      go mod tidy
+      if ! git diff --exit-code go.mod go.sum; then
+        echo "ERROR: go.mod/go.sum are out of sync. Run 'go mod tidy' and commit the result."
+        exit 1
+      fi
+    agents: *dind
+    plugins:
+      - docker#v5.12.0:
+          <<: *golang_docker
+          environment: *go_env
+
+  - label: ":mag: vet"
+    command: go vet ./...
+    agents: *dind
+    plugins:
+      - docker#v5.12.0:
+          <<: *golang_docker
+          environment: *go_build_env
+
+  - label: ":rotating_light: lint"
+    command: golangci-lint run --timeout=5m
+    agents: *dind
+    plugins:
+      - docker#v5.12.0:
+          <<: *golang_docker
+          image: golangci/golangci-lint:latest
+
+  - label: ":test_tube: Unit Tests"
+    command: go mod download && go test -race -count=1 -v ./komodor/... -timeout 60s
+    agents: *dind
+    plugins:
+      - docker#v5.12.0:
+          <<: *golang_docker
+          environment: *go_build_env
+
+  - label: ":hammer: Build"
+    command: go build -v ./...
+    agents: *dind
+    plugins:
+      - docker#v5.12.0:
+          <<: *golang_docker
+          environment: *go_build_env
+
+  - label: ":books: Docs Check"
+    command: bash scripts/check-docs.sh
+    soft_fail: true
+    agents: *dind
+    plugins:
+      - docker#v5.12.0:
+          <<: *golang_docker
+          environment: *go_env
+
+  - label: ":terraform: Examples fmt"
+    command: |
+      # Install terraform
+      curl -fsSL https://releases.hashicorp.com/terraform/1.9.0/terraform_1.9.0_linux_amd64.zip -o /tmp/tf.zip
+      unzip -q /tmp/tf.zip -d /usr/local/bin
+      terraform fmt -check -recursive examples/
+    agents: *dind
+    plugins:
+      - docker#v5.12.0:
+          <<: *golang_docker
+
+  - label: ":terraform: Examples validate"
+    command: bash scripts/validate-examples.sh
+    agents: *dind
+    plugins:
+      - docker#v5.12.0:
+          <<: *golang_docker
+          environment: *go_build_env
+
+  - label: ":rocket: GoReleaser check"
+    command: goreleaser check
+    agents: *dind
+    plugins:
+      - docker#v5.12.0:
+          <<: *golang_docker
+          image: goreleaser/goreleaser:latest
+
+  - wait
+
+  # ── Stage 4: Acceptance Test Coverage (no credentials needed) ─────────
+
+  - label: ":white_check_mark: Acc Test Coverage"
+    command: go mod download && go test -v -run TestAccCoverage ./komodor/...
+    agents: *dind
+    plugins:
+      - docker#v5.12.0:
+          <<: *golang_docker
+          environment: *go_env
+
+  - wait
+
+  # ── Stage 5: Acceptance Tests (concurrency-locked, requires credentials) ─
+
+  - label: ":terraform: Acceptance Tests"
+    command: |
+      go mod download
+      TF_ACC=1 go test -v -run TestAcc ./komodor/... -timeout 60m
+    concurrency: 1
+    concurrency_group: "komodor/terraform-provider/e2e"
+    agents: *dind
+    plugins:
+      - zacharymctague/aws-ssm#v1.0.0:
+          parameters:
+            KOMODOR_API_KEY: /app/ci/terraform-provider/KOMODOR-API-KEY
+      - docker#v5.12.0:
+          <<: *golang_docker
           environment:
             - GO111MODULE=on
-            - CGO_ENABLED=0 
+            - CGO_ENABLED=0
+            - KOMODOR_API_KEY
+            - KOMODOR_API_URL   # optional: override for EU region (https://api.eu.komodor.com)

@@ -112,6 +112,19 @@ func patternListSchema(maxItems int) *schema.Schema {
 	}
 }
 
+func patternListComputedSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Computed: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"include": {Type: schema.TypeString, Computed: true},
+				"exclude": {Type: schema.TypeString, Computed: true},
+			},
+		},
+	}
+}
+
 func selectorSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
@@ -161,22 +174,6 @@ func expandStatements(list []interface{}) []Statement {
 		})
 	}
 	return statements
-}
-
-func expandResources(list []interface{}) *[]Resource {
-	if len(list) == 0 {
-		return nil
-	}
-	result := make([]Resource, 0, len(list))
-	for _, item := range list {
-		data := item.(map[string]interface{})
-		result = append(result, Resource{
-			Cluster:          data["cluster"].(string),
-			Namespaces:       toStringList(data["namespaces"].([]interface{})),
-			NamespacePattern: data["namespace_pattern"].(string),
-		})
-	}
-	return &result
 }
 
 func toStringList(raw []interface{}) []string {
@@ -243,8 +240,12 @@ func expandSelectorPatterns(list []interface{}) []SelectorPattern {
 // Flatten (from GO -> TF)
 
 func flattenPolicy(policy *Policy, d *schema.ResourceData) error {
-	d.Set("name", policy.Name)
-	d.Set("statements", flattenStatements(policy.Statements))
+	if err := d.Set("name", policy.Name); err != nil {
+		return err
+	}
+	if err := d.Set("statements", flattenStatements(policy.Statements)); err != nil {
+		return err
+	}
 	return nil
 }
 

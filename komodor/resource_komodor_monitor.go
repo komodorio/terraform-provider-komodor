@@ -26,32 +26,35 @@ func resourceKomodorMonitor() *schema.Resource {
 				ValidateFunc: validation.NoZeroValues,
 			},
 			"active": {
-				Type:         schema.TypeBool,
-				Required:     true,
-				Description:  "Indicates whether the monitor is enabled.",
-				ValidateFunc: validation.NoZeroValues,
+				Type:        schema.TypeBool,
+				Required:    true,
+				Description: "Indicates whether the monitor is enabled.",
 			},
 			"sensors": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "JSON-encoded list defining the scope of monitoring (clusters, namespaces, services, etc.).",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "JSON-encoded list defining the scope of monitoring (clusters, namespaces, services, etc.).",
+				DiffSuppressFunc: jsonDiffSuppress,
 			},
 			"variables": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "JSON-encoded additional settings required for specific monitor types (e.g., `duration`, `categories`, `nodeCreationThreshold`).",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "JSON-encoded additional settings required for specific monitor types (e.g., `duration`, `categories`, `nodeCreationThreshold`).",
+				DiffSuppressFunc: jsonDiffSuppress,
 			},
 			"sinks": {
-				Type:        schema.TypeString,
-				Elem:        schema.TypeString,
-				Optional:    true,
-				Description: "JSON-encoded notification channels for the monitor (e.g., Slack, Teams, PagerDuty, Opsgenie, Webhook).",
+				Type:             schema.TypeString,
+				Elem:             schema.TypeString,
+				Optional:         true,
+				Description:      "JSON-encoded notification channels for the monitor (e.g., Slack, Teams, PagerDuty, Opsgenie, Webhook).",
+				DiffSuppressFunc: jsonDiffSuppress,
 			},
 			"sinks_options": {
-				Type:        schema.TypeString,
-				Elem:        schema.TypeString,
-				Optional:    true,
-				Description: "JSON-encoded additional notification settings such as `notifyOn`. Valid values depend on the monitor type.",
+				Type:             schema.TypeString,
+				Elem:             schema.TypeString,
+				Optional:         true,
+				Description:      "JSON-encoded additional notification settings such as `notifyOn`. Valid values depend on the monitor type.",
+				DiffSuppressFunc: jsonDiffSuppress,
 			},
 			"is_deleted": {
 				Type:        schema.TypeBool,
@@ -68,7 +71,7 @@ func resourceKomodorMonitor() *schema.Resource {
 		ReadContext:   resourceKomodorMonitorRead,
 		UpdateContext: resourceKomodorMonitorUpdate,
 		DeleteContext: resourceKomodorMonitorDelete,
-		Description: "Creates a new Komodor monitor which allows Komodor to monitor, detect, and analyze failures around infrastructure.",
+		Description:   "Creates a new Komodor monitor which allows Komodor to monitor, detect, and analyze failures around infrastructure.",
 	}
 }
 
@@ -137,16 +140,49 @@ func resourceKomodorMonitorRead(ctx context.Context, d *schema.ResourceData, met
 		return diag.Errorf("Error reading Monitor: %s", err)
 	}
 
-	d.Set("name", monitor.Name)
-	d.Set("active", monitor.Active)
-	d.Set("created_at", monitor.CreatedAt)
-	d.Set("updated_at", monitor.UpdatedAt)
-	d.Set("is_deleted", monitor.IsDeleted)
-	d.Set("sensors", monitor.Sensors)
-	d.Set("sink_options", monitor.SinkOptions)
-	d.Set("sinks", monitor.Sinks)
-	d.Set("type", monitor.Type)
-	d.Set("variables", monitor.Variables)
+	if monitor.Name != nil {
+		if err := d.Set("name", *monitor.Name); err != nil {
+			return diag.Errorf("error setting name: %s", err)
+		}
+	}
+	if err := d.Set("active", monitor.Active); err != nil {
+		return diag.Errorf("error setting active: %s", err)
+	}
+	if monitor.IsDeleted != nil {
+		if err := d.Set("is_deleted", *monitor.IsDeleted); err != nil {
+			return diag.Errorf("error setting is_deleted: %s", err)
+		}
+	}
+	if err := d.Set("type", monitor.Type); err != nil {
+		return diag.Errorf("error setting type: %s", err)
+	}
+
+	if sensorsJSON, err := json.Marshal(monitor.Sensors); err == nil {
+		if err := d.Set("sensors", string(sensorsJSON)); err != nil {
+			return diag.Errorf("error setting sensors: %s", err)
+		}
+	}
+	if monitor.Sinks != nil {
+		if sinksJSON, err := json.Marshal(monitor.Sinks); err == nil {
+			if err := d.Set("sinks", string(sinksJSON)); err != nil {
+				return diag.Errorf("error setting sinks: %s", err)
+			}
+		}
+	}
+	if monitor.SinkOptions != nil {
+		if sinksOptionsJSON, err := json.Marshal(monitor.SinkOptions); err == nil {
+			if err := d.Set("sinks_options", string(sinksOptionsJSON)); err != nil {
+				return diag.Errorf("error setting sinks_options: %s", err)
+			}
+		}
+	}
+	if monitor.Variables != nil {
+		if variablesJSON, err := json.Marshal(monitor.Variables); err == nil {
+			if err := d.Set("variables", string(variablesJSON)); err != nil {
+				return diag.Errorf("error setting variables: %s", err)
+			}
+		}
+	}
 
 	return nil
 }

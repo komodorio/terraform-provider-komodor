@@ -30,4 +30,14 @@ testacc:
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m   
 
 generate-docs:
-	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+	GO111MODULE=on go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+
+fmt:
+	gofmt -w .
+	terraform fmt -recursive examples/
+
+lint:
+	GO111MODULE=on golangci-lint run --timeout=5m
+
+check:
+	bash scripts/check-local.sh
