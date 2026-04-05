@@ -56,7 +56,9 @@ func resourceKomodorKubernetesDelete(ctx context.Context, d *schema.ResourceData
 		return diag.Errorf("Error deleting Kubernetes cluster: %s", err)
 	}
 
-	d.Set("cluster_name", "")
+	if err := d.Set("cluster_name", ""); err != nil {
+		return diag.Errorf("error clearing cluster_name: %s", err)
+	}
 
 	return nil
 }

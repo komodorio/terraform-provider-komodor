@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_policy_role_attachment Resource - terraform-provider-komodor"
+page_title: "komodor_policy_role_attachment Resource - komodor"
 subcategory: ""
 description: |-
   Creates a logical binding between a Komodor Role and a Komodor Policy

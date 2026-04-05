@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_user Data Source - terraform-provider-komodor"
+page_title: "komodor_user Data Source - komodor"
 subcategory: ""
 description: |-
   Retrieves an existing Komodor User by email
@@ -13,7 +13,8 @@ Retrieves an existing Komodor User by email
 
 ```terraform
 data "komodor_user" "user" {
-  email = "email@example.com"
+  email        = "email@example.com"
+  display_name = "Example User"
 }
 ```
 

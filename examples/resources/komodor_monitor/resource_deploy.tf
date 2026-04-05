@@ -6,11 +6,13 @@ resource "komodor_monitor" "example-deploy-monitor" {
 [{
   "cluster": "kind-kind",
   "exclude": {
-    "namespaces": ["komodor"]
+    "services": ["default/service-to-exclude"]
   },
-  "namespaces": [
-    "default"
-  ]
+  "services": [
+    "default/service-to-include"
+  ],
+  "condition": "and",
+  "namespaces": ["default"]
 }]
 EOF
   sinks         = <<EOF
@@ -27,10 +29,19 @@ EOF
     "pagerDutyAccountName": "example-pagerduty-account-name"
   }]
 }
-EOF 
+EOF
+  variables     = <<EOF
+{
+  "categories": [
+    "*"
+  ],
+  "duration": 30,
+  "minAvailable": "100%"
+}
+EOF
   sinks_options = <<EOF
 {
-  "notifyOn": ["Failure"]
+  "notifyOn": ["*"]
 }
 EOF 
 }

@@ -79,10 +79,18 @@ func resourceKomodorUserRead(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.Errorf("Error reading User: %s", err)
 	}
 
-	d.Set("display_name", user.DisplayName)
-	d.Set("email", user.Email)
-	d.Set("created_at", user.CreatedAt)
-	d.Set("updated_at", user.UpdatedAt)
+	if err := d.Set("display_name", user.DisplayName); err != nil {
+		return diag.Errorf("error setting display_name: %s", err)
+	}
+	if err := d.Set("email", user.Email); err != nil {
+		return diag.Errorf("error setting email: %s", err)
+	}
+	if err := d.Set("created_at", user.CreatedAt); err != nil {
+		return diag.Errorf("error setting created_at: %s", err)
+	}
+	if err := d.Set("updated_at", user.UpdatedAt); err != nil {
+		return diag.Errorf("error setting updated_at: %s", err)
+	}
 
 	return nil
 }

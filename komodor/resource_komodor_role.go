@@ -79,10 +79,18 @@ func resourceKomodorRoleRead(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.Errorf("Error reading Role: %s", err)
 	}
 
-	d.Set("name", role.Name)
-	d.Set("created_at", role.CreatedAt)
-	d.Set("updated_at", role.UpdatedAt)
-	d.Set("is_default", role.IsDefault)
+	if err := d.Set("name", role.Name); err != nil {
+		return diag.Errorf("error setting name: %s", err)
+	}
+	if err := d.Set("created_at", role.CreatedAt); err != nil {
+		return diag.Errorf("error setting created_at: %s", err)
+	}
+	if err := d.Set("updated_at", role.UpdatedAt); err != nil {
+		return diag.Errorf("error setting updated_at: %s", err)
+	}
+	if err := d.Set("is_default", role.IsDefault); err != nil {
+		return diag.Errorf("error setting is_default: %s", err)
+	}
 
 	return nil
 }

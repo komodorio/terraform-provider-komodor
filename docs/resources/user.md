@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_user Resource - terraform-provider-komodor"
+page_title: "komodor_user Resource - komodor"
 subcategory: ""
 description: |-
   Creates a Komodor User
@@ -14,7 +14,7 @@ Creates a Komodor User
 ```terraform
 resource "komodor_user" "my-user" {
   display_name = "my-user"
-  email = "email@example.com"
+  email        = "email@example.com"
 }
 ```
 

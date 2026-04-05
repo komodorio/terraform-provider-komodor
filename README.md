@@ -93,3 +93,74 @@ To build the provider for a specific OS and architecture, run make with the OS_A
 ```sh
 make OS_ARCH=darwin_arm64
 ```
+
+### Make Targets
+
+| Target | Description |
+|--------|-------------|
+| `make build` | Compile the provider binary |
+| `make install` | Build and install the provider locally for manual testing |
+| `make fmt` | Auto-format Go source files and Terraform example files |
+| `make lint` | Run `golangci-lint` |
+| `make generate-docs` | Regenerate `docs/` from templates and schema |
+| `make check` | Run all CI checks locally and print a pass/fail summary |
+
+### Running All Checks Locally
+
+```sh
+make check
+```
+
+This runs every CI check in sequence and prints a pass/fail summary:
+
+- **fmt check** — detects unformatted Go files
+- **mod tidy** — ensures `go.mod` / `go.sum` are in sync
+- **vet** — runs `go vet`
+- **lint** — runs `golangci-lint`
+- **unit tests** — `go test -race ./komodor/...`
+- **build** — verifies the provider compiles
+- **docs check** — regenerates docs and fails if `docs/` is out of date
+- **examples fmt** — checks that Terraform example files are formatted
+- **examples validate** — validates all example configs against the provider schema
+- **goreleaser check** — validates the release config
+- **acc test coverage** — ensures every resource has an acceptance test file
+- **acceptance tests** — skipped unless `KOMODOR_API_KEY` is set (see below)
+
+### Acceptance Tests
+
+Acceptance tests create and destroy real resources in Komodor. To run them, provide your API key:
+
+```sh
+KOMODOR_API_KEY=<your-api-key> make check
+```
+
+Or run them directly:
+
+```sh
+KOMODOR_API_KEY=<your-api-key> TF_ACC=1 go test -v -run TestAcc ./komodor/... -timeout 60m
+```
+
+All test resources are created with the `tf-acc-` name prefix. Any resources left over from a crashed run are automatically cleaned up at the start of the next test run.
+
+### Adding a New Resource
+
+1. Implement the resource in `komodor/resource_komodor_<name>.go`
+2. Register it in `provider.go` under `ResourcesMap`
+3. Add an acceptance test file `komodor/resource_komodor_<name>_acc_test.go` with:
+   ```go
+   func init() { registerAccTest("komodor_<name>") }
+   ```
+4. Add example configs under `examples/resources/komodor_<name>/`
+5. Add a template under `templates/resources/<name>.md.tmpl` (or let `make generate-docs` auto-generate one)
+6. Run `make generate-docs` and commit the updated `docs/`
+
+> **CI enforces test coverage**: the `acc test coverage` step fails if any resource in `ResourcesMap` has no corresponding acceptance test. Adding a resource without a test file will block CI.
+
+### Updating Docs
+
+Files under `docs/` are fully generated — **do not edit them directly**. Instead:
+
+- Edit `templates/resources/<name>.md.tmpl` for resource-specific content and examples
+- Add or update example `.tf` files under `examples/`
+- Run `make generate-docs` to regenerate `docs/`
+- Commit both the template/example changes and the regenerated `docs/`

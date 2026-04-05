@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-
 type User struct {
 	Id          string `json:"id"`
 	DisplayName string `json:"displayName"`

@@ -1,115 +1,85 @@
 ---
-page_title: "komodor_monitor Resource - terraform-provider-komodor"
+page_title: "komodor_monitor Resource - komodor"
 subcategory: ""
 description: |-
-  Creates a new Komodor monitor which allows Komodor
-  to monitor, detect, and analyze failures around infrastructure.
+  Creates a new Komodor monitor which allows Komodor to monitor, detect, and analyze failures around infrastructure.
 ---
 
 # komodor_monitor (Resource)
 
-Creates a new **Komodor monitor** to observe, detect, and analyze failures across your infrastructure. This resource allows you to define the parameters for monitoring specific components in your Kubernetes clusters and other infrastructure.
-
----
-
-## Schema
-
-### Required
-
-- `active` (Boolean): Indicates whether the monitor is enabled.
-- `name` (String): The name of the monitor. Defaults to an empty string if not provided.
-- `sensors` (String): Defines the scope of monitoring (e.g., cluster, namespaces, services, etc.).
-- `type` (String): The monitor type. Must be one of: `availability`, `node`, `PVC`, `job`, `cronJob`, `deploy`, or `workflow`.
-
-### Optional
-
-- `is_deleted` (Boolean): Default is `false`. Indicates whether the monitor has been marked for deletion.
-- `sinks` (String): Defines notification channels for the monitor, such as Slack, Teams, PagerDuty, Opsgenie, or Webhook.
-- `sinks_options` (String): Specifies additional notification settings like notifyOn. Valid values depend on the monitor type.
-- `variables` (String): Additional settings required for specific monitor types.
-
-### Read-Only
-
-- `id` (String): The ID of this resource.
-
---
+Creates a new Komodor monitor which allows Komodor to monitor, detect, and analyze failures around infrastructure.
 
 ## Example Usage
 
 ### Deployment Monitor
 
-#### Valid Configurations:
-- **Valid Sinks**: `slack`, `teams`, `webhook`
-- **Valid notifyOn Options**: Only one option is valid:
-  - `"Failure"`
-  - `"Successful"`
-  - `"All"`
+**Valid Sinks**: `slack`, `teams`, `webhook`
+
+**Valid `notifyOn` options**: `"Failure"`, `"Successful"`, `"All"`
 
 ```terraform
 resource "komodor_monitor" "example-deploy-monitor" {
-  name          = "example-deploy-monitor"
-  type          = "deploy"
+  name          = "example-availability-monitor"
+  type          = "availability"
   active        = true
   sensors       = <<EOF
 [{
   "cluster": "kind-kind",
   "exclude": {
-    "namespaces": ["komodor"]
+    "services": ["default/service-to-exclude"]
   },
+  "services": [
+    "default/service-to-include"
+  ],
+  "condition": "and",
   "namespaces": ["default"]
 }]
 EOF
   sinks         = <<EOF
 {
-  "slack": ["deployment-alerts"],
-  "teams": ["Platform-Team"]
+  "slack": [
+    "default"
+  ],
+  "teams": [
+    "default"
+  ],
+  "pagerduty": [{
+    "channel": "example-channel",
+    "integrationKey": "example-pagerduty-integration-key",
+    "pagerDutyAccountName": "example-pagerduty-account-name"
+  }]
+}
+EOF
+  variables     = <<EOF
+{
+  "categories": [
+    "*"
+  ],
+  "duration": 30,
+  "minAvailable": "100%"
 }
 EOF
   sinks_options = <<EOF
 {
-  "notifyOn": ["Failure"]
+  "notifyOn": ["*"]
 }
-EOF
+EOF 
 }
 ```
 
----
-
 ### Availability Monitor
 
-#### Valid Configurations:
-- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
-- **Valid Duration**: Must be an integer between **5** and **600** (inclusive).
-- **Valid Categories for variables.categories**:
-  - `"Creating/Initializing"`
-  - `"Scheduling"`
-  - `"Container Creation"`
-  - `"NonZeroExitCode"`
-  - `"Unhealthy - failed probes"`
-  - `"OOMKilled"`
-  - `"BackOff"`
-  - `"Infrastructure"`
-  - `"Image"`
-  - `"Volume/Secret/ConfigMap"`
-  - `"Pod Termination"`
-  - `"Completed"`
-  - `"Other"`
-- **Valid notifyOn Options**: `["*"]`
-  - `["*"]` (all categories)
-  - Or any one of the following: Each notifyOn categories must be included in the "Categories" field
-    - `"Creating/Initializing"`
-    - `"Scheduling"`
-    - `"Container Creation"`
-    - `"NonZeroExitCode"`
-    - `"Unhealthy - failed probes"`
-    - `"OOMKilled"`
-    - `"BackOff"`
-    - `"Infrastructure"`
-    - `"Image"`
-    - `"Volume/Secret/ConfigMap"`
-    - `"Pod Termination"`
-    - `"Completed"`
-    - `"Other"`
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+**Valid Duration**: Integer between `5` and `600` (inclusive).
+
+**Valid `variables.categories`**:
+`"Creating/Initializing"`, `"Scheduling"`, `"Container Creation"`, `"NonZeroExitCode"`,
+`"Unhealthy - failed probes"`, `"OOMKilled"`, `"BackOff"`, `"Infrastructure"`, `"Image"`,
+`"Volume/Secret/ConfigMap"`, `"Pod Termination"`, `"Completed"`, `"Other"`
+
+**Valid `notifyOn` options**: `["*"]` (all categories) or any subset of the categories listed above.
+Each `notifyOn` category must also be included in `variables.categories`.
 
 ```terraform
 resource "komodor_monitor" "example-availability-monitor" {
@@ -148,34 +118,30 @@ EOF
 }
 ```
 
----
-
 ### Node Monitor
 
-#### Valid Configurations:
-- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
-- **Valid Duration**: Must be an integer between **5** and **600** (inclusive).
-- **Valid NodeCreationThreshold: Should be in the format of `"3m"` (3 minutes) or `"5s"` (5 seconds).
-- **Valid Variables**:
-  - `duration`: Required
-  - `nodeCreationThreshold`: Required
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+**Valid Duration**: Integer between `5` and `600` (inclusive).
+
+**Required variables**: `duration` and `nodeCreationThreshold` (format: `"3m"` for 3 minutes, `"5s"` for 5 seconds).
 
 ```terraform
 resource "komodor_monitor" "example-node-monitor" {
-  name          = "example-node-monitor"
-  type          = "node"
-  active        = true
-  sensors       = <<EOF
+  name      = "example-node-monitor"
+  type      = "node"
+  active    = true
+  sensors   = <<EOF
 [{
   "cluster": "kind-kind"
 }]
 EOF
-  sinks         = <<EOF
+  sinks     = <<EOF
 {
   "slack": ["node-alerts"]
 }
 EOF
-  variables     = <<EOF
+  variables = <<EOF
 {
   "duration": 60,
   "nodeCreationThreshold": "10m"
@@ -184,26 +150,22 @@ EOF
 }
 ```
 
----
-
 ### Workflow Monitor
 
-#### Valid Configurations:
-- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
-- **Valid notifyOn Options**: None (not applicable for workflows)
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
 
 ```terraform
 resource "komodor_monitor" "example-workflow-monitor" {
-  name          = "example-workflow-monitor"
-  type          = "workflow"
-  active        = true
-  sensors       = <<EOF
+  name    = "example-workflow-monitor"
+  type    = "workflow"
+  active  = true
+  sensors = <<EOF
 [{
   "cluster": "kind-kind",
   "namespaces": ["workflow-namespace"]
 }]
 EOF
-  sinks         = <<EOF
+  sinks   = <<EOF
 {
   "slack": ["workflow-alerts"],
   "webhook": ["webhook-url"]
@@ -212,29 +174,24 @@ EOF
 }
 ```
 
----
-
 ### PVC Monitor
 
-#### Valid Configurations:
-- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
-- **Valid Duration**: Must be an integer between **5** and **600** (inclusive).
-- **Valid NodeCreationThreshold**: Not applicable for PVC.
-- **Valid Categories for variables.categories**: Not applicable for PVC.
-- **Valid notifyOn Options**: Not applicable for PVC.
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+**Valid Duration**: Integer between `5` and `600` (inclusive).
 
 ```terraform
 resource "komodor_monitor" "example-pvc-monitor" {
-  name          = "example-pvc-monitor"
-  type          = "PVC"
-  active        = true
-  sensors       = <<EOF
+  name      = "example-pvc-monitor"
+  type      = "PVC"
+  active    = true
+  sensors   = <<EOF
 [{
   "cluster": "kind-kind",
   "namespaces": ["storage-namespace"]
 }]
 EOF
-  sinks         = <<EOF
+  sinks     = <<EOF
 {
   "slack": ["storage-alerts"],
   "teams": ["Storage-Team"],
@@ -245,7 +202,7 @@ EOF
   }]
 }
 EOF
-  variables     = <<EOF
+  variables = <<EOF
 {
   "duration": 300
 }
@@ -253,27 +210,26 @@ EOF
 }
 ```
 
----
-
 ### CronJob Monitor
 
-#### Valid Configurations:
-- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
-- **Valid Duration**: Must be an integer between **5** and **600** (inclusive).
-- **Valid CronJobCondition**: `"first"` or `"any"`.
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+**Valid Duration**: Integer between `5` and `600` (inclusive).
+
+**Valid `cronJobCondition`**: `"first"` or `"any"`.
 
 ```terraform
 resource "komodor_monitor" "example-cronjob-monitor" {
-  name          = "example-cronjob-monitor"
-  type          = "cronJob"
-  active        = true
-  sensors       = <<EOF
+  name      = "example-cronjob-monitor"
+  type      = "cronJob"
+  active    = true
+  sensors   = <<EOF
 [{
   "cluster": "kind-kind",
   "namespaces": ["jobs-namespace"]
 }]
 EOF
-  sinks         = <<EOF
+  sinks     = <<EOF
 {
   "slack": ["cronjob-alerts"],
   "teams": ["SRE-Team"],
@@ -284,7 +240,7 @@ EOF
   }]
 }
 EOF
-  variables     = <<EOF
+  variables = <<EOF
 {
   "duration": 120,
   "cronJobCondition": "first"
@@ -293,25 +249,24 @@ EOF
 }
 ```
 
----
-
 ### Job Monitor
 
-#### Valid Configurations:
-- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+**Valid Duration**: Integer between `5` and `600` (inclusive).
 
 ```terraform
 resource "komodor_monitor" "example-job-monitor" {
-  name          = "example-job-monitor"
-  type          = "job"
-  active        = true
-  sensors       = <<EOF
+  name      = "example-job-monitor"
+  type      = "job"
+  active    = true
+  sensors   = <<EOF
 [{
   "cluster": "kind-kind",
   "namespaces": ["job-namespace"]
 }]
 EOF
-  sinks         = <<EOF
+  sinks     = <<EOF
 {
   "slack": ["job-alerts"],
   "teams": ["SRE-Team"],
@@ -322,40 +277,7 @@ EOF
   }]
 }
 EOF
-}
-```
-
----
-
-### Job Monitor
-
-#### Valid Configurations:
-- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
-- **Valid Duration**: Must be an integer between **5** and **600** (inclusive).
-
-```terraform
-resource "komodor_monitor" "example-job-monitor" {
-  name          = "example-job-monitor"
-  type          = "job"
-  active        = true
-  sensors       = <<EOF
-[{
-  "cluster": "kind-kind",
-  "namespaces": ["job-namespace"]
-}]
-EOF
-  sinks         = <<EOF
-{
-  "slack": ["job-alerts"],
-  "teams": ["SRE-Team"],
-  "pagerduty": [{
-    "channel": "example-channel",
-    "integrationKey": "example-integration-key",
-    "pagerDutyAccountName": "example-pagerduty-account-name"
-  }]
-}
-EOF
-  variables     = <<EOF
+  variables = <<EOF
 {
   "duration": 300
 }
@@ -363,42 +285,33 @@ EOF
 }
 ```
 
----
+## Argument Reference
 
-### CronJob Monitor
+<!-- schema generated by tfplugindocs -->
+## Schema
 
-#### Valid Configurations:
-- **Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
-- **Valid Duration**: Must be an integer between **5** and **600** (inclusive).
-- **Valid CronJobCondition**: `"first"` or `"any"`.
+### Required
 
-```terraform
-resource "komodor_monitor" "example-cronjob-monitor" {
-  name          = "example-cronjob-monitor"
-  type          = "cronJob"
-  active        = true
-  sensors       = <<EOF
-[{
-  "cluster": "kind-kind",
-  "namespaces": ["jobs-namespace"]
-}]
-EOF
-  sinks         = <<EOF
-{
-  "slack": ["cronjob-alerts"],
-  "teams": ["SRE-Team"],
-  "pagerduty": [{
-    "channel": "example-channel",
-    "integrationKey": "example-integration-key",
-    "pagerDutyAccountName": "example-pagerduty-account-name"
-  }]
-}
-EOF
-  variables     = <<EOF
-{
-  "duration": 120,
-  "cronJobCondition": "first"
-}
-EOF
-}
+- `active` (Boolean) Indicates whether the monitor is enabled.
+- `name` (String) The name of the monitor.
+- `sensors` (String) JSON-encoded list defining the scope of monitoring (clusters, namespaces, services, etc.).
+- `type` (String) The monitor type. Must be one of: `availability`, `node`, `PVC`, `job`, `cronJob`, `deploy`, or `workflow`.
+
+### Optional
+
+- `is_deleted` (Boolean) Indicates whether the monitor has been marked for deletion. Defaults to `false`.
+- `sinks` (String) JSON-encoded notification channels for the monitor (e.g., Slack, Teams, PagerDuty, Opsgenie, Webhook).
+- `sinks_options` (String) JSON-encoded additional notification settings such as `notifyOn`. Valid values depend on the monitor type.
+- `variables` (String) JSON-encoded additional settings required for specific monitor types (e.g., `duration`, `categories`, `nodeCreationThreshold`).
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
+
+## Import
+
+This resource can be imported using the monitor ID:
+
+```sh
+terraform import komodor_monitor.example <monitor_id>
 ```
