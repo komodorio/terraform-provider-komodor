@@ -23,7 +23,7 @@ resource "komodor_user_role_binding" "example" {
   ]
 
   # Optional: Set expiration date for all role assignments
-  # expiration = "2024-12-31T23:59:59Z"
+  # expiration = "1776468159000"
 }
 ```
 
@@ -34,7 +34,7 @@ resource "komodor_user_role_binding" "temporary_access" {
   name       = "contractor-access"
   user_id    = "contractor@example.com"
   roles      = ["viewer-role-id"]
-  expiration = "2024-12-31T23:59:59Z"
+  expiration = "1776468159000"
 }
 ```
 
@@ -70,7 +70,7 @@ resource "komodor_user_role_binding" "developer_binding" {
 
 ### Optional
 
-- `expiration` (String) Optional expiration date for the user-role assignments (ISO 8601 format)
+- `expiration` (String) Optional expiration timestamp for the user-role assignments in Unix milliseconds (e.g. "1776468159000")
 
 ### Read-Only
 

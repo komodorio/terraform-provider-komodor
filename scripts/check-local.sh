@@ -66,7 +66,7 @@ run_check "mod tidy" "go" bash -c '
 
 run_check "vet" "go" go vet ./...
 
-run_check "lint" "golangci-lint" golangci-lint run --timeout=5m
+run_check "lint" "golangci-lint" make lint
 
 
 run_check "unit tests" "go" go test -race -count=1 -v ./komodor/... -timeout 60s

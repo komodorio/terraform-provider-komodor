@@ -7,15 +7,13 @@ import (
 )
 
 type UserRole struct {
-	UserId     string `json:"userId"`
-	RoleId     string `json:"roleId"`
-	Expiration string `json:"expiration,omitempty"`
+	UserId string `json:"userId"`
+	RoleId string `json:"roleId"`
 }
 
 type UserRoleCreateRequest struct {
-	UserId     string `json:"userId"`
-	RoleId     string `json:"roleId"`
-	Expiration string `json:"expiration,omitempty"`
+	UserId string `json:"userId"`
+	RoleId string `json:"roleId"`
 }
 
 type UserRoleDeleteRequest struct {
@@ -23,12 +21,11 @@ type UserRoleDeleteRequest struct {
 	RoleId string `json:"roleId"`
 }
 
-// AttachUserToRole attaches a user to a role with optional expiration
-func (c *Client) AttachUserToRole(userId string, roleId string, expiration string) error {
+// AttachUserToRole attaches a user to a role
+func (c *Client) AttachUserToRole(userId string, roleId string) error {
 	userRoleObject := UserRoleCreateRequest{
-		UserId:     userId,
-		RoleId:     roleId,
-		Expiration: expiration,
+		UserId: userId,
+		RoleId: roleId,
 	}
 	requestBody, err := json.Marshal(userRoleObject)
 	if err != nil {
@@ -56,13 +53,11 @@ func (c *Client) GetUserRoles(userId string) ([]UserRole, int, error) {
 		return nil, statusCode, err
 	}
 
-	// Convert UserRoleResponse to UserRole
 	userRoles := make([]UserRole, 0, len(user.Roles))
 	for _, role := range user.Roles {
 		userRoles = append(userRoles, UserRole{
-			UserId:     userId,
-			RoleId:     role.Id,
-			Expiration: role.Expiration,
+			UserId: userId,
+			RoleId: role.Id,
 		})
 	}
 
@@ -87,12 +82,11 @@ func (c *Client) DetachUserFromRole(userId string, roleId string) error {
 	return nil
 }
 
-// UpdateUserRole updates a user role assignment (e.g., expiration)
-func (c *Client) UpdateUserRole(userId string, roleId string, expiration string) error {
+// UpdateUserRole updates a user role assignment
+func (c *Client) UpdateUserRole(userId string, roleId string) error {
 	userRoleObject := UserRoleCreateRequest{
-		UserId:     userId,
-		RoleId:     roleId,
-		Expiration: expiration,
+		UserId: userId,
+		RoleId: roleId,
 	}
 	requestBody, err := json.Marshal(userRoleObject)
 	if err != nil {

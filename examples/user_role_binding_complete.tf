@@ -57,6 +57,4 @@ resource "komodor_user_role_binding" "contractor_binding" {
     "viewer-role-id" # Can also use existing role IDs
   ]
 
-  # This contractor access expires at end of year
-  expiration = "2024-12-31T23:59:59Z"
 }
