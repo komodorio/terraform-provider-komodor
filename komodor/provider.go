@@ -49,6 +49,7 @@ func Provider() *schema.Provider {
 			"komodor_policy_v2":              resourceKomodorPolicyV2(),
 			"komodor_role":                   resourceKomodorRole(),
 			"komodor_policy_role_attachment": resourcePolicyRoleAttachment(),
+			"komodor_user_role_binding":      resourceUserRoleBinding(),
 			"komodor_monitor":                resourceKomodorMonitor(),
 			"komodor_action":                 resourceKomodorCustomK8sAction(),
 			"komodor_kubernetes":             resourceKomodorKubernetes(),

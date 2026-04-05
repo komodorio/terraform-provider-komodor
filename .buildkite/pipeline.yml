@@ -69,7 +69,6 @@ steps:
 
   - label: ":books: Docs Check"
     command: bash scripts/check-docs.sh
-    soft_fail: true
     agents: *dind
     env: *go_env
 

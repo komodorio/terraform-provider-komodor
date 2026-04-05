@@ -81,6 +81,11 @@ func (c *Client) GetPolicyRoleAttachmentUrl() string {
 	return c.GetV2Endpoint() + "/rbac/roles/policies"
 }
 
+// GetUserRoleBindingUrl returns the user role binding endpoint
+func (c *Client) GetUserRoleBindingUrl() string {
+	return c.GetV2Endpoint() + "/rbac/users/roles"
+}
+
 // prepareRequest creates a new HTTP request with the necessary headers
 func (c *Client) prepareRequest(method, url string, body *[]byte) (*http.Request, error) {
 	var reader io.Reader

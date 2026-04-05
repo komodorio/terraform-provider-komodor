@@ -12,7 +12,8 @@
       "Bash(git status*)",
       "Bash(git tag --sort*)",
       "Bash(git tag -l*)",
-      "Bash(for f:*)"
+      "Bash(for f:*)",
+      "Bash(go version:*)"
     ],
     "additionalDirectories": [
       "/Users/morankalmanovich/dev/tmp/komodor-tf-provider/sanity"
