@@ -22,19 +22,6 @@ resource "komodor_user_role_binding" "example" {
     "role-id-2"
   ]
 
-  # Optional: Set expiration date for all role assignments
-  # expiration = "1776468159000"
-}
-```
-
-### With Expiration
-
-```terraform
-resource "komodor_user_role_binding" "temporary_access" {
-  name       = "contractor-access"
-  user_id    = "contractor@example.com"
-  roles      = ["viewer-role-id"]
-  expiration = "1776468159000"
 }
 ```
 
@@ -65,12 +52,8 @@ resource "komodor_user_role_binding" "developer_binding" {
 ### Required
 
 - `name` (String) A unique name for this user-role binding (for Terraform state management)
-- `roles` (Set of String) Set of role IDs or names to assign to the user
+- `roles` (Set of String) Set of role IDs to assign to the user
 - `user_id` (String) The ID or email of the user
-
-### Optional
-
-- `expiration` (String) Optional expiration timestamp for the user-role assignments in Unix milliseconds (e.g. "1776468159000")
 
 ### Read-Only
 
