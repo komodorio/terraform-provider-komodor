@@ -16,6 +16,13 @@ func resourceKomodorKnowledgeBaseFile() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"file_type": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"knowledge-base", "blueprint"}, false),
+				Description:  "The type of Klaudia file. Valid values are `knowledge-base` and `blueprint`.",
+			},
 			"filename": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -69,11 +76,6 @@ func resourceKomodorKnowledgeBaseFile() *schema.Resource {
 				Computed:    true,
 				Description: "Email of the user who uploaded the file.",
 			},
-			"is_blueprint": {
-				Type:        schema.TypeBool,
-				Computed:    true,
-				Description: "Indicates whether this file is a system-managed blueprint.",
-			},
 		},
 		CreateContext: resourceKomodorKnowledgeBaseFileCreate,
 		ReadContext:   resourceKomodorKnowledgeBaseFileRead,
@@ -82,7 +84,7 @@ func resourceKomodorKnowledgeBaseFile() *schema.Resource {
 		Description: "Manages a file in the Komodor Klaudia Knowledge Base.\n\n" +
 			"Knowledge Base files provide contextual runbook-style documentation that Klaudia AI uses " +
 			"when performing root cause analysis. Files can be optionally scoped to specific clusters.\n\n" +
-			"Note: Because the API does not support in-place updates, any change to `filename`, `content`, " +
+			"Note: Because the API does not support in-place updates, any change to `file_type`, `filename`, `content`, " +
 			"or `clusters` will cause the resource to be destroyed and re-created.",
 	}
 }
@@ -116,13 +118,14 @@ func expandKnowledgeBaseClusters(d *schema.ResourceData) *KnowledgeBaseScopedClu
 func resourceKomodorKnowledgeBaseFileCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 
+	fileType := d.Get("file_type").(string)
 	filename := d.Get("filename").(string)
 	content := []byte(d.Get("content").(string))
 	clusters := expandKnowledgeBaseClusters(d)
 
-	log.Printf("[DEBUG] KnowledgeBaseFile create: filename=%s", filename)
+	log.Printf("[DEBUG] KnowledgeBaseFile create: filename=%s type=%s", filename, fileType)
 
-	file, err := client.UploadKnowledgeBaseFile(filename, content, clusters)
+	file, err := client.UploadKnowledgeBaseFile(filename, content, clusters, fileType)
 	if err != nil {
 		return diag.Errorf("Error uploading Knowledge Base file: %s", err)
 	}
@@ -136,8 +139,9 @@ func resourceKomodorKnowledgeBaseFileCreate(ctx context.Context, d *schema.Resou
 func resourceKomodorKnowledgeBaseFileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 	id := d.Id()
+	fileType := d.Get("file_type").(string)
 
-	file, statusCode, err := client.GetKnowledgeBaseFile(id)
+	file, statusCode, err := client.GetKnowledgeBaseFile(id, fileType)
 	if err != nil {
 		if statusCode == 404 {
 			log.Printf("[DEBUG] Knowledge Base file (%s) was not found - removing from state", id)
@@ -161,10 +165,9 @@ func resourceKomodorKnowledgeBaseFileRead(ctx context.Context, d *schema.Resourc
 	if err := d.Set("created_by_email", file.CreatedByEmail); err != nil {
 		diags = append(diags, diag.Errorf("Error setting created_by_email: %s", err)...)
 	}
-	if err := d.Set("is_blueprint", file.IsBlueprint); err != nil {
-		diags = append(diags, diag.Errorf("Error setting is_blueprint: %s", err)...)
-	}
-
+	// The API does not return cluster scoping in the read response, so we only
+	// update state when the API explicitly provides it. This preserves the
+	// configured value and avoids a perpetual diff for a ForceNew attribute.
 	if file.Clusters != nil {
 		clustersData := []interface{}{
 			map[string]interface{}{
@@ -175,10 +178,6 @@ func resourceKomodorKnowledgeBaseFileRead(ctx context.Context, d *schema.Resourc
 		if err := d.Set("clusters", clustersData); err != nil {
 			diags = append(diags, diag.Errorf("Error setting clusters: %s", err)...)
 		}
-	} else {
-		if err := d.Set("clusters", nil); err != nil {
-			diags = append(diags, diag.Errorf("Error clearing clusters: %s", err)...)
-		}
 	}
 
 	return diags
@@ -187,10 +186,11 @@ func resourceKomodorKnowledgeBaseFileRead(ctx context.Context, d *schema.Resourc
 func resourceKomodorKnowledgeBaseFileDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 	id := d.Id()
+	fileType := d.Get("file_type").(string)
 
 	log.Printf("[DEBUG] Deleting Knowledge Base file: %s", id)
 
-	resp, err := client.DeleteKnowledgeBaseFiles([]string{id})
+	resp, err := client.DeleteKnowledgeBaseFiles([]string{id}, fileType)
 	if err != nil {
 		return diag.Errorf("Error deleting Knowledge Base file: %s", err)
 	}

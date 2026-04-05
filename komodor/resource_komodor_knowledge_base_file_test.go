@@ -115,10 +115,9 @@ func TestDeleteKnowledgeBaseFilesEmptyResponse(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient("test-key", server.URL)
-	// Route requests through the test server's transport.
-	client.retryClient.HTTPClient = server.Client()
+	client.HttpClient = server.Client()
 
-	resp, err := client.DeleteKnowledgeBaseFiles([]string{"file-id-1"})
+	resp, err := client.DeleteKnowledgeBaseFiles([]string{"file-id-1"}, "knowledge-base")
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Empty(t, resp.DeletedFiles)
