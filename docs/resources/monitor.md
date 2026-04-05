@@ -19,8 +19,8 @@ Creates a new Komodor monitor which allows Komodor to monitor, detect, and analy
 
 ```terraform
 resource "komodor_monitor" "example-deploy-monitor" {
-  name          = "example-availability-monitor"
-  type          = "availability"
+  name          = "example-deploy-monitor"
+  type          = "deploy"
   active        = true
   sensors       = <<EOF
 [{
