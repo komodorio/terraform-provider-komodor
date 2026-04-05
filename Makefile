@@ -13,7 +13,7 @@ build:
 	go build -o ${BINARY}
 
 release:
-	goreleaser release --rm-dist --snapshot --skip-publish  --skip-sign
+	goreleaser release --clean --snapshot --skip=publish,sign
 
 install: build
 	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
@@ -30,4 +30,14 @@ testacc:
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m   
 
 generate-docs:
-	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+	GO111MODULE=on GOFLAGS=-buildvcs=false go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name komodor
+
+fmt:
+	gofmt -w .
+	terraform fmt -recursive examples/
+
+lint:
+	GO111MODULE=on golangci-lint run --timeout=5m
+
+check:
+	bash scripts/check-local.sh
