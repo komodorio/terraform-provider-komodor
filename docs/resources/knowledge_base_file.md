@@ -5,6 +5,7 @@ description: |-
   Manages a file in the Komodor Klaudia Knowledge Base.
   Knowledge Base files provide contextual runbook-style documentation that Klaudia AI uses when performing root cause analysis. Files can be optionally scoped to specific clusters.
   Note: Because the API does not support in-place updates, any change to file_type, filename, content, or clusters will cause the resource to be destroyed and re-created.
+  Note: content is not tracked in state after import. Terraform cannot detect drift if the file is modified outside of Terraform. Import ID format: <file-id>:<file-type> (e.g. 818df73e-694d-43d8-bec3-f020f25582b4:knowledge-base).
 ---
 
 # komodor_knowledge_base_file (Resource)
@@ -14,6 +15,8 @@ Manages a file in the Komodor Klaudia Knowledge Base.
 Knowledge Base files provide contextual runbook-style documentation that Klaudia AI uses when performing root cause analysis. Files can be optionally scoped to specific clusters.
 
 Note: Because the API does not support in-place updates, any change to `file_type`, `filename`, `content`, or `clusters` will cause the resource to be destroyed and re-created.
+
+Note: `content` is not tracked in state after import. Terraform cannot detect drift if the file is modified outside of Terraform. Import ID format: `<file-id>:<file-type>` (e.g. `818df73e-694d-43d8-bec3-f020f25582b4:knowledge-base`).
 
 ## Example Usage
 
@@ -66,7 +69,7 @@ resource "komodor_knowledge_base_file" "from_file" {
 
 ### Required
 
-- `content` (String, Sensitive) The text content of the file to upload to the Knowledge Base.
+- `content` (String) The text content of the file to upload to the Knowledge Base.
 - `file_type` (String) The type of Klaudia file. Valid values are `knowledge-base` and `blueprint`.
 - `filename` (String) The name of the file as stored in the Knowledge Base.
 
@@ -91,8 +94,9 @@ Optional:
 
 ## Import
 
-Knowledge Base files can be imported using their file ID:
+Knowledge Base files can be imported using a compound ID of `<file-id>:<file-type>`:
 
 ```sh
-terraform import komodor_knowledge_base_file.example <file-id>
+terraform import komodor_knowledge_base_file.example 818df73e-694d-43d8-bec3-f020f25582b4:knowledge-base
 ```
+

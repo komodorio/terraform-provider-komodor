@@ -117,7 +117,7 @@ func TestDeleteKnowledgeBaseFilesEmptyResponse(t *testing.T) {
 	client := NewClient("test-key", server.URL)
 	client.HttpClient = server.Client()
 
-	resp, err := client.DeleteKnowledgeBaseFiles([]string{"file-id-1"}, "knowledge-base")
+	resp, _, err := client.DeleteKnowledgeBaseFiles([]string{"file-id-1"}, "knowledge-base")
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Empty(t, resp.DeletedFiles)

@@ -23,7 +23,7 @@ func TestAcc_komodor_knowledge_base_file_basic(t *testing.T) {
 		CheckDestroy: testAccCheckKnowledgeBaseFileDestroyed(filename, "knowledge-base"),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccKnowledgeBaseFileConfig(filename, "knowledge-base", "# Test Runbook\nThis is a test runbook.", nil),
+				Config: testAccKnowledgeBaseFileConfig(filename, "knowledge-base", "# Test Runbook\nThis is a test runbook."),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "file_type", "knowledge-base"),
 					resource.TestCheckResourceAttr(resourceAddr, "filename", filename),
@@ -46,7 +46,7 @@ func TestAcc_komodor_knowledge_base_file_blueprint(t *testing.T) {
 		CheckDestroy: testAccCheckKnowledgeBaseFileDestroyed(filename, "blueprint"),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccKnowledgeBaseFileConfig(filename, "blueprint", "# Test Blueprint\nThis is a test blueprint.", nil),
+				Config: testAccKnowledgeBaseFileConfig(filename, "blueprint", "# Test Blueprint\nThis is a test blueprint."),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "file_type", "blueprint"),
 					resource.TestCheckResourceAttr(resourceAddr, "filename", filename),
@@ -99,7 +99,7 @@ func testAccCheckKnowledgeBaseFileDestroyed(filename, fileType string) resource.
 	}
 }
 
-func testAccKnowledgeBaseFileConfig(filename, fileType, content string, _ interface{}) string {
+func testAccKnowledgeBaseFileConfig(filename, fileType, content string) string {
 	return fmt.Sprintf(`
 resource "komodor_knowledge_base_file" "test" {
   file_type = %q

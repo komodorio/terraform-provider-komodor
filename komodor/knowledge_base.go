@@ -117,43 +117,37 @@ func (c *Client) UploadKnowledgeBaseFile(filename string, content []byte, cluste
 		return nil, fmt.Errorf("failed to parse upload response: %w", err)
 	}
 
-	// Find the uploaded file by name in the response
-	for i := range listResp.Files {
-		if listResp.Files[i].Name == filename {
-			return &listResp.Files[i], nil
-		}
+	// The upload response returns only the files from this upload batch.
+	// We upload one file at a time, so the first entry is the uploaded file.
+	if len(listResp.Files) == 0 {
+		return nil, fmt.Errorf("upload succeeded but response contained no files")
 	}
 
-	// Fallback: return the first file if only one was uploaded
-	if len(listResp.Files) > 0 {
-		return &listResp.Files[0], nil
-	}
-
-	return nil, fmt.Errorf("uploaded file not found in response")
+	return &listResp.Files[0], nil
 }
 
 // DeleteKnowledgeBaseFiles deletes one or more files of the given type by their IDs.
-func (c *Client) DeleteKnowledgeBaseFiles(ids []string, fileType string) (*KnowledgeBaseDeleteResponse, error) {
+func (c *Client) DeleteKnowledgeBaseFiles(ids []string, fileType string) (*KnowledgeBaseDeleteResponse, int, error) {
 	reqBody := &KnowledgeBaseDeleteRequest{FileIDs: ids}
 	body, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	res, _, err := c.executeHttpRequest(http.MethodDelete, c.GetKlaudiaFilesUrl(fileType), &body)
+	res, statusCode, err := c.executeHttpRequest(http.MethodDelete, c.GetKlaudiaFilesUrl(fileType), &body)
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
 	// Some APIs return 204 No Content or an empty body for successful deletes.
 	if len(res) == 0 {
-		return &KnowledgeBaseDeleteResponse{}, nil
+		return &KnowledgeBaseDeleteResponse{}, statusCode, nil
 	}
 
 	var deleteResp KnowledgeBaseDeleteResponse
 	if err := json.Unmarshal(res, &deleteResp); err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
-	return &deleteResp, nil
+	return &deleteResp, statusCode, nil
 }

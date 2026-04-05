@@ -94,7 +94,7 @@ func cleanupOrphanedAccResources() {
 				}
 			}
 			if len(ids) > 0 {
-				if _, err := client.DeleteKnowledgeBaseFiles(ids, fileType); err != nil {
+				if _, _, err := client.DeleteKnowledgeBaseFiles(ids, fileType); err != nil {
 					log.Printf("[CLEANUP] failed to delete knowledge base files (type=%s): %s", fileType, err)
 				}
 			}

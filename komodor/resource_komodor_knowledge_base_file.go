@@ -2,7 +2,10 @@ package komodor
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/http"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -34,7 +37,6 @@ func resourceKomodorKnowledgeBaseFile() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				Sensitive:    true,
 				ValidateFunc: validation.NoZeroValues,
 				Description:  "The text content of the file to upload to the Knowledge Base.",
 			},
@@ -49,12 +51,14 @@ func resourceKomodorKnowledgeBaseFile() *schema.Resource {
 						"include": {
 							Type:        schema.TypeSet,
 							Optional:    true,
+							ForceNew:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
 							Description: "List of cluster names that this file applies to.",
 						},
 						"exclude": {
 							Type:        schema.TypeSet,
 							Optional:    true,
+							ForceNew:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
 							Description: "List of cluster names to exclude from this file's scope.",
 						},
@@ -81,11 +85,17 @@ func resourceKomodorKnowledgeBaseFile() *schema.Resource {
 		ReadContext:   resourceKomodorKnowledgeBaseFileRead,
 		// There is no update endpoint; all mutable attributes use ForceNew.
 		DeleteContext: resourceKomodorKnowledgeBaseFileDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceKomodorKnowledgeBaseFileImport,
+		},
 		Description: "Manages a file in the Komodor Klaudia Knowledge Base.\n\n" +
 			"Knowledge Base files provide contextual runbook-style documentation that Klaudia AI uses " +
 			"when performing root cause analysis. Files can be optionally scoped to specific clusters.\n\n" +
 			"Note: Because the API does not support in-place updates, any change to `file_type`, `filename`, `content`, " +
-			"or `clusters` will cause the resource to be destroyed and re-created.",
+			"or `clusters` will cause the resource to be destroyed and re-created.\n\n" +
+			"Note: `content` is not tracked in state after import. Terraform cannot detect drift if the file " +
+			"is modified outside of Terraform. Import ID format: `<file-id>:<file-type>` " +
+			"(e.g. `818df73e-694d-43d8-bec3-f020f25582b4:knowledge-base`).",
 	}
 }
 
@@ -190,8 +200,11 @@ func resourceKomodorKnowledgeBaseFileDelete(ctx context.Context, d *schema.Resou
 
 	log.Printf("[DEBUG] Deleting Knowledge Base file: %s", id)
 
-	resp, err := client.DeleteKnowledgeBaseFiles([]string{id}, fileType)
+	resp, statusCode, err := client.DeleteKnowledgeBaseFiles([]string{id}, fileType)
 	if err != nil {
+		if statusCode == http.StatusNotFound {
+			return nil
+		}
 		return diag.Errorf("Error deleting Knowledge Base file: %s", err)
 	}
 
@@ -203,4 +216,20 @@ func resourceKomodorKnowledgeBaseFileDelete(ctx context.Context, d *schema.Resou
 
 	log.Printf("[INFO] Knowledge Base file %s successfully deleted", id)
 	return nil
+}
+
+func resourceKomodorKnowledgeBaseFileImport(_ context.Context, d *schema.ResourceData, _ interface{}) ([]*schema.ResourceData, error) {
+	// Import ID format: <file-id>:<file-type>
+	parts := strings.SplitN(d.Id(), ":", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return nil, fmt.Errorf("invalid import ID %q: expected format <file-id>:<file-type>", d.Id())
+	}
+	fileID, fileType := parts[0], parts[1]
+
+	d.SetId(fileID)
+	_ = d.Set("file_type", fileType)
+	// content is not available from the API read response; the user must set it
+	// in their configuration. Terraform will not detect drift on this field.
+
+	return []*schema.ResourceData{d}, nil
 }
