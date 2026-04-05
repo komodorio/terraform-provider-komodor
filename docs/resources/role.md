@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_role Resource - terraform-provider-komodor"
+page_title: "komodor_role Resource - komodor"
 subcategory: ""
 description: |-
   Creates a Komodor RBAC Role that when combined with a Policy,

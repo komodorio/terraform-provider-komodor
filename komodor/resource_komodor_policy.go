@@ -83,8 +83,12 @@ func resourceKomodorPolicyCreate(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	d.SetId(policy.Id)
-	d.Set("type", policyType)
-	d.Set("tags", policy.Tags)
+	if err := d.Set("type", policyType); err != nil {
+		return diag.Errorf("error setting type: %s", err)
+	}
+	if err := d.Set("tags", policy.Tags); err != nil {
+		return diag.Errorf("error setting tags: %s", err)
+	}
 	log.Printf("[INFO] Policy created successfully. Policy Id: %s", policy.Id)
 
 	return resourceKomodorPolicyRead(ctx, d, meta)
@@ -104,12 +108,24 @@ func resourceKomodorPolicyRead(ctx context.Context, d *schema.ResourceData, meta
 		return diag.Errorf("Error reading Policy: %s", err)
 	}
 
-	d.Set("name", policy.Name)
-	d.Set("type", policy.Type)
-	d.Set("tags", policy.Tags)
-	d.Set("statements", policy.Statements)
-	d.Set("created_at", policy.CreatedAt)
-	d.Set("updated_at", policy.UpdatedAt)
+	if err := d.Set("name", policy.Name); err != nil {
+		return diag.Errorf("error setting name: %s", err)
+	}
+	if err := d.Set("type", policy.Type); err != nil {
+		return diag.Errorf("error setting type: %s", err)
+	}
+	if err := d.Set("tags", policy.Tags); err != nil {
+		return diag.Errorf("error setting tags: %s", err)
+	}
+	if err := d.Set("statements", policy.Statements); err != nil {
+		return diag.Errorf("error setting statements: %s", err)
+	}
+	if err := d.Set("created_at", policy.CreatedAt); err != nil {
+		return diag.Errorf("error setting created_at: %s", err)
+	}
+	if err := d.Set("updated_at", policy.UpdatedAt); err != nil {
+		return diag.Errorf("error setting updated_at: %s", err)
+	}
 
 	return nil
 }

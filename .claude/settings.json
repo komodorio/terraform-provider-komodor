@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build*)",
+      "Bash(go test*)",
+      "Bash(go vet*)",
+      "Bash(go mod*)",
+      "Bash(make*)",
+      "Bash(gofmt*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git status*)",
+      "Bash(git tag --sort*)",
+      "Bash(git tag -l*)",
+      "Bash(for f:*)",
+      "Bash(go version:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/morankalmanovich/dev/tmp/komodor-tf-provider/sanity"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(jq -r '.tool_input.file_path // \"\"'); [[ \"$file\" == *.go ]] && goimports -w \"$file\" || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(jq -r '.tool_input.file_path // \"\"'); echo \"$file\" | grep -qE '(docs/|go\\.sum$)' && echo 'BLOCK: This file is auto-generated. Run make generate-docs or go mod tidy instead.' && exit 2 || true"
+          }
+        ]
+      }
+    ]
+  }
+}

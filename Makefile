@@ -4,7 +4,7 @@ TF_HOSTNAME=registry.terraform.io
 NAMESPACE=komodorio
 NAME=komodor
 BINARY=terraform-provider-${NAME}
-VERSION=2.3.1
+VERSION=2.4.0
 OS_ARCH?=darwin_amd64
 
 default: install
@@ -13,7 +13,7 @@ build:
 	go build -o ${BINARY}
 
 release:
-	goreleaser release --rm-dist --snapshot --skip-publish  --skip-sign
+	goreleaser release --clean --snapshot --skip=publish,sign
 
 install: build
 	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
@@ -30,4 +30,14 @@ testacc:
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m   
 
 generate-docs:
-	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+	GO111MODULE=on GOFLAGS=-buildvcs=false go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name komodor
+
+fmt:
+	gofmt -w .
+	terraform fmt -recursive examples/
+
+lint:
+	docker run --rm -v $(PWD):/workspace -w /workspace golangci/golangci-lint:v2.11.4 golangci-lint run --timeout=5m
+
+check:
+	bash scripts/check-local.sh

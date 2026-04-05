@@ -93,11 +93,26 @@ func resourceKomodorCustomK8sActionRead(ctx context.Context, d *schema.ResourceD
 		return diag.Errorf("Error reading CustomK8sAction: %s", err)
 	}
 
-	d.Set("action", customK8sAction.Action)
-	d.Set("description", customK8sAction.Description)
-	d.Set("ruleset", customK8sAction.Ruleset)
-	d.Set("created_at", customK8sAction.CreatedAt)
-	d.Set("updated_at", customK8sAction.UpdatedAt)
+	rulesetJSON, err := json.Marshal(customK8sAction.Ruleset)
+	if err != nil {
+		return diag.Errorf("Error serializing ruleset: %s", err)
+	}
+
+	if err := d.Set("action", customK8sAction.Action); err != nil {
+		return diag.Errorf("error setting action: %s", err)
+	}
+	if err := d.Set("description", customK8sAction.Description); err != nil {
+		return diag.Errorf("error setting description: %s", err)
+	}
+	if err := d.Set("ruleset", string(rulesetJSON)); err != nil {
+		return diag.Errorf("error setting ruleset: %s", err)
+	}
+	if err := d.Set("created_at", customK8sAction.CreatedAt); err != nil {
+		return diag.Errorf("error setting created_at: %s", err)
+	}
+	if err := d.Set("updated_at", customK8sAction.UpdatedAt); err != nil {
+		return diag.Errorf("error setting updated_at: %s", err)
+	}
 
 	return nil
 }

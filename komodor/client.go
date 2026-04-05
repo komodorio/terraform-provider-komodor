@@ -110,6 +110,11 @@ func (c *Client) GetPolicyRoleAttachmentUrl() string {
 	return c.GetV2Endpoint() + "/rbac/roles/policies"
 }
 
+// GetUserRoleBindingUrl returns the user role binding endpoint
+func (c *Client) GetUserRoleBindingUrl() string {
+	return c.GetV2Endpoint() + "/rbac/users/roles"
+}
+
 // GetKnowledgeBaseUrl returns the Klaudia Knowledge Base files endpoint
 func (c *Client) GetKnowledgeBaseUrl() string {
 	return c.GetV2Endpoint() + "/klaudia/knowledge-base/files"
