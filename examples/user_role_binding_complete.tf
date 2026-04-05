@@ -24,12 +24,12 @@ resource "komodor_policy_v2" "developer_policy" {
     ]
 
     resource_scope {
-      clusters           = ["production"]
-      namespaces         = ["backend", "frontend"]
-      clusters_patterns  = []
+      clusters            = ["production"]
+      namespaces          = ["backend", "frontend"]
+      clusters_patterns   = []
       namespaces_patterns = []
-      selectors          = []
-      selectors_patterns = []
+      selectors           = []
+      selectors_patterns  = []
     }
   }
 }

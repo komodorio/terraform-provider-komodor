@@ -51,7 +51,7 @@ func (c *Client) GetUserRoles(userId string) ([]UserRole, int, error) {
 		return nil, statusCode, err
 	}
 
-	err = json.Unmarshal([]byte(res), &user)
+	err = json.Unmarshal(res, &user)
 	if err != nil {
 		return nil, statusCode, err
 	}

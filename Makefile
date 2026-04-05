@@ -4,7 +4,7 @@ TF_HOSTNAME=registry.terraform.io
 NAMESPACE=komodorio
 NAME=komodor
 BINARY=terraform-provider-${NAME}
-VERSION=2.3.1
+VERSION=2.4.0
 OS_ARCH?=darwin_amd64
 
 default: install
@@ -37,7 +37,7 @@ fmt:
 	terraform fmt -recursive examples/
 
 lint:
-	GO111MODULE=on golangci-lint run --timeout=5m
+	docker run --rm -v $(PWD):/workspace -w /workspace golangci/golangci-lint:v2.11.4 golangci-lint run --timeout=5m
 
 check:
 	bash scripts/check-local.sh

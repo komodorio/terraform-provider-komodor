@@ -87,12 +87,16 @@ func resourceUserRoleBindingRead(ctx context.Context, d *schema.ResourceData, me
 		roleIds = append(roleIds, userRole.RoleId)
 	}
 
-	log.Printf("Roles attached to user %s are: %s", userId, roleIds)
-	d.Set("roles", roleIds)
+	log.Printf("Roles attached to user %s are: %v", userId, roleIds)
+	if err := d.Set("roles", roleIds); err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Set expiration if present in any of the roles
 	if len(userRoles) > 0 && userRoles[0].Expiration != "" {
-		d.Set("expiration", userRoles[0].Expiration)
+		if err := d.Set("expiration", userRoles[0].Expiration); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
