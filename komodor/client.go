@@ -118,7 +118,7 @@ func (c *Client) executeWithRetry(req *http.Request, maxRetries int, retryDelay 
 		}
 
 		resBody, err = io.ReadAll(res.Body)
-		res.Body.Close()
+		_ = res.Body.Close()
 		if err != nil {
 			return nil, res.StatusCode, fmt.Errorf("failed to read response body: %w", err)
 		}

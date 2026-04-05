@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-
 type (
 	ModelWorkflowConfigurationSensorFilters struct {
 		Namespaces  []string `json:"namespaces,omitempty"`
@@ -18,7 +17,7 @@ type (
 	Sensor struct {
 		Cluster string `json:"cluster"`
 		ModelWorkflowConfigurationSensorFilters
-		Exclude ModelWorkflowConfigurationSensorFilters `json:"exclude,omitempty"`
+		Exclude *ModelWorkflowConfigurationSensorFilters `json:"exclude,omitempty"`
 	}
 
 	SinkOptions struct {

@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-
 type PolicyRole struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`

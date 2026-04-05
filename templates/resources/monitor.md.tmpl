@@ -1,6 +1,6 @@
 ---
 page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
-subcategory: "Monitoring"
+subcategory: ""
 description: |-
 {{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
 ---
@@ -13,11 +13,69 @@ description: |-
 
 ### Deployment Monitor
 
+**Valid Sinks**: `slack`, `teams`, `webhook`
+
+**Valid `notifyOn` options**: `"Failure"`, `"Successful"`, `"All"`
+
 {{ tffile "examples/resources/komodor_monitor/resource_deploy.tf" }}
 
 ### Availability Monitor
 
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+**Valid Duration**: Integer between `5` and `600` (inclusive).
+
+**Valid `variables.categories`**:
+`"Creating/Initializing"`, `"Scheduling"`, `"Container Creation"`, `"NonZeroExitCode"`,
+`"Unhealthy - failed probes"`, `"OOMKilled"`, `"BackOff"`, `"Infrastructure"`, `"Image"`,
+`"Volume/Secret/ConfigMap"`, `"Pod Termination"`, `"Completed"`, `"Other"`
+
+**Valid `notifyOn` options**: `["*"]` (all categories) or any subset of the categories listed above.
+Each `notifyOn` category must also be included in `variables.categories`.
+
 {{ tffile "examples/resources/komodor_monitor/resource_availability.tf" }}
+
+### Node Monitor
+
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+**Valid Duration**: Integer between `5` and `600` (inclusive).
+
+**Required variables**: `duration` and `nodeCreationThreshold` (format: `"3m"` for 3 minutes, `"5s"` for 5 seconds).
+
+{{ tffile "examples/resources/komodor_monitor/resource_node.tf" }}
+
+### Workflow Monitor
+
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+{{ tffile "examples/resources/komodor_monitor/resource_workflow.tf" }}
+
+### PVC Monitor
+
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+**Valid Duration**: Integer between `5` and `600` (inclusive).
+
+{{ tffile "examples/resources/komodor_monitor/resource_pvc.tf" }}
+
+### CronJob Monitor
+
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+**Valid Duration**: Integer between `5` and `600` (inclusive).
+
+**Valid `cronJobCondition`**: `"first"` or `"any"`.
+
+{{ tffile "examples/resources/komodor_monitor/resource_cronjob.tf" }}
+
+### Job Monitor
+
+**Valid Sinks**: `slack`, `teams`, `opsgenie`, `pagerduty`, `webhook`
+
+**Valid Duration**: Integer between `5` and `600` (inclusive).
+
+{{ tffile "examples/resources/komodor_monitor/resource_job.tf" }}
 
 ## Argument Reference
 

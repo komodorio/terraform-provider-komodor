@@ -1,6 +1,6 @@
 ---
-page_title: "komodor_workspace Resource - terraform-provider-komodor"
-subcategory: "Workspaces"
+page_title: "komodor_workspace Resource - komodor"
+subcategory: ""
 description: |-
     Creates a Komodor Workspace
 ---
@@ -34,7 +34,7 @@ resource "komodor_workspace" "basic" {
   description = "A workspace for monitoring specific resources"
 
   scopes {
-    clusters = ["cluster-1", "cluster-2"]
+    clusters   = ["cluster-1", "cluster-2"]
     namespaces = ["default", "kube-system"]
   }
 }
@@ -63,8 +63,8 @@ resource "komodor_workspace" "selector" {
 
   scopes {
     selectors_patterns {
-      key   = "environment"
-      type  = "label"
+      key  = "environment"
+      type = "label"
       value {
         include = "prod-*"
         exclude = ""

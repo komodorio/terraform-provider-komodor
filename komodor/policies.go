@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-
 type Resource struct {
 	Cluster          string   `json:"cluster"`
 	Namespaces       []string `json:"namespaces,omitempty"`
