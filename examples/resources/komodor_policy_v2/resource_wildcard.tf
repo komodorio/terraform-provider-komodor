@@ -10,11 +10,6 @@ resource "komodor_policy_v2" "pattern_based_policy" {
         exclude = "prod-legacy-*"
       }
 
-      clusters_patterns {
-        include = "staging-*"
-        exclude = "staging-legacy-*"
-      }
-
       namespaces_patterns {
         include = "team-*"
         exclude = "team-internal-*"

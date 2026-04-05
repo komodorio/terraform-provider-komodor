@@ -1,6 +1,6 @@
-resource "komodor_monitor" "example-availability-monitor" {
-  name          = "example-availability-monitor"
-  type          = "availability"
+resource "komodor_monitor" "example-deploy-monitor" {
+  name          = "example-deploy-monitor"
+  type          = "deploy"
   active        = true
   sensors       = <<EOF
 [{

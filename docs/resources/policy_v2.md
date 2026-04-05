@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_policy_v2 Resource - terraform-provider-komodor"
+page_title: "komodor_policy_v2 Resource - komodor"
 subcategory: ""
 description: |-
     Creates a Komodor RBAC Policy
@@ -80,11 +80,6 @@ resource "komodor_policy_v2" "pattern_based_policy" {
       clusters_patterns {
         include = "prod-*"
         exclude = "prod-legacy-*"
-      }
-
-      clusters_patterns {
-        include = "staging-*"
-        exclude = "staging-legacy-*"
       }
 
       namespaces_patterns {

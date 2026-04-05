@@ -112,16 +112,30 @@ func expandWorkspace(d *schema.ResourceData) *NewWorkspace {
 // Flatten (from GO -> TF)
 
 func flattenWorkspace(workspace *Workspace, d *schema.ResourceData) error {
-	d.Set("name", workspace.Name)
-	d.Set("description", workspace.Description)
+	if err := d.Set("name", workspace.Name); err != nil {
+		return err
+	}
+	if err := d.Set("description", workspace.Description); err != nil {
+		return err
+	}
 	scopesList := lo.Map(workspace.Scopes, func(scope ResourcesScope, _ int) interface{} {
 		return flattenResourcesScope(&scope)
 	})
-	d.Set("scopes", scopesList)
-	d.Set("created_at", workspace.CreatedAt)
-	d.Set("updated_at", workspace.LastUpdated)
-	d.Set("author_email", workspace.AuthorEmail)
-	d.Set("last_updated_by_email", workspace.LastUpdatedByEmail)
+	if err := d.Set("scopes", scopesList); err != nil {
+		return err
+	}
+	if err := d.Set("created_at", workspace.CreatedAt); err != nil {
+		return err
+	}
+	if err := d.Set("updated_at", workspace.LastUpdated); err != nil {
+		return err
+	}
+	if err := d.Set("author_email", workspace.AuthorEmail); err != nil {
+		return err
+	}
+	if err := d.Set("last_updated_by_email", workspace.LastUpdatedByEmail); err != nil {
+		return err
+	}
 	return nil
 }
 

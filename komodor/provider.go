@@ -62,6 +62,7 @@ func Provider() *schema.Provider {
 			"komodor_policy_v2":  dataSourceKomodorPolicy(),
 			"komodor_kubernetes": dataSourceKomodorKubernetes(),
 			"komodor_user":       dataSourceKomodorUser(),
+			"komodor_workspace":  dataSourceKomodorWorkspace(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

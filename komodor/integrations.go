@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-
 type Kubernetes struct {
 	Id string `json:"apiKey"`
 }

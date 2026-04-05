@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_action Resource - terraform-provider-komodor"
+page_title: "komodor_action Resource - komodor"
 subcategory: ""
 description: |-
   Creates a new Komodor RBAC action

@@ -1,5 +1,5 @@
 ---
-page_title: "komodor_kubernetes Data Source - terraform-provider-komodor"
+page_title: "komodor_kubernetes Data Source - komodor"
 subcategory: ""
 description: |-
   Retrieves an existing Komodor Kubernetes cluster integration by name
