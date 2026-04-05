@@ -29,3 +29,4 @@ terraform
 .idea/
 
 dev_test_state/
+examples/**/.terraform.lock.hcl
