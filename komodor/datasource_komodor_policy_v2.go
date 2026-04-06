@@ -2,6 +2,7 @@ package komodor
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -17,16 +18,24 @@ func dataSourceKomodorPolicyV2() *schema.Resource {
 				Required: true,
 			},
 			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The id of the policy",
 			},
 			"created_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The date and time of when the Policy was created",
 			},
 			"updated_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The date and time of when the Policy was last updated",
+			},
+			"statements": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The policy's statements",
 			},
 		},
 	}
@@ -41,6 +50,11 @@ func dataSourceKomodorPolicyV2Read(ctx context.Context, d *schema.ResourceData, 
 		return diag.Errorf("Error reading Policy %s: %s", name, err)
 	}
 
+	jsonStatements, err := json.Marshal(policy.Statements)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	d.SetId(policy.Id)
 	if err := d.Set("name", policy.Name); err != nil {
 		return diag.FromErr(err)
@@ -49,6 +63,9 @@ func dataSourceKomodorPolicyV2Read(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 	if err := d.Set("updated_at", policy.UpdatedAt); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("statements", string(jsonStatements)); err != nil {
 		return diag.FromErr(err)
 	}
 

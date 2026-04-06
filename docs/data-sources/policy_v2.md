@@ -21,6 +21,7 @@ Retrieves an existing Komodor RBAC Policy by name
 
 ### Read-Only
 
-- `created_at` (String)
-- `id` (String) The ID of this resource.
-- `updated_at` (String)
+- `created_at` (String) The date and time of when the Policy was created
+- `id` (String) The id of the policy
+- `statements` (String) The policy's statements
+- `updated_at` (String) The date and time of when the Policy was last updated
