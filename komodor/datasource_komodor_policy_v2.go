@@ -3,16 +3,15 @@ package komodor
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceKomodorPolicy() *schema.Resource {
+func dataSourceKomodorPolicyV2() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceKomodorPolicyRead,
-
+		ReadContext: dataSourceKomodorPolicyV2Read,
+		Description: "Retrieves an existing Komodor RBAC Policy by name",
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -39,20 +38,16 @@ func dataSourceKomodorPolicy() *schema.Resource {
 				Description: "The policy's statements",
 			},
 		},
-		Description: "Retrieves an existing Komodor Policy by name",
 	}
 }
 
-func dataSourceKomodorPolicyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceKomodorPolicyV2Read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 	name := d.Get("name").(string)
-	policy, statusCode, err := client.GetPolicy(name)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
-	if statusCode == http.StatusNotFound {
-		return diag.Errorf("Policy not found")
+	policy, _, err := client.GetPolicy(name)
+	if err != nil {
+		return diag.Errorf("Error reading Policy %s: %s", name, err)
 	}
 
 	jsonStatements, err := json.Marshal(policy.Statements)
@@ -61,6 +56,9 @@ func dataSourceKomodorPolicyRead(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	d.SetId(policy.Id)
+	if err := d.Set("name", policy.Name); err != nil {
+		return diag.FromErr(err)
+	}
 	if err := d.Set("created_at", policy.CreatedAt); err != nil {
 		return diag.FromErr(err)
 	}
@@ -70,5 +68,6 @@ func dataSourceKomodorPolicyRead(ctx context.Context, d *schema.ResourceData, me
 	if err := d.Set("statements", string(jsonStatements)); err != nil {
 		return diag.FromErr(err)
 	}
+
 	return nil
 }

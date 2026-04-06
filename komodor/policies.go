@@ -96,10 +96,6 @@ func (c *Client) GetPolicy(nameOrId string) (*Policy, int, error) {
 }
 
 // Create Policy
-func (c *Client) CreatePolicyV1(p *NewPolicy) (*Policy, error) {
-	return c.CreatePolicy(p, c.GetPoliciesUrl())
-}
-
 func (c *Client) CreatePolicyV2(p *NewPolicy) (*Policy, error) {
 	return c.CreatePolicy(p, c.GetPoliciesUrlV2())
 }
@@ -125,14 +121,6 @@ func (c *Client) CreatePolicy(p *NewPolicy, beUrl string) (*Policy, error) {
 	return &policy, nil
 }
 
-func (c *Client) DeletePolicyV1(id string) error {
-	requestBody, err := json.Marshal(map[string]string{"id": id})
-	if err != nil {
-		return err
-	}
-	return c.DeletePolicy(id, c.GetPoliciesUrl(), requestBody)
-}
-
 func (c *Client) DeletePolicyV2(id string) error {
 	urlWithId := fmt.Sprintf("%s/%s", c.GetPoliciesUrlV2(), id)
 	return c.DeletePolicy(id, urlWithId, nil)
@@ -147,10 +135,6 @@ func (c *Client) DeletePolicy(id string, beUrl string, requestBody []byte) error
 }
 
 // Update Policy
-
-func (c *Client) UpdatePolicyV1(id string, p *NewPolicy) (*Policy, error) {
-	return c.UpdatePolicy(id, p, c.GetPoliciesUrl())
-}
 
 func (c *Client) UpdatePolicyV2(id string, p *NewPolicy) (*Policy, error) {
 	return c.UpdatePolicy(id, p, c.GetPoliciesUrlV2())

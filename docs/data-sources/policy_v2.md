@@ -3,12 +3,12 @@
 page_title: "komodor_policy_v2 Data Source - komodor"
 subcategory: ""
 description: |-
-  Retrieves an existing Komodor Policy by name
+  Retrieves an existing Komodor RBAC Policy by name
 ---
 
 # komodor_policy_v2 (Data Source)
 
-Retrieves an existing Komodor Policy by name
+Retrieves an existing Komodor RBAC Policy by name
 
 
 

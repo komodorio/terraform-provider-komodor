@@ -27,11 +27,6 @@ func NewClient(apiKey string, baseURL string) *Client {
 	}
 }
 
-// GetDefaultEndpoint returns the v1 management API endpoint
-func (c *Client) GetDefaultEndpoint() string {
-	return c.BaseURL + "/mgmt/v1"
-}
-
 // GetV2Endpoint returns the v2 API endpoint
 func (c *Client) GetV2Endpoint() string {
 	return c.BaseURL + "/api/v2"
@@ -50,11 +45,6 @@ func (c *Client) GetUsersUrl() string {
 // GetRolesUrl returns the roles endpoint
 func (c *Client) GetRolesUrl() string {
 	return c.GetV2Endpoint() + "/rbac/roles"
-}
-
-// GetPoliciesUrl returns the v1 policies endpoint
-func (c *Client) GetPoliciesUrl() string {
-	return c.GetDefaultEndpoint() + "/rbac/policies"
 }
 
 // GetPoliciesUrlV2 returns the v2 policies endpoint

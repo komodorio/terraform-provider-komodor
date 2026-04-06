@@ -21,9 +21,7 @@ func registerAccTest(resourceName string) {
 
 // deprecatedResources lists resource names that are intentionally excluded from
 // the coverage requirement.
-var deprecatedResources = map[string]bool{
-	"komodor_policy": true,
-}
+var deprecatedResources = map[string]bool{}
 
 // TestAccCoverage verifies that every active resource and data source in the
 // provider has at least one acceptance test registered via registerAccTest.

@@ -33,22 +33,17 @@ resource "komodor_action" "komo-example-pod-viewer" {
 EOF
 }
 
-resource "komodor_policy" "komo-example-policy" {
-  name       = "komo-example-policy"
-  statements = <<EOF
-[{
-  "actions": [
-    "${komodor_action.komo-example-pod-viewer.action}"
-  ],
-  "resources": [{
-    "cluster": "komo-example-cluster",
-    "namespaces": [
-      "default",
-      "kube-system"
-    ]
-  }]
-}]
-EOF
+resource "komodor_policy_v2" "komo-example-policy" {
+  name = "komo-example-policy"
+
+  statements {
+    actions = [komodor_action.komo-example-pod-viewer.action]
+
+    resources_scope {
+      clusters   = ["komo-example-cluster"]
+      namespaces = ["default", "kube-system"]
+    }
+  }
 }
 ```
 
