@@ -1,5 +1,5 @@
 ---
-name: release-notes
+name: generate-release-notes
 description: Generate release notes by comparing git log since the last tag and suggest next semver version
 user-invocable: true
 ---
