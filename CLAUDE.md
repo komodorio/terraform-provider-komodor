@@ -45,8 +45,7 @@ All provider code lives in the `komodor/` package (flat structure, no sub-packag
 - `client.go` — HTTP client wrapping the Komodor API; `Client.BaseURL` drives all endpoint construction
 
 **API endpoints:**
-- `client.GetDefaultEndpoint()` → `<BaseURL>/mgmt/v1` (v1 RBAC policies)
-- `client.GetV2Endpoint()` → `<BaseURL>/api/v2` (everything else: users, roles, monitors, workspaces, K8s actions, v2 policies)
+- `client.GetV2Endpoint()` → `<BaseURL>/api/v2` (all resources: users, roles, monitors, workspaces, K8s actions, policies)
 
 Default base URL is `https://api.komodor.com`; EU region uses `https://api.eu.komodor.com`. Both are set via `api_url` provider attribute or `KOMODOR_API_URL` env var.
 
@@ -96,4 +95,4 @@ CI will fail at the coverage check step if step 4 is missing.
 - `docs/` is fully generated — never edit directly; run `make generate-docs` instead
 - `go.sum` is generated — run `go mod tidy` instead of editing
 - All acceptance test resources use the `tf-acc-` name prefix
-- `komodor_policy` (v1) and `komodor_policy_v2` coexist; v1 uses `/mgmt/v1/rbac/policies`, v2 uses `/api/v2/rbac/policies`
+- `komodor_policy_v2` uses `/api/v2/rbac/policies`

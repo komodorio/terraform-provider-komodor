@@ -8,7 +8,6 @@ import (
 )
 
 func init() {
-	registerAccTest("datasource_komodor_policy")
 	registerAccTest("datasource_komodor_policy_v2")
 }
 

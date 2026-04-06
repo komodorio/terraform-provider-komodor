@@ -3,12 +3,12 @@
 page_title: "komodor_policy_v2 Data Source - komodor"
 subcategory: ""
 description: |-
-  Retrieves an existing Komodor Policy by name
+  Retrieves an existing Komodor RBAC Policy by name
 ---
 
 # komodor_policy_v2 (Data Source)
 
-Retrieves an existing Komodor Policy by name
+Retrieves an existing Komodor RBAC Policy by name
 
 
 
@@ -21,7 +21,6 @@ Retrieves an existing Komodor Policy by name
 
 ### Read-Only
 
-- `created_at` (String) The date and time of when the Policy was created
-- `id` (String) The id of the policy
-- `statements` (String) The policy's statements
-- `updated_at` (String) The date and time of when the Policy was last updated
+- `created_at` (String)
+- `id` (String) The ID of this resource.
+- `updated_at` (String)
