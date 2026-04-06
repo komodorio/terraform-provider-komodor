@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -20,7 +21,7 @@ type ApiKeyResponse struct {
 
 func NewClient(apiKey string, baseURL string) *Client {
 	return &Client{
-		HttpClient: http.DefaultClient,
+		HttpClient: &http.Client{Timeout: 30 * time.Second},
 		ApiKey:     apiKey,
 		BaseURL:    baseURL,
 	}
@@ -107,11 +108,27 @@ func (c *Client) prepareRequest(method, url string, body *[]byte) (*http.Request
 
 // executeWithRetry executes the HTTP request with retry logic for certain status codes
 func (c *Client) executeWithRetry(req *http.Request, maxRetries int, retryDelay time.Duration) ([]byte, int, error) {
+	// Capture body bytes upfront so each retry attempt gets a fresh reader.
+	var bodyBytes []byte
+	if req.Body != nil {
+		var err error
+		bodyBytes, err = io.ReadAll(req.Body)
+		_ = req.Body.Close()
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to read request body: %w", err)
+		}
+	}
+
 	var res *http.Response
 	var resBody []byte
 	var err error
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
+		if bodyBytes != nil {
+			req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+			req.ContentLength = int64(len(bodyBytes))
+		}
+
 		res, err = c.HttpClient.Do(req)
 		if err != nil {
 			return nil, 0, fmt.Errorf("request failed: %w", err)
@@ -129,7 +146,7 @@ func (c *Client) executeWithRetry(req *http.Request, maxRetries int, retryDelay 
 
 		// Retry only for 502 status code
 		if res.StatusCode == http.StatusBadGateway {
-			fmt.Printf("Retry attempt %d/%d for status %d\n", attempt+1, maxRetries, res.StatusCode)
+			log.Printf("[DEBUG] Retry attempt %d/%d for status %d", attempt+1, maxRetries, res.StatusCode)
 			time.Sleep(retryDelay)
 			continue
 		}
