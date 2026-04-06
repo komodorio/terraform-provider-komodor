@@ -72,6 +72,7 @@ func resourceKomodorKubernetesRead(ctx context.Context, d *schema.ResourceData, 
 		if statusCode == 404 {
 			log.Printf("[DEBUG] Kubernetes cluster %s not found - removing from state", clusterName)
 			d.SetId("")
+			return nil
 		}
 
 		return diag.Errorf("Error reading Kubernetes cluster: %s", err)
