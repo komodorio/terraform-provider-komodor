@@ -71,7 +71,10 @@ func resourceKomodorMonitor() *schema.Resource {
 		ReadContext:   resourceKomodorMonitorRead,
 		UpdateContext: resourceKomodorMonitorUpdate,
 		DeleteContext: resourceKomodorMonitorDelete,
-		Description:   "Creates a new Komodor monitor which allows Komodor to monitor, detect, and analyze failures around infrastructure.",
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
+		Description: "Creates a new Komodor monitor which allows Komodor to monitor, detect, and analyze failures around infrastructure.",
 	}
 }
 

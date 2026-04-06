@@ -47,6 +47,9 @@ func dataSourceKomodorRoleRead(ctx context.Context, d *schema.ResourceData, meta
 	if err != nil {
 		return diag.Errorf("Could not get role by name %s", name)
 	}
+	if role == nil {
+		return diag.Errorf("role %q not found", name)
+	}
 	d.SetId(role.Id)
 	if err := d.Set("name", role.Name); err != nil {
 		return diag.FromErr(err)

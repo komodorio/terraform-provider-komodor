@@ -40,6 +40,12 @@ func TestAcc_komodor_monitor_availability(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceAddr, "active", "false"),
 				),
 			},
+			// Step 3: Import
+			{
+				ResourceName:      resourceAddr,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
