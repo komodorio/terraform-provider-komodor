@@ -13,6 +13,7 @@ resource "komodor_policy_v2" "my-policy" {
       namespaces = ["default", "komodor"]
     }
   }
+}
 
 resource "komodor_policy_role_attachment" "my-attachement" {
   name     = "test-attachement"
