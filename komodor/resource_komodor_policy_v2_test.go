@@ -220,10 +220,39 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 			resource := resourceKomodorPolicyV2()
 			d := schema.TestResourceDataRaw(t, resource.Schema, tt.config)
 
-			actual := expandPolicy(d)
+			actual, err := expandPolicy(d)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, actual)
 		})
 	}
+}
+
+func TestResourceKomodorPolicyV2ExpandRejectsNullNamespaces(t *testing.T) {
+	resource := resourceKomodorPolicyV2()
+	d := schema.TestResourceDataRaw(t, resource.Schema, map[string]interface{}{
+		"name": "null-namespace-policy",
+		"statements": []interface{}{
+			map[string]interface{}{
+				"actions": []interface{}{"view:pods"},
+				"resources_scope": []interface{}{
+					map[string]interface{}{
+						"clusters_patterns": []interface{}{
+							map[string]interface{}{
+								"include": "cs*d*kubernetes*",
+								"exclude": "",
+							},
+						},
+						"namespaces": []interface{}{nil},
+					},
+				},
+			},
+		},
+	})
+
+	assert.NotPanics(t, func() {
+		_, err := expandPolicy(d)
+		assert.ErrorContains(t, err, "statements[0].resources_scope[0].namespaces[0] cannot be null")
+	})
 }
 
 // TestResourceKomodorPolicyV2Validation tests the schema validation rules for the policy resource.

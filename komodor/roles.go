@@ -21,7 +21,8 @@ type Role struct {
 }
 
 type NewRole struct {
-	Name string `json:"name"`
+	Name      string `json:"name"`
+	IsDefault bool   `json:"isDefault"`
 }
 
 func (c *Client) GetRoles() ([]Role, error) {

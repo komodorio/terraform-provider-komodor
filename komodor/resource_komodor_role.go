@@ -17,6 +17,12 @@ func resourceKomodorRole() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validation.NoZeroValues,
 			},
+			"is_default": {
+				Type:        schema.TypeBool,
+				Description: "Set this role as the account wide Default role",
+				Optional:    true,
+				Default:     false,
+			},
 			"created_at": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -29,11 +35,6 @@ func resourceKomodorRole() *schema.Resource {
 
 			"id": {
 				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"is_default": {
-				Type:     schema.TypeBool,
 				Computed: true,
 			},
 		},
@@ -50,7 +51,8 @@ func resourceKomodorRoleCreate(ctx context.Context, d *schema.ResourceData, meta
 	client := meta.(*Client)
 
 	newRole := &NewRole{
-		Name: d.Get("name").(string),
+		Name:      d.Get("name").(string),
+		IsDefault: d.Get("is_default").(bool),
 	}
 
 	log.Printf("[DEBUG] Role create configuration: %#v", newRole)

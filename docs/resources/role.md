@@ -27,9 +27,12 @@ resource "komodor_role" "my-role" {
 
 - `name` (String)
 
+### Optional
+
+- `is_default` (Boolean) Set this role as the account wide Default role
+
 ### Read-Only
 
 - `created_at` (String)
 - `id` (String) The ID of this resource.
-- `is_default` (Boolean)
 - `updated_at` (String)
