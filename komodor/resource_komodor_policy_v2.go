@@ -26,35 +26,41 @@ func resourceKomodorPolicyV2() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.NoZeroValues,
+				Description:  "The name of the policy.",
 			},
 			"statements": {
-				Type:     schema.TypeList,
-				Required: true,
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "One or more policy statements defining the allowed actions and resource scopes.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"actions": {
-							Type:     schema.TypeList,
-							Required: true,
+							Type:        schema.TypeList,
+							Required:    true,
+							Description: "List of actions permitted by this statement (e.g., `view:all`, `edit:deployments`).",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
 						},
 						"resources_scope": {
-							Type:     schema.TypeList,
-							Required: true,
-							MaxItems: 1,
+							Type:        schema.TypeList,
+							Required:    true,
+							MaxItems:    1,
+							Description: "The scope of Kubernetes resources this statement applies to.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"clusters": {
-										Type:     schema.TypeList,
-										Optional: true,
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "List of cluster names to include in the scope.",
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
 									},
 									"namespaces": {
-										Type:     schema.TypeList,
-										Optional: true,
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "List of namespace names to include in the scope.",
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
@@ -78,17 +84,20 @@ func resourceKomodorPolicyV2() *schema.Resource {
 				},
 			},
 			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The unique identifier of the policy.",
 			},
 			"created_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The date and time when the policy was created.",
 			},
 
 			"updated_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The date and time when the policy was last updated.",
 			},
 		},
 	}

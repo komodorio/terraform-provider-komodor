@@ -166,31 +166,31 @@ resource "komodor_policy_v2" "selector_pattern_policy" {
 
 ### Required
 
-- `name` (String)
-- `statements` (Block List, Min: 1) (see [below for nested schema](#nestedblock--statements))
+- `name` (String) The name of the policy.
+- `statements` (Block List, Min: 1) One or more policy statements defining the allowed actions and resource scopes. (see [below for nested schema](#nestedblock--statements))
 
 ### Read-Only
 
-- `created_at` (String)
-- `id` (String) The ID of this resource.
-- `updated_at` (String)
+- `created_at` (String) The date and time when the policy was created.
+- `id` (String) The unique identifier of the policy.
+- `updated_at` (String) The date and time when the policy was last updated.
 
 <a id="nestedblock--statements"></a>
 ### Nested Schema for `statements`
 
 Required:
 
-- `actions` (List of String)
-- `resources_scope` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--statements--resources_scope))
+- `actions` (List of String) List of actions permitted by this statement (e.g., `view:all`, `action:all`).
+- `resources_scope` (Block List, Min: 1, Max: 1) The scope of Kubernetes resources this statement applies to. (see [below for nested schema](#nestedblock--statements--resources_scope))
 
 <a id="nestedblock--statements--resources_scope"></a>
 ### Nested Schema for `statements.resources_scope`
 
 Optional:
 
-- `clusters` (List of String)
+- `clusters` (List of String) List of cluster names to include in the scope.
 - `clusters_patterns` (Block List, Max: 1) (see [below for nested schema](#nestedblock--statements--resources_scope--clusters_patterns))
-- `namespaces` (List of String)
+- `namespaces` (List of String) List of namespace names to include in the scope.
 - `namespaces_patterns` (Block List, Max: 1) (see [below for nested schema](#nestedblock--statements--resources_scope--namespaces_patterns))
 - `selectors` (Block List) (see [below for nested schema](#nestedblock--statements--resources_scope--selectors))
 - `selectors_patterns` (Block List) (see [below for nested schema](#nestedblock--statements--resources_scope--selectors_patterns))

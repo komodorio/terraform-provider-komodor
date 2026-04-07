@@ -23,11 +23,11 @@ resource "komodor_user" "my-user" {
 
 ### Required
 
-- `display_name` (String)
-- `email` (String)
+- `display_name` (String) The display name of the user.
+- `email` (String) The email address of the user. Changing this forces a new resource to be created.
 
 ### Read-Only
 
-- `created_at` (String)
-- `id` (String) The ID of this resource.
-- `updated_at` (String)
+- `created_at` (String) The date and time when the user was created.
+- `id` (String) The unique identifier of the user.
+- `updated_at` (String) The date and time when the user was last updated.

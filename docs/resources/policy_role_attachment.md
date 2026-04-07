@@ -41,9 +41,9 @@ resource "komodor_policy_role_attachment" "my-attachement" {
 
 ### Required
 
-- `name` (String)
-- `policies` (Set of String)
-- `role` (String)
+- `name` (String) A unique name for this policy-role attachment (used for Terraform state management).
+- `policies` (Set of String) Set of policy IDs to attach to the role.
+- `role` (String) The ID of the role to attach policies to.
 
 ### Read-Only
 
