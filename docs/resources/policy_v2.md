@@ -180,7 +180,7 @@ resource "komodor_policy_v2" "selector_pattern_policy" {
 
 Required:
 
-- `actions` (List of String) List of actions permitted by this statement (e.g., `view:all`, `action:all`).
+- `actions` (List of String) List of actions permitted by this statement (e.g., `view:all`, `edit:deployments`).
 - `resources_scope` (Block List, Min: 1, Max: 1) The scope of Kubernetes resources this statement applies to. (see [below for nested schema](#nestedblock--statements--resources_scope))
 
 <a id="nestedblock--statements--resources_scope"></a>
