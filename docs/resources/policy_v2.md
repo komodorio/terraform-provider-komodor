@@ -171,7 +171,7 @@ resource "komodor_policy_v2" "selector_pattern_policy" {
 
 ### Optional
 
-- `description` (String)
+- `description` (String) A human-readable description of the policy
 
 ### Read-Only
 
