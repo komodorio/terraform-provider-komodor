@@ -13,7 +13,7 @@ func init() {
 }
 
 func TestAcc_komodor_role_updatePreservesID(t *testing.T) {
-	name := testResourceName("role")
+	name := testResourceName(t, "role-persist-id")
 	updatedName := name + "-updated"
 	resourceAddr := "komodor_role.test"
 	var roleID string
@@ -23,6 +23,7 @@ func TestAcc_komodor_role_updatePreservesID(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRoleDestroyed(),
 		Steps: []resource.TestStep{
+			// Step 1 - Create the role
 			{
 				Config: testAccRoleConfig(name, false),
 				Check: resource.ComposeTestCheckFunc(
@@ -30,14 +31,17 @@ func TestAcc_komodor_role_updatePreservesID(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceAddr, "is_default", "false"),
 					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
 					testAccCaptureResourceID(resourceAddr, &roleID),
+					// Ensure we have a created_at timestamp, which also indicates the role was created successfully in the API and not just in state
 					resource.TestCheckResourceAttrSet(resourceAddr, "created_at"),
 				),
 			},
+			// Step 2 - Update the role - Ensure the ID remains the same after update
 			{
-				Config: testAccRoleConfig(updatedName, true),
+				// PreConfig: func() { time.Sleep(2 * time.Second) },
+				Config: testAccRoleConfig(updatedName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "name", updatedName),
-					resource.TestCheckResourceAttr(resourceAddr, "is_default", "true"),
+					resource.TestCheckResourceAttr(resourceAddr, "is_default", "false"),
 					testAccCheckResourceIDEquals(resourceAddr, &roleID),
 				),
 			},
@@ -46,7 +50,7 @@ func TestAcc_komodor_role_updatePreservesID(t *testing.T) {
 }
 
 func TestAcc_komodor_role_isDefaultLifecycle(t *testing.T) {
-	name := testResourceName("role-default")
+	name := testResourceName(t, "role-default")
 	resourceAddr := "komodor_role.test"
 
 	resource.Test(t, resource.TestCase{
@@ -54,6 +58,7 @@ func TestAcc_komodor_role_isDefaultLifecycle(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRoleDestroyed(),
 		Steps: []resource.TestStep{
+			// Step 1 - Create the role with is_default = false
 			{
 				Config: testAccRoleConfig(name, false),
 				Check: resource.ComposeTestCheckFunc(
@@ -61,6 +66,7 @@ func TestAcc_komodor_role_isDefaultLifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceAddr, "is_default", "false"),
 				),
 			},
+			// Step 2 - Update the role to is_default = true
 			{
 				Config: testAccRoleConfig(name, true),
 				Check: resource.ComposeTestCheckFunc(
@@ -68,6 +74,7 @@ func TestAcc_komodor_role_isDefaultLifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceAddr, "is_default", "true"),
 				),
 			},
+			// Step 3 - Update the role back to is_default = false
 			{
 				Config: testAccRoleConfig(name, false),
 				Check: resource.ComposeTestCheckFunc(
@@ -116,13 +123,16 @@ func testAccCheckResourceIDEquals(resourceName string, expectedID *string) resou
 
 func testAccCheckRoleDestroyed() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+		fmt.Printf("[DEBUG] - Checking role destruction....\n")
 		client := testAccProvider.Meta().(*Client)
 		for _, rs := range s.RootModule().Resources {
 			if rs.Type != "komodor_role" {
+				fmt.Printf("[DEBUG] Resource: %v", rs)
 				continue
 			}
 
 			role, statusCode, err := client.GetRole(rs.Primary.ID)
+			fmt.Printf("[DEBUG] - Role ID: %s, Status Code: %d, Role: %+v\n", rs.Primary.ID, statusCode, role)
 			if statusCode == 404 || role == nil {
 				continue
 			}

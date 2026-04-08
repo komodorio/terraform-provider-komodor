@@ -118,6 +118,7 @@ func (c *Client) UpdateRole(id string, role *NewRole) (*Role, error) {
 }
 
 func (c *Client) DeleteRole(id string) error {
+	fmt.Printf("[DEBUG] DELETING ROLE ID.... %s\n", id)
 	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetRolesUrl(), id), nil)
 	if err != nil {
 		return err

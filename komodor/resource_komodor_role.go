@@ -108,7 +108,7 @@ func resourceKomodorRoleUpdate(ctx context.Context, d *schema.ResourceData, meta
 	if d.HasChange("name") || d.HasChange("is_default") {
 		_, err := client.UpdateRole(id, newRole)
 		if err != nil {
-			return diag.Errorf("Error updating monitor: %s", err)
+			return diag.Errorf("Error updating role: %s", err)
 		}
 	}
 	return resourceKomodorRoleRead(ctx, d, meta)

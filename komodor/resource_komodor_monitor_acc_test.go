@@ -13,7 +13,7 @@ func init() {
 }
 
 func TestAcc_komodor_monitor_availability(t *testing.T) {
-	name := testResourceName("monitor")
+	name := testResourceName(t, "monitor")
 	updatedName := name + "-updated"
 	resourceAddr := "komodor_monitor.test"
 
