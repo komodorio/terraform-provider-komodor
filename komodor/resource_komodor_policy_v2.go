@@ -31,6 +31,7 @@ func resourceKomodorPolicyV2() *schema.Resource {
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Description: "A human-readable description of the policy",
 			},
 			"statements": {
 				Type:     schema.TypeList,
