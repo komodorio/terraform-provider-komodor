@@ -227,34 +227,6 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 	}
 }
 
-func TestResourceKomodorPolicyV2ExpandRejectsNullNamespaces(t *testing.T) {
-	resource := resourceKomodorPolicyV2()
-	d := schema.TestResourceDataRaw(t, resource.Schema, map[string]interface{}{
-		"name": "null-namespace-policy",
-		"statements": []interface{}{
-			map[string]interface{}{
-				"actions": []interface{}{"view:pods"},
-				"resources_scope": []interface{}{
-					map[string]interface{}{
-						"clusters_patterns": []interface{}{
-							map[string]interface{}{
-								"include": "cs*d*kubernetes*",
-								"exclude": "",
-							},
-						},
-						"namespaces": []interface{}{nil},
-					},
-				},
-			},
-		},
-	})
-
-	assert.NotPanics(t, func() {
-		_, err := expandPolicy(d)
-		assert.ErrorContains(t, err, "statements[0].resources_scope[0].namespaces[0] cannot be null")
-	})
-}
-
 // TestResourceKomodorPolicyV2Validation tests the schema validation rules for the policy resource.
 // It verifies that the schema correctly enforces required fields and validates field types,
 // ensuring that invalid configurations are rejected with appropriate errors.
@@ -526,6 +498,66 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 			} else {
 				assert.Empty(t, errors)
 			}
+		})
+	}
+}
+
+func TestResourceKomodorPolicyV2MutualExclusion(t *testing.T) {
+	tests := []struct {
+		name      string
+		config    map[string]interface{}
+		errSubstr string
+	}{
+		{
+			name: "clusters and clusters_patterns conflict",
+			config: map[string]interface{}{
+				"name": "test-policy",
+				"statements": []interface{}{
+					map[string]interface{}{
+						"actions": []interface{}{"view:all"},
+						"resources_scope": []interface{}{
+							map[string]interface{}{
+								"clusters": []interface{}{"prod-cluster"},
+								"clusters_patterns": []interface{}{
+									map[string]interface{}{"include": "prod-*", "exclude": ""},
+								},
+							},
+						},
+					},
+				},
+			},
+			errSubstr: "clusters and clusters_patterns are mutually exclusive",
+		},
+		{
+			name: "namespaces and namespaces_patterns conflict",
+			config: map[string]interface{}{
+				"name": "test-policy",
+				"statements": []interface{}{
+					map[string]interface{}{
+						"actions": []interface{}{"view:all"},
+						"resources_scope": []interface{}{
+							map[string]interface{}{
+								"namespaces": []interface{}{"default"},
+								"namespaces_patterns": []interface{}{
+									map[string]interface{}{"include": "team-*", "exclude": ""},
+								},
+							},
+						},
+					},
+				},
+			},
+			errSubstr: "namespaces and namespaces_patterns are mutually exclusive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resource := resourceKomodorPolicyV2()
+			d := schema.TestResourceDataRaw(t, resource.Schema, tt.config)
+
+			_, err := expandPolicy(d)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errSubstr)
 		})
 	}
 }

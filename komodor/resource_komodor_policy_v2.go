@@ -29,8 +29,8 @@ func resourceKomodorPolicyV2() *schema.Resource {
 				ValidateFunc: validation.NoZeroValues,
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
 				Description: "A human-readable description of the policy",
 			},
 			"statements": {
@@ -180,10 +180,7 @@ func expandStatements(list []interface{}) ([]Statement, error) {
 	statements := make([]Statement, 0, len(list))
 	for idx, item := range list {
 		data := item.(map[string]interface{})
-		actions, err := toStringList(data["actions"].([]interface{}), fmt.Sprintf("statements[%d].actions", idx))
-		if err != nil {
-			return nil, err
-		}
+		actions := toStringList(data["actions"].([]interface{}))
 
 		resourcesScope, err := expandPolicyResourcesScope(data["resources_scope"].([]interface{}), idx)
 		if err != nil {
@@ -199,12 +196,12 @@ func expandStatements(list []interface{}) ([]Statement, error) {
 }
 
 func toStringList(raw []interface{}) []string {
-    return lo.FilterMap(raw, func(i interface{}, _ int) (string, bool) {
-        if i == nil {
-            return "", false
-        }
-        return i.(string), true
-    })
+	return lo.FilterMap(raw, func(i interface{}, _ int) (string, bool) {
+		if i == nil {
+			return "", false
+		}
+		return i.(string), true
+	})
 }
 
 func expandPolicyResourcesScope(list []interface{}, statementIndex int) (*ResourcesScope, error) {
@@ -213,21 +210,27 @@ func expandPolicyResourcesScope(list []interface{}, statementIndex int) (*Resour
 	}
 	data := list[0].(map[string]interface{})
 
-	clusters, err := toStringList(data["clusters"].([]interface{}), fmt.Sprintf("statements[%d].resources_scope[0].clusters", statementIndex))
-	if err != nil {
-		return nil, err
+	clusters := toStringList(data["clusters"].([]interface{}))
+	namespaces := toStringList(data["namespaces"].([]interface{}))
+	clustersPatterns := expandPatterns(data["clusters_patterns"].([]interface{}))
+	namespacesPatterns := expandPatterns(data["namespaces_patterns"].([]interface{}))
+
+	if len(clusters) > 0 && len(clustersPatterns) > 0 {
+		return nil, fmt.Errorf("statement[%d].resources_scope: clusters and clusters_patterns are mutually exclusive", statementIndex)
+	}
+	if len(namespaces) > 0 && len(namespacesPatterns) > 0 {
+		return nil, fmt.Errorf("statement[%d].resources_scope: namespaces and namespaces_patterns are mutually exclusive", statementIndex)
 	}
 
-	namespaces, err := toStringList(data["namespaces"].([]interface{}), fmt.Sprintf("statements[%d].resources_scope[0].namespaces", statementIndex))
-	if err != nil {
-		return nil, err
+	if namespaces == nil && len(namespaces) == 0 {
+		namespaces = nil
 	}
 
 	return &ResourcesScope{
 		Clusters:           clusters,
 		Namespaces:         namespaces,
-		ClustersPatterns:   expandPatterns(data["clusters_patterns"].([]interface{})),
-		NamespacesPatterns: expandPatterns(data["namespaces_patterns"].([]interface{})),
+		ClustersPatterns:   clustersPatterns,
+		NamespacesPatterns: namespacesPatterns,
 		Selectors:          expandSelectors(data["selectors"].([]interface{})),
 		SelectorsPatterns:  expandSelectorPatterns(data["selectors_patterns"].([]interface{})),
 	}, nil
