@@ -198,22 +198,13 @@ func expandStatements(list []interface{}) ([]Statement, error) {
 	return statements, nil
 }
 
-func toStringList(raw []interface{}, fieldPath string) ([]string, error) {
-	result := make([]string, 0, len(raw))
-	for idx, item := range raw {
-		if item == nil {
-			return nil, fmt.Errorf("%s[%d] cannot be null", fieldPath, idx)
-		}
-
-		value, ok := item.(string)
-		if !ok {
-			return nil, fmt.Errorf("%s[%d] must be a string", fieldPath, idx)
-		}
-
-		result = append(result, value)
-	}
-
-	return result, nil
+func toStringList(raw []interface{}) []string {
+    return lo.FilterMap(raw, func(i interface{}, _ int) (string, bool) {
+        if i == nil {
+            return "", false
+        }
+        return i.(string), true
+    })
 }
 
 func expandPolicyResourcesScope(list []interface{}, statementIndex int) (*ResourcesScope, error) {
