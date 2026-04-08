@@ -99,17 +99,19 @@ func resourceKomodorRoleRead(ctx context.Context, d *schema.ResourceData, meta i
 
 func resourceKomodorRoleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
-	id := d.Id()
-	if d.HasChange("name") {
-		// client.updateRole() // not yet implemented in api, so deleting and recreating
-		if err := client.DeleteRole(id); err != nil {
-			return diag.Errorf("Error deleting Role: %s", err)
-		}
-
-		d.SetId("")
-		return resourceKomodorRoleCreate(ctx, d, meta)
+	newRole := &NewRole{
+		Name:      d.Get("name").(string),
+		IsDefault: d.Get("is_default").(bool),
 	}
-	return nil
+
+	id := d.Id()
+	if d.HasChange("name") || d.HasChange("is_default") {
+		_, err := client.UpdateRole(id, newRole)
+		if err != nil {
+			return diag.Errorf("Error updating monitor: %s", err)
+		}
+	}
+	return resourceKomodorRoleRead(ctx, d, meta)
 }
 
 func resourceKomodorRoleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
