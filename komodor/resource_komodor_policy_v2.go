@@ -2,6 +2,7 @@ package komodor
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -26,6 +27,11 @@ func resourceKomodorPolicyV2() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.NoZeroValues,
+			},
+			"description": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A human-readable description of the policy",
 			},
 			"statements": {
 				Type:     schema.TypeList,
@@ -157,45 +163,86 @@ func selectorPatternSchema() *schema.Resource {
 
 // Expand (from TF -> GO)
 
-func expandPolicy(d *schema.ResourceData) *NewPolicy {
-	return &NewPolicy{
-		Name:       d.Get("name").(string),
-		Statements: expandStatements(d.Get("statements").([]interface{})),
+func expandPolicy(d *schema.ResourceData) (*NewPolicy, error) {
+	statements, err := expandStatements(d.Get("statements").([]interface{}))
+	if err != nil {
+		return nil, err
 	}
+
+	return &NewPolicy{
+		Name:        d.Get("name").(string),
+		Description: d.Get("description").(string),
+		Statements:  statements,
+	}, nil
 }
 
-func expandStatements(list []interface{}) []Statement {
+func expandStatements(list []interface{}) ([]Statement, error) {
 	statements := make([]Statement, 0, len(list))
-	for _, item := range list {
+	for idx, item := range list {
 		data := item.(map[string]interface{})
+		actions := toStringList(data["actions"].([]interface{}))
+
+		resourcesScope, err := expandPolicyResourcesScope(data["resources_scope"].([]interface{}), idx)
+		if err != nil {
+			return nil, err
+		}
+
 		statements = append(statements, Statement{
-			Actions:        toStringList(data["actions"].([]interface{})),
-			ResourcesScope: expandResourcesScope(data["resources_scope"].([]interface{})),
+			Actions:        actions,
+			ResourcesScope: resourcesScope,
 		})
 	}
-	return statements
+	return statements, nil
 }
 
 func toStringList(raw []interface{}) []string {
-	return lo.Map(raw, func(i interface{}, _ int) string {
-		return i.(string)
+	return lo.FilterMap(raw, func(i interface{}, _ int) (string, bool) {
+		if i == nil {
+			return "", false
+		}
+		return i.(string), true
 	})
 }
 
-func expandResourcesScope(list []interface{}) *ResourcesScope {
+func expandPolicyResourcesScope(list []interface{}, statementIndex int) (*ResourcesScope, error) {
 	if len(list) == 0 {
-		return nil
+		return nil, nil
 	}
 	data := list[0].(map[string]interface{})
 
+	clusters := toStringList(data["clusters"].([]interface{}))
+	namespaces := toStringList(data["namespaces"].([]interface{}))
+	clustersPatterns := expandPatterns(data["clusters_patterns"].([]interface{}))
+	namespacesPatterns := expandPatterns(data["namespaces_patterns"].([]interface{}))
+
+	if len(clusters) > 0 && len(clustersPatterns) > 0 {
+		return nil, fmt.Errorf("statement[%d].resources_scope: clusters and clusters_patterns are mutually exclusive", statementIndex)
+	}
+	if len(namespaces) > 0 && len(namespacesPatterns) > 0 {
+		return nil, fmt.Errorf("statement[%d].resources_scope: namespaces and namespaces_patterns are mutually exclusive", statementIndex)
+	}
+
+	if namespaces == nil && len(namespaces) == 0 {
+		namespaces = nil
+	}
+
 	return &ResourcesScope{
-		Clusters:           toStringList(data["clusters"].([]interface{})),
-		Namespaces:         toStringList(data["namespaces"].([]interface{})),
-		ClustersPatterns:   expandPatterns(data["clusters_patterns"].([]interface{})),
-		NamespacesPatterns: expandPatterns(data["namespaces_patterns"].([]interface{})),
+		Clusters:           clusters,
+		Namespaces:         namespaces,
+		ClustersPatterns:   clustersPatterns,
+		NamespacesPatterns: namespacesPatterns,
 		Selectors:          expandSelectors(data["selectors"].([]interface{})),
 		SelectorsPatterns:  expandSelectorPatterns(data["selectors_patterns"].([]interface{})),
+	}, nil
+}
+
+// expandResourcesScope is shared by workspace expansion and keeps backward-compatible behavior.
+func expandResourcesScope(list []interface{}) *ResourcesScope {
+	scope, err := expandPolicyResourcesScope(list, 0)
+	if err != nil {
+		return nil
 	}
+	return scope
 }
 
 func expandPatterns(list []interface{}) []Pattern {
@@ -241,6 +288,9 @@ func expandSelectorPatterns(list []interface{}) []SelectorPattern {
 
 func flattenPolicy(policy *Policy, d *schema.ResourceData) error {
 	if err := d.Set("name", policy.Name); err != nil {
+		return err
+	}
+	if err := d.Set("description", policy.Description); err != nil {
 		return err
 	}
 	if err := d.Set("statements", flattenStatements(policy.Statements)); err != nil {
@@ -321,7 +371,10 @@ func flattenSelectorPatterns(list []SelectorPattern) []interface{} {
 func resourceKomodorPolicyV2Create(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
 
-	newPolicy := expandPolicy(d)
+	newPolicy, err := expandPolicy(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	policy, err := client.CreatePolicyV2(newPolicy)
 	if err != nil {
@@ -357,9 +410,12 @@ func resourceKomodorPolicyV2Read(ctx context.Context, d *schema.ResourceData, me
 
 func resourceKomodorPolicyV2Update(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
-	newPolicy := expandPolicy(d)
+	newPolicy, err := expandPolicy(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	_, err := client.UpdatePolicyV2(d.Id(), newPolicy)
+	_, err = client.UpdatePolicyV2(d.Id(), newPolicy)
 	if err != nil {
 		return diag.Errorf("Error updating policy: %s", err)
 	}

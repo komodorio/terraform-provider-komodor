@@ -220,7 +220,8 @@ func TestResourceKomodorPolicyV2(t *testing.T) {
 			resource := resourceKomodorPolicyV2()
 			d := schema.TestResourceDataRaw(t, resource.Schema, tt.config)
 
-			actual := expandPolicy(d)
+			actual, err := expandPolicy(d)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, actual)
 		})
 	}
@@ -497,6 +498,66 @@ func TestResourceKomodorPolicyV2Validation(t *testing.T) {
 			} else {
 				assert.Empty(t, errors)
 			}
+		})
+	}
+}
+
+func TestResourceKomodorPolicyV2MutualExclusion(t *testing.T) {
+	tests := []struct {
+		name      string
+		config    map[string]interface{}
+		errSubstr string
+	}{
+		{
+			name: "clusters and clusters_patterns conflict",
+			config: map[string]interface{}{
+				"name": "test-policy",
+				"statements": []interface{}{
+					map[string]interface{}{
+						"actions": []interface{}{"view:all"},
+						"resources_scope": []interface{}{
+							map[string]interface{}{
+								"clusters": []interface{}{"prod-cluster"},
+								"clusters_patterns": []interface{}{
+									map[string]interface{}{"include": "prod-*", "exclude": ""},
+								},
+							},
+						},
+					},
+				},
+			},
+			errSubstr: "clusters and clusters_patterns are mutually exclusive",
+		},
+		{
+			name: "namespaces and namespaces_patterns conflict",
+			config: map[string]interface{}{
+				"name": "test-policy",
+				"statements": []interface{}{
+					map[string]interface{}{
+						"actions": []interface{}{"view:all"},
+						"resources_scope": []interface{}{
+							map[string]interface{}{
+								"namespaces": []interface{}{"default"},
+								"namespaces_patterns": []interface{}{
+									map[string]interface{}{"include": "team-*", "exclude": ""},
+								},
+							},
+						},
+					},
+				},
+			},
+			errSubstr: "namespaces and namespaces_patterns are mutually exclusive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resource := resourceKomodorPolicyV2()
+			d := schema.TestResourceDataRaw(t, resource.Schema, tt.config)
+
+			_, err := expandPolicy(d)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errSubstr)
 		})
 	}
 }

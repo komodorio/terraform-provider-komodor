@@ -13,7 +13,7 @@ func init() {
 }
 
 func TestAcc_komodor_action_basic(t *testing.T) {
-	actionName := testResourceName("action")
+	actionName := testResourceName(t, "action")
 	resourceAddr := "komodor_action.test"
 
 	resource.Test(t, resource.TestCase{
