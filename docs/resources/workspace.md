@@ -86,29 +86,29 @@ resource "komodor_workspace" "selector" {
 
 ### Required
 
-- `name` (String)
-- `scopes` (Block List, Min: 1) (see [below for nested schema](#nestedblock--scopes))
+- `name` (String) The name of the workspace.
+- `scopes` (Block List, Min: 1) One or more scopes defining the Kubernetes resources visible in this workspace. (see [below for nested schema](#nestedblock--scopes))
 
 ### Optional
 
-- `description` (String)
+- `description` (String) A human-readable description of the workspace.
 
 ### Read-Only
 
-- `author_email` (String)
-- `created_at` (String)
-- `id` (String) The ID of this resource.
-- `last_updated_by_email` (String)
-- `updated_at` (String)
+- `author_email` (String) The email of the user who created the workspace.
+- `created_at` (String) The date and time when the workspace was created.
+- `id` (String) The unique identifier of the workspace.
+- `last_updated_by_email` (String) The email of the user who last updated the workspace.
+- `updated_at` (String) The date and time when the workspace was last updated.
 
 <a id="nestedblock--scopes"></a>
 ### Nested Schema for `scopes`
 
 Optional:
 
-- `clusters` (List of String)
+- `clusters` (List of String) List of cluster names to include in the scope.
 - `clusters_patterns` (Block List, Max: 1) (see [below for nested schema](#nestedblock--scopes--clusters_patterns))
-- `namespaces` (List of String)
+- `namespaces` (List of String) List of namespace names to include in the scope.
 - `namespaces_patterns` (Block List, Max: 1) (see [below for nested schema](#nestedblock--scopes--namespaces_patterns))
 - `selectors` (Block List) (see [below for nested schema](#nestedblock--scopes--selectors))
 - `selectors_patterns` (Block List) (see [below for nested schema](#nestedblock--scopes--selectors_patterns))
