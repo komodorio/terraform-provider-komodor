@@ -1,0 +1,27 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: "Klaudia"
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## Example Usage
+
+{{ tffile "examples/resources/komodor_knowledge_base_file/resource.tf" }}
+
+## Argument Reference
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Knowledge Base files can be imported using a compound ID of `<file-id>:<file-type>`:
+
+```sh
+terraform import komodor_knowledge_base_file.example 818df73e-694d-43d8-bec3-f020f25582b4:knowledge-base
+```
+

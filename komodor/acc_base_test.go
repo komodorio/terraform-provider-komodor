@@ -82,6 +82,26 @@ func cleanupOrphanedAccResources() {
 	} else {
 		log.Printf("[CLEANUP] could not list custom k8s actions: %s", err)
 	}
+
+	// Knowledge Base Files
+	for _, fileType := range []string{"knowledge-base", "blueprint"} {
+		if files, _, err := client.ListKnowledgeBaseFiles(fileType); err == nil {
+			var ids []string
+			for _, f := range files {
+				if strings.HasPrefix(f.Name, accTestPrefix) {
+					log.Printf("[CLEANUP] deleting orphaned knowledge base file: %s (%s, type=%s)", f.Name, f.Id, fileType)
+					ids = append(ids, f.Id)
+				}
+			}
+			if len(ids) > 0 {
+				if _, _, err := client.DeleteKnowledgeBaseFiles(ids, fileType); err != nil {
+					log.Printf("[CLEANUP] failed to delete knowledge base files (type=%s): %s", fileType, err)
+				}
+			}
+		} else {
+			log.Printf("[CLEANUP] could not list knowledge base files (type=%s): %s", fileType, err)
+		}
+	}
 }
 
 // testAccPreCheck validates that the required environment variables are set

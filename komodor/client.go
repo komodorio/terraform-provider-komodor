@@ -77,6 +77,12 @@ func (c *Client) GetUserRoleBindingUrl() string {
 	return c.GetV2Endpoint() + "/rbac/users/roles"
 }
 
+// GetKlaudiaFilesUrl returns the Klaudia files endpoint for the given file type.
+// Valid types are "knowledge-base" and "blueprint".
+func (c *Client) GetKlaudiaFilesUrl(fileType string) string {
+	return c.GetV2Endpoint() + "/klaudia/files/" + fileType
+}
+
 // prepareRequest creates a new HTTP request with the necessary headers
 func (c *Client) prepareRequest(method, url string, body *[]byte) (*http.Request, error) {
 	var reader io.Reader
@@ -159,4 +165,51 @@ func (c *Client) executeHttpRequest(method string, url string, body *[]byte) ([]
 	}
 
 	return c.executeWithRetry(req, maxRetries, retryDelay)
+}
+
+// executeMultipartRequest sends a multipart/form-data request (e.g. for file uploads)
+func (c *Client) executeMultipartRequest(method, url string, body *bytes.Buffer, contentType string) ([]byte, int, error) {
+	maxRetries := 3
+	retryDelay := 5 * time.Second
+
+	// Capture bytes upfront so each retry attempt gets a fresh reader.
+	bodyBytes := body.Bytes()
+
+	var res *http.Response
+	var resBody []byte
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		req, err := http.NewRequest(method, url, bytes.NewReader(bodyBytes))
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("x-api-key", c.ApiKey)
+		req.Header.Set("Content-Type", contentType)
+		req.Header.Set("User-Agent", "Terraform (terraform-provider-komodor); Go-http-client/1.1")
+
+		res, err = c.HttpClient.Do(req)
+		if err != nil {
+			return nil, 0, fmt.Errorf("request failed: %w", err)
+		}
+
+		resBody, err = io.ReadAll(res.Body)
+		_ = res.Body.Close()
+		if err != nil {
+			return nil, res.StatusCode, fmt.Errorf("failed to read response body: %w", err)
+		}
+
+		if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated || res.StatusCode == http.StatusNoContent {
+			return resBody, res.StatusCode, nil
+		}
+
+		if res.StatusCode == http.StatusBadGateway {
+			fmt.Printf("Retry attempt %d/%d for status %d\n", attempt+1, maxRetries, res.StatusCode)
+			time.Sleep(retryDelay)
+			continue
+		}
+
+		return resBody, res.StatusCode, fmt.Errorf("received error response: %d %s", res.StatusCode, resBody)
+	}
+
+	return resBody, res.StatusCode, fmt.Errorf("request failed after %d retries with status: %d", maxRetries, res.StatusCode)
 }
