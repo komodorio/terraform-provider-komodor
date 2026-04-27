@@ -102,8 +102,8 @@ func TestAcc_komodor_mcp_integration_token_exchange(t *testing.T) {
 				Config: testAccMCPIntegrationTokenExchangeConfig(skillName, intName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(intAddr, "name", intName),
-				resource.TestCheckResourceAttr(intAddr, "connectivity.0.mode", "public"),
-				resource.TestCheckResourceAttr(intAddr, "mcp_server.0.url", "http://mock-mcp-server.mcp-test.svc:8082/mcp"),
+					resource.TestCheckResourceAttr(intAddr, "connectivity.0.mode", "public"),
+					resource.TestCheckResourceAttr(intAddr, "mcp_server.0.url", "http://mock-mcp-server.mcp-test.svc:8082/mcp"),
 					resource.TestCheckResourceAttr(intAddr, "mcp_server.0.transport", "streamable-http"),
 					resource.TestCheckResourceAttr(intAddr, "auth.0.method", "token_exchange"),
 					resource.TestCheckResourceAttr(intAddr, "auth.0.token_exchange.0.token_url", "http://mock-auth-server.mcp-test.svc:8081/token"),
