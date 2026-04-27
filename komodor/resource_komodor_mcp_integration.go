@@ -4,11 +4,19 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+var allowedUpstreamHeaderPlaceholders = map[string]struct{}{
+	"{access_token}": {},
+	"{token_type}":   {},
+}
+
+var upstreamHeaderPlaceholderRE = regexp.MustCompile(`\{[^{}]+\}`)
 
 func resourceKomodorMCPIntegration() *schema.Resource {
 	return &schema.Resource{
@@ -17,6 +25,7 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 		ReadContext:   resourceMCPIntegrationRead,
 		UpdateContext: resourceMCPIntegrationUpdate,
 		DeleteContext: resourceMCPIntegrationDelete,
+		CustomizeDiff: validateMCPIntegrationDiff,
 		Schema: map[string]*schema.Schema{
 			// ── Identity ──
 			"name": {
@@ -244,26 +253,31 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 							},
 						},
 
-						// --- Upstream header ---
+						// --- Upstream headers ---
+						// Repeatable. Each entry is either templated (`format` with
+						// `{token_type}`/`{access_token}` placeholders, expanded per
+						// request) or static (`value`).
 						"upstream_header": {
-							Type:     schema.TypeList,
-							Optional: true,
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "Headers sent to the upstream MCP server. Each entry must set exactly one of `format` (templated) or `value` (literal). Repeat the block for additional headers.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "HTTP header name (e.g., `Authorization`).",
+										Type:         schema.TypeString,
+										Required:     true,
+										Description:  "HTTP header name (e.g., `Authorization`).",
+										ValidateFunc: validation.StringIsNotEmpty,
 									},
 									"format": {
 										Type:        schema.TypeString,
 										Optional:    true,
-										Description: "Header value template. Use `{token_type}` and `{access_token}` as placeholders.",
+										Description: "Header value template. Allowed placeholders: `{token_type}`, `{access_token}`. Mutually exclusive with `value`.",
 									},
 									"value": {
 										Type:        schema.TypeString,
 										Optional:    true,
-										Description: "Static header value (no placeholders).",
+										Description: "Literal header value. Mutually exclusive with `format`.",
 									},
 								},
 							},
@@ -453,19 +467,8 @@ func buildMCPRequest(d *schema.ResourceData) *MCPIntegrationRequest {
 		configuration["auth_params"] = authParams
 	}
 
-	// Upstream header — nested object in auth_params
-	if headers, ok := auth["upstream_header"].([]interface{}); ok && len(headers) > 0 {
-		hdr := headers[0].(map[string]interface{})
-		upstreamHeader := map[string]string{}
-		if v, _ := hdr["name"].(string); v != "" {
-			upstreamHeader["name"] = v
-		}
-		if v, _ := hdr["format"].(string); v != "" {
-			upstreamHeader["format"] = v
-		}
-		if len(upstreamHeader) > 0 {
-			authParams["upstream_header"] = upstreamHeader
-		}
+	if headers := buildUpstreamHeaders(auth); len(headers) > 0 {
+		authParams["upstream_headers"] = headers
 	}
 
 	// Response field mapping — nested object in auth_params
@@ -519,4 +522,87 @@ func setOptionalParam(params map[string]interface{}, src map[string]interface{},
 	if v, ok := src[key].(string); ok && v != "" {
 		params[key] = v
 	}
+}
+
+// buildUpstreamHeaders converts the auth.upstream_header[] blocks into the wire
+// format expected by the backend: a list under auth_params["upstream_headers"]
+// where every entry has a name plus exactly one of format / value.
+func buildUpstreamHeaders(auth map[string]interface{}) []map[string]string {
+	raw, ok := auth["upstream_header"].([]interface{})
+	if !ok || len(raw) == 0 {
+		return nil
+	}
+	out := make([]map[string]string, 0, len(raw))
+	for _, item := range raw {
+		hdr, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		name, _ := hdr["name"].(string)
+		if name == "" {
+			continue
+		}
+		format, _ := hdr["format"].(string)
+		value, _ := hdr["value"].(string)
+		entry := map[string]string{"name": name}
+		switch {
+		case format != "":
+			entry["format"] = format
+		case value != "":
+			entry["value"] = value
+		default:
+			continue
+		}
+		out = append(out, entry)
+	}
+	return out
+}
+
+// validateMCPIntegrationDiff enforces format-xor-value per upstream_header entry
+// and rejects unknown placeholders in `format`. Surfacing these at plan time
+// gives users actionable diagnostics with the offending block index.
+func validateMCPIntegrationDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	auths, ok := d.Get("auth").([]interface{})
+	if !ok || len(auths) == 0 {
+		return nil
+	}
+	auth, ok := auths[0].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	headers, ok := auth["upstream_header"].([]interface{})
+	if !ok {
+		return nil
+	}
+	for i, raw := range headers {
+		hdr, ok := raw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		format, _ := hdr["format"].(string)
+		value, _ := hdr["value"].(string)
+		hasFormat := format != ""
+		hasValue := value != ""
+		if hasFormat == hasValue {
+			return fmt.Errorf("auth.upstream_header[%d]: must set exactly one of `format` or `value`", i)
+		}
+		if hasFormat {
+			if err := validateUpstreamHeaderFormat(format, i); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func validateUpstreamHeaderFormat(template string, index int) error {
+	for _, placeholder := range upstreamHeaderPlaceholderRE.FindAllString(template, -1) {
+		if _, ok := allowedUpstreamHeaderPlaceholders[placeholder]; !ok {
+			return fmt.Errorf(
+				"auth.upstream_header[%d].format: unknown placeholder %q (allowed: {access_token}, {token_type})",
+				index, placeholder,
+			)
+		}
+	}
+	return nil
 }

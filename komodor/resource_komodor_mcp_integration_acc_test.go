@@ -89,6 +89,7 @@ func testAccCheckMCPIntegrationAndSkillDestroyed(s *terraform.State) error {
 func TestAcc_komodor_mcp_integration_token_exchange(t *testing.T) {
 	skillName := testResourceName("te-skill")
 	intName := testResourceName("te-mcp")
+	updatedName := intName + "-updated"
 	intAddr := "komodor_mcp_integration.te_test"
 	skillAddr := "komodor_klaudia_skill.te_skill"
 
@@ -110,6 +111,15 @@ func TestAcc_komodor_mcp_integration_token_exchange(t *testing.T) {
 					resource.TestCheckResourceAttr(intAddr, "auth.0.token_exchange.0.audience", "mock-mcp-server"),
 					resource.TestCheckResourceAttrPair(intAddr, "skill_id", skillAddr, "id"),
 					resource.TestCheckResourceAttrSet(intAddr, "id"),
+					testAccCaptureMCPIDs(intAddr, skillAddr),
+				),
+			},
+			// Step 2: rename — exercises resourceMCPIntegrationUpdate (line 364)
+			{
+				Config: testAccMCPIntegrationTokenExchangeConfigUpdated(skillName, updatedName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(intAddr, "name", updatedName),
+					resource.TestCheckResourceAttr(intAddr, "auth.0.token_exchange.0.audience", "mock-mcp-server-v2"),
 					testAccCaptureMCPIDs(intAddr, skillAddr),
 				),
 			},
@@ -155,6 +165,66 @@ resource "komodor_mcp_integration" "te_test" {
       }
 
       audience             = "mock-mcp-server"
+      requested_token_type = "urn:ietf:params:oauth:token-type:access_token"
+    }
+
+    upstream_header {
+      name   = "Authorization"
+      format = "{token_type} {access_token}"
+    }
+    upstream_header {
+      name  = "X-Api-Version"
+      value = "2024-01"
+    }
+
+    response {
+      token_field      = "access_token"
+      token_type_field = "token_type"
+      expires_in_field = "expires_in"
+    }
+  }
+}
+`, skillName, integrationName)
+}
+
+func testAccMCPIntegrationTokenExchangeConfigUpdated(skillName, integrationName string) string {
+	return fmt.Sprintf(`
+resource "komodor_klaudia_skill" "te_skill" {
+  name         = %q
+  description  = "acceptance test skill for token-exchange MCP"
+  instructions = "Skill used for token-exchange acceptance test."
+  use_cases    = ["chat"]
+  clusters     = ["*"]
+  is_enabled   = true
+}
+
+resource "komodor_mcp_integration" "te_test" {
+  name     = %q
+  skill_id = komodor_klaudia_skill.te_skill.id
+
+  connectivity {
+    mode             = "agent-tunnel"
+    provider_cluster = "local-kind"
+  }
+
+  mcp_server {
+    url       = "http://mock-mcp-server.mcp-test.svc:8082/mcp"
+    transport = "streamable-http"
+  }
+
+  auth {
+    method = "token_exchange"
+
+    token_exchange {
+      token_url  = "http://mock-auth-server.mcp-test.svc:8081/token"
+      grant_type = "urn:ietf:params:oauth:grant-type:token-exchange"
+
+      subject_token {
+        file_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        type      = "urn:ietf:params:oauth:token-type:jwt"
+      }
+
+      audience             = "mock-mcp-server-v2"
       requested_token_type = "urn:ietf:params:oauth:token-type:access_token"
     }
 
