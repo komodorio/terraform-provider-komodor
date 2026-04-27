@@ -102,9 +102,8 @@ func TestAcc_komodor_mcp_integration_token_exchange(t *testing.T) {
 				Config: testAccMCPIntegrationTokenExchangeConfig(skillName, intName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(intAddr, "name", intName),
-					resource.TestCheckResourceAttr(intAddr, "connectivity.0.mode", "agent-tunnel"),
-					resource.TestCheckResourceAttr(intAddr, "connectivity.0.provider_cluster", "local-kind"),
-					resource.TestCheckResourceAttr(intAddr, "mcp_server.0.url", "http://mock-mcp-server.mcp-test.svc:8082/mcp"),
+				resource.TestCheckResourceAttr(intAddr, "connectivity.0.mode", "public"),
+				resource.TestCheckResourceAttr(intAddr, "mcp_server.0.url", "http://mock-mcp-server.mcp-test.svc:8082/mcp"),
 					resource.TestCheckResourceAttr(intAddr, "mcp_server.0.transport", "streamable-http"),
 					resource.TestCheckResourceAttr(intAddr, "auth.0.method", "token_exchange"),
 					resource.TestCheckResourceAttr(intAddr, "auth.0.token_exchange.0.token_url", "http://mock-auth-server.mcp-test.svc:8081/token"),
@@ -143,8 +142,7 @@ resource "komodor_mcp_integration" "te_test" {
   skill_id = komodor_klaudia_skill.te_skill.id
 
   connectivity {
-    mode             = "agent-tunnel"
-    provider_cluster = "local-kind"
+    mode = "public"
   }
 
   mcp_server {
@@ -160,7 +158,7 @@ resource "komodor_mcp_integration" "te_test" {
       grant_type = "urn:ietf:params:oauth:grant-type:token-exchange"
 
       subject_token {
-	    file_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        value = "test-subject-token"
         type  = "urn:ietf:params:oauth:token-type:jwt"
       }
 
@@ -171,10 +169,6 @@ resource "komodor_mcp_integration" "te_test" {
     upstream_header {
       name   = "Authorization"
       format = "{token_type} {access_token}"
-    }
-    upstream_header {
-      name  = "X-Api-Version"
-      value = "2024-01"
     }
 
     response {
@@ -203,8 +197,7 @@ resource "komodor_mcp_integration" "te_test" {
   skill_id = komodor_klaudia_skill.te_skill.id
 
   connectivity {
-    mode             = "agent-tunnel"
-    provider_cluster = "local-kind"
+    mode = "public"
   }
 
   mcp_server {
@@ -220,8 +213,8 @@ resource "komodor_mcp_integration" "te_test" {
       grant_type = "urn:ietf:params:oauth:grant-type:token-exchange"
 
       subject_token {
-        file_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-        type      = "urn:ietf:params:oauth:token-type:jwt"
+        value = "test-subject-token"
+        type  = "urn:ietf:params:oauth:token-type:jwt"
       }
 
       audience             = "mock-mcp-server-v2"
