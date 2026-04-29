@@ -132,7 +132,6 @@ resource "komodor_klaudia_skill" "te_skill" {
   name         = %q
   description  = "acceptance test skill for token-exchange MCP"
   instructions = "Skill used for token-exchange acceptance test."
-  use_cases    = ["chat"]
   clusters     = ["*"]
   is_enabled   = true
 }
@@ -187,7 +186,6 @@ resource "komodor_klaudia_skill" "te_skill" {
   name         = %q
   description  = "acceptance test skill for token-exchange MCP"
   instructions = "Skill used for token-exchange acceptance test."
-  use_cases    = ["chat"]
   clusters     = ["*"]
   is_enabled   = true
 }
@@ -242,7 +240,6 @@ resource "komodor_klaudia_skill" "for_mcp" {
   name         = %q
   description  = "acceptance test skill for MCP integration"
   instructions = "Skill used only to satisfy MCP integration acceptance tests."
-  use_cases    = ["chat", "rca"]
   clusters     = ["*"]
   is_enabled   = true
 }
