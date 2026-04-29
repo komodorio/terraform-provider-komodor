@@ -3,7 +3,6 @@ resource "komodor_klaudia_skill" "example" {
   name         = "my-mcp-skill"
   description  = "Skill for querying an internal MCP server."
   instructions = "Use the MCP tools to query the internal knowledge base when investigating incidents."
-  use_cases    = ["chat", "rca"]
   clusters     = ["*"]
   is_enabled   = true
 }
