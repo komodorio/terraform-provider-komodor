@@ -9,7 +9,6 @@ resource "komodor_klaudia_skill" "example" {
     3. Recent deployment changes in the same namespace.
   EOT
 
-  use_cases  = ["chat", "rca"]
   clusters   = ["*"]
   is_enabled = true
 }

@@ -17,8 +17,8 @@ An MCP integration connects Klaudia to an external MCP server so that Klaudia ca
 
 **Authentication methods:**
 - `none` — No authentication.
-- `static_token` — A fixed bearer token sent in an HTTP header.
-- `oauth2_client_credentials` — OAuth 2.0 client credentials flow.
+- `static_token` — A fixed token sent in an HTTP header.
+- `oauth2_client_credentials` — OAuth 2.0 client credentials.
 - `token_exchange` — RFC 8693 token exchange with optional upstream header forwarding.
 - `custom` — POST `auth.custom.body` to `auth.custom.token_url` to obtain a token, then send it to the MCP server using `auth.upstream_header` and `auth.response`.
 
@@ -209,7 +209,7 @@ resource "komodor_mcp_integration" "custom_token" {
 - `connectivity` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--connectivity))
 - `mcp_server` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--mcp_server))
 - `name` (String) Stable machine-safe name for the integration.
-- `skill_id` (String) ID of the Klaudia skill to attach. The skill defines instructions, use_cases, and clusters.
+- `skill_id` (String) ID of the Klaudia skill to attach. The skill defines instructions, and clusters.
 
 ### Optional
 

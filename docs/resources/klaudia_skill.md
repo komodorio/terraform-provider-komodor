@@ -25,7 +25,6 @@ resource "komodor_klaudia_skill" "example" {
     3. Recent deployment changes in the same namespace.
   EOT
 
-  use_cases  = ["chat", "rca"]
   clusters   = ["*"]
   is_enabled = true
 }
@@ -40,7 +39,6 @@ resource "komodor_klaudia_skill" "example" {
 - `description` (String) Short description shown in the UI.
 - `instructions` (String) Full instructions injected into Klaudia's agent prompt when this skill is active. Supports markdown. Max 50,000 characters.
 - `name` (String) Unique name for the skill (per account).
-- `use_cases` (List of String) Klaudia workflows that can use this skill: `rca`, `chat`.
 
 ### Optional
 

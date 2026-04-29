@@ -29,9 +29,8 @@ func TestAcc_komodor_klaudia_skill_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "name", name),
 					resource.TestCheckResourceAttr(resourceAddr, "description", "acceptance test skill"),
-					resource.TestCheckResourceAttr(resourceAddr, "is_enabled", "true"),
-					resource.TestCheckResourceAttr(resourceAddr, "use_cases.#", "2"),
-					resource.TestCheckResourceAttr(resourceAddr, "clusters.#", "1"),
+				resource.TestCheckResourceAttr(resourceAddr, "is_enabled", "true"),
+				resource.TestCheckResourceAttr(resourceAddr, "clusters.#", "1"),
 					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
 					testAccCaptureKlaudiaSkillID(resourceAddr),
 				),
@@ -82,7 +81,6 @@ resource "komodor_klaudia_skill" "test" {
   name         = %q
   description  = %q
   instructions = %q
-  use_cases    = ["chat", "rca"]
   clusters     = ["*"]
   is_enabled   = true
 }

@@ -351,7 +351,7 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 			"skill_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "ID of the Klaudia skill to attach. The skill defines instructions, use_cases, and clusters.",
+				Description: "ID of the Klaudia skill to attach. The skill defines instructions, and clusters.",
 			},
 		},
 	}

@@ -35,12 +35,6 @@ func resourceKomodorKlaudiaSkill() *schema.Resource {
 				Description:  "Full instructions injected into Klaudia's agent prompt when this skill is active. Supports markdown. Max 50,000 characters.",
 				ValidateFunc: validation.StringLenBetween(1, 50000),
 			},
-			"use_cases": {
-				Type:        schema.TypeList,
-				Required:    true,
-				Description: "Klaudia workflows that can use this skill: `rca`, `chat`.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
 			"clusters": {
 				Type:        schema.TypeList,
 				Required:    true,
@@ -64,7 +58,7 @@ func resourceKlaudiaSkillCreate(ctx context.Context, d *schema.ResourceData, met
 		Name:         d.Get("name").(string),
 		Description:  d.Get("description").(string),
 		Instructions: d.Get("instructions").(string),
-		UseCases:     expandStringList(d.Get("use_cases").([]interface{})),
+		UseCases:     []string{"rca", "chat"},
 		Clusters:     expandStringList(d.Get("clusters").([]interface{})),
 	}
 
@@ -91,7 +85,6 @@ func resourceKlaudiaSkillRead(ctx context.Context, d *schema.ResourceData, meta 
 	_ = d.Set("name", skill.Name)
 	_ = d.Set("description", skill.Description)
 	_ = d.Set("instructions", skill.Instructions)
-	_ = d.Set("use_cases", skill.UseCases)
 	_ = d.Set("clusters", skill.Clusters)
 	_ = d.Set("is_enabled", skill.IsEnabled)
 	return nil
@@ -112,9 +105,6 @@ func resourceKlaudiaSkillUpdate(ctx context.Context, d *schema.ResourceData, met
 	if d.HasChange("instructions") {
 		v := d.Get("instructions").(string)
 		req.Instructions = &v
-	}
-	if d.HasChange("use_cases") {
-		req.UseCases = expandStringList(d.Get("use_cases").([]interface{}))
 	}
 	if d.HasChange("clusters") {
 		req.Clusters = expandStringList(d.Get("clusters").([]interface{}))
