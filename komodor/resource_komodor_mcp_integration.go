@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -85,6 +86,14 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 							Default:      "sse",
 							Description:  "MCP transport protocol: `sse` | `streamable-http`.",
 							ValidateFunc: validation.StringInSlice([]string{"sse", "streamable-http"}, false),
+						},
+						"headers": {
+							Type:     schema.TypeMap,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Description: "Static HTTP header name → value on every MCP request (Klaudia `configuration.headers`). " +
+								"Merged with `auth.static_token` (same header name is overwritten by the bearer value). " +
+								"For dynamic auth, use with non-auth metadata only; use `auth.upstream_header` for token-backed headers.",
 						},
 					},
 				},
@@ -253,6 +262,29 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 							},
 						},
 
+						"custom": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"token_url": {
+										Type:         schema.TypeString,
+										Required:     true,
+										Description:  "Custom token endpoint (POST, form-encoded). Required when `auth.method` is `custom`.",
+										ValidateFunc: validation.StringIsNotEmpty,
+									},
+									"body": {
+										Type:        schema.TypeMap,
+										Optional:    true,
+										Elem:        &schema.Schema{Type: schema.TypeString},
+										Sensitive:   true,
+										Description: "Form fields merged into Klaudia `auth_params` and sent to `token_url` (same as `CustomTokenProvider` in ai-investigator).",
+									},
+								},
+							},
+						},
+
 						// --- Upstream headers ---
 						// Repeatable. Each entry is either templated (`format` with
 						// `{token_type}`/`{access_token}` placeholders, expanded per
@@ -354,9 +386,16 @@ func resourceMCPIntegrationRead(ctx context.Context, d *schema.ResourceData, met
 	}
 	_ = d.Set("skill_id", skillID)
 	cfg := integration.Configuration
-	_ = d.Set("mcp_server", []map[string]interface{}{
-		{"url": cfg["url"], "transport": cfg["transport"]},
-	})
+	mcp := map[string]interface{}{
+		"url":       cfg["url"],
+		"transport": cfg["transport"],
+	}
+	if h, ok := cfg["headers"]; ok && h != nil {
+		if hm, ok := h.(map[string]interface{}); ok && len(hm) > 0 {
+			mcp["headers"] = hm
+		}
+	}
+	_ = d.Set("mcp_server", []map[string]interface{}{mcp})
 
 	return nil
 }
@@ -387,6 +426,7 @@ func buildMCPRequest(d *schema.ResourceData) *MCPIntegrationRequest {
 		"url":       mcpServer["url"],
 		"transport": mcpServer["transport"],
 	}
+	baseHeaders := mcpServerStringHeaders(mcpServer)
 
 	// Connectivity
 	connectivity := d.Get("connectivity").([]interface{})[0].(map[string]interface{})
@@ -445,26 +485,41 @@ func buildMCPRequest(d *schema.ResourceData) *MCPIntegrationRequest {
 
 	case "static_token":
 		configuration["auth_method"] = "static_token"
+		headers := map[string]string{}
+		for k, v := range baseHeaders {
+			headers[k] = v
+		}
 		if st, ok := getSingleBlock(auth, "static_token"); ok {
 			headerName := st["header_name"].(string)
 			if headerName == "" {
 				headerName = "Authorization"
 			}
 			if v := st["value"].(string); v != "" {
-				headers := map[string]string{headerName: "Bearer " + v}
-				configuration["headers"] = headers
+				headers[headerName] = "Bearer " + v
 			}
+		}
+		if len(headers) > 0 {
+			configuration["headers"] = headers
 		}
 
 	case "custom":
 		configuration["auth_method"] = "custom"
+		if cu, ok := getSingleBlock(auth, "custom"); ok {
+			if body, ok := cu["body"].(map[string]interface{}); ok {
+				for k, v := range body {
+					if k == "token_url" {
+						continue
+					}
+					authParams[k] = fmt.Sprintf("%v", v)
+				}
+			}
+			if tu, ok := cu["token_url"].(string); ok {
+				authParams["token_url"] = strings.TrimSpace(tu)
+			}
+		}
 
 	case "none":
 		configuration["auth_method"] = "static_token"
-	}
-
-	if len(authParams) > 0 {
-		configuration["auth_params"] = authParams
 	}
 
 	if headers := buildUpstreamHeaders(auth); len(headers) > 0 {
@@ -488,6 +543,17 @@ func buildMCPRequest(d *schema.ResourceData) *MCPIntegrationRequest {
 		}
 	}
 
+	if len(authParams) > 0 {
+		configuration["auth_params"] = authParams
+	}
+
+	// `configuration.headers` (static) for dynamic auth: not merged into static_token branch above
+	if method != "static_token" && len(baseHeaders) > 0 {
+		if _, has := configuration["headers"]; !has {
+			configuration["headers"] = baseHeaders
+		}
+	}
+
 	// Skill
 	var skillID *string
 	if v := d.Get("skill_id").(string); v != "" {
@@ -503,6 +569,28 @@ func buildMCPRequest(d *schema.ResourceData) *MCPIntegrationRequest {
 		Clusters:      []string{"*"},
 		SkillID:       skillID,
 	}
+}
+
+func mcpServerStringHeaders(mcpServer map[string]interface{}) map[string]string {
+	raw, ok := mcpServer["headers"]
+	if !ok || raw == nil {
+		return nil
+	}
+	m, ok := raw.(map[string]interface{})
+	if !ok || len(m) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(m))
+	for k, v := range m {
+		if k == "" {
+			continue
+		}
+		out[k] = fmt.Sprint(v)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func getSingleBlock(parent map[string]interface{}, key string) (map[string]interface{}, bool) {
@@ -569,6 +657,17 @@ func validateMCPIntegrationDiff(_ context.Context, d *schema.ResourceDiff, _ int
 	auth, ok := auths[0].(map[string]interface{})
 	if !ok {
 		return nil
+	}
+	method, _ := auth["method"].(string)
+	if method == "custom" {
+		cu, ok := getSingleBlock(auth, "custom")
+		if !ok {
+			return fmt.Errorf("auth.custom block is required when auth.method is \"custom\"")
+		}
+		tu, _ := cu["token_url"].(string)
+		if strings.TrimSpace(tu) == "" {
+			return fmt.Errorf("auth.custom.token_url is required when auth.method is \"custom\"")
+		}
 	}
 	headers, ok := auth["upstream_header"].([]interface{})
 	if !ok {

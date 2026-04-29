@@ -1,0 +1,18 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+A Klaudia skill defines the domain expertise and instructions injected into Klaudia's agent prompt during investigations. Skills are referenced by MCP integrations via `skill_id`.
+
+## Example Usage
+
+{{ tffile "examples/resources/komodor_klaudia_skill/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}

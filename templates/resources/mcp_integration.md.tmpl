@@ -1,0 +1,29 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+An MCP integration connects Klaudia to an external MCP server so that Klaudia can call its tools during AI-powered investigations. Each integration must reference a `komodor_klaudia_skill` via `skill_id`.
+
+**Connectivity modes:**
+- `public` — Komodor's control plane calls the MCP server URL directly.
+- `agent-tunnel` — A hub agent in the specified `provider_cluster` proxies all traffic to the MCP server.
+
+**Authentication methods:**
+- `none` — No authentication.
+- `static_token` — A fixed bearer token sent in an HTTP header.
+- `oauth2_client_credentials` — OAuth 2.0 client credentials flow.
+- `token_exchange` — RFC 8693 token exchange with optional upstream header forwarding.
+- `custom` — POST `auth.custom.body` to `auth.custom.token_url` to obtain a token, then send it to the MCP server using `auth.upstream_header` and `auth.response`.
+
+## Example Usage
+
+{{ tffile "examples/resources/komodor_mcp_integration/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
