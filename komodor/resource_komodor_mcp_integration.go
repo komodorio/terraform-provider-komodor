@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/samber/lo"
 )
 
 var allowedUpstreamHeaderPlaceholders = map[string]struct{}{
@@ -386,16 +387,26 @@ func resourceMCPIntegrationRead(ctx context.Context, d *schema.ResourceData, met
 	}
 	_ = d.Set("skill_id", skillID)
 	cfg := integration.Configuration
+	connectivity, extractedBearer := flattenConnectivityFromConfig(cfg)
+	_ = d.Set("connectivity", []map[string]interface{}{connectivity})
+
 	mcp := map[string]interface{}{
 		"url":       cfg["url"],
 		"transport": cfg["transport"],
 	}
 	if h, ok := cfg["headers"]; ok && h != nil {
-		if hm, ok := h.(map[string]interface{}); ok && len(hm) > 0 {
-			mcp["headers"] = hm
+		if hm := stringifyMap(h); len(hm) > 0 {
+			if extractedBearer.headerName != "" {
+				delete(hm, extractedBearer.headerName)
+			}
+			if len(hm) > 0 {
+				mcp["headers"] = hm
+			}
 		}
 	}
 	_ = d.Set("mcp_server", []map[string]interface{}{mcp})
+	auth := flattenAuthFromConfig(d, cfg, extractedBearer)
+	_ = d.Set("auth", []map[string]interface{}{auth})
 
 	return nil
 }
@@ -593,6 +604,247 @@ func mcpServerStringHeaders(mcpServer map[string]interface{}) map[string]string 
 	return out
 }
 
+const redactedSecretPlaceholder = "••••••••"
+
+type bearerHeader struct {
+	headerName string
+	value      string
+}
+
+func flattenConnectivityFromConfig(cfg map[string]interface{}) (map[string]interface{}, bearerHeader) {
+	connectivity := map[string]interface{}{
+		"mode": "public",
+	}
+	if useTunnel, _ := cfg["use_tunnel"].(bool); useTunnel {
+		connectivity["mode"] = "agent-tunnel"
+		if cluster, _ := cfg["tunnel_cluster"].(string); cluster != "" {
+			connectivity["provider_cluster"] = cluster
+		}
+	}
+
+	headers := stringifyMap(cfg["headers"])
+	bearer := bearerHeader{}
+	for name, value := range headers {
+		if strings.HasPrefix(value, "Bearer ") {
+			bearer.headerName = name
+			bearer.value = strings.TrimPrefix(value, "Bearer ")
+			break
+		}
+	}
+
+	return connectivity, bearer
+}
+
+func flattenAuthFromConfig(d *schema.ResourceData, cfg map[string]interface{}, bearer bearerHeader) map[string]interface{} {
+	auth := map[string]interface{}{}
+	authParams := mapFromInterface(cfg["auth_params"])
+	method, _ := cfg["auth_method"].(string)
+	switch method {
+	case "rfc8693_token_exchange":
+		auth["method"] = "token_exchange"
+		tokenExchange := map[string]interface{}{}
+		setStringIfPresent(tokenExchange, "token_url", authParams, "token_url")
+		setStringIfPresent(tokenExchange, "grant_type", authParams, "grant_type")
+		setStringIfPresent(tokenExchange, "audience", authParams, "audience")
+		setStringIfPresent(tokenExchange, "requested_token_type", authParams, "requested_token_type")
+		setStringIfPresent(tokenExchange, "scope", authParams, "scope")
+		setStringIfPresent(tokenExchange, "actor_token_type", authParams, "actor_token_type")
+		setStringIfPresent(tokenExchange, "client_id", authParams, "client_id")
+		clientSecret := getString(authParams, "client_secret")
+		if clientSecret == redactedSecretPlaceholder {
+			clientSecret = getStringFromState(d, "auth.0.token_exchange.0.client_secret")
+		}
+		if clientSecret != "" {
+			tokenExchange["client_secret"] = clientSecret
+		}
+
+		subjectToken := map[string]interface{}{}
+		setStringIfPresent(subjectToken, "type", authParams, "subject_token_type")
+		if st := getString(authParams, "subject_token"); st != "" {
+			if st == redactedSecretPlaceholder {
+				st = getStringFromState(d, "auth.0.token_exchange.0.subject_token.0.value")
+			}
+			if st != "" {
+				subjectToken["value"] = st
+			}
+		}
+		setStringIfPresent(subjectToken, "file_path", authParams, "subject_token_path")
+		if len(subjectToken) > 0 {
+			tokenExchange["subject_token"] = []map[string]interface{}{subjectToken}
+		}
+
+		extraParams := map[string]string{}
+		for key, value := range authParams {
+			switch key {
+			case "token_url", "grant_type", "audience", "requested_token_type", "scope",
+				"actor_token_type", "client_id", "client_secret", "subject_token_type",
+				"subject_token", "subject_token_path", "upstream_headers", "response":
+				continue
+			default:
+				if value != nil {
+					extraParams[key] = fmt.Sprint(value)
+				}
+			}
+		}
+		if len(extraParams) > 0 {
+			tokenExchange["extra_params"] = extraParams
+		}
+		auth["token_exchange"] = []map[string]interface{}{tokenExchange}
+	case "oauth2_client_credentials":
+		auth["method"] = "oauth2_client_credentials"
+		oauth := map[string]interface{}{}
+		setStringIfPresent(oauth, "token_url", authParams, "token_url")
+		setStringIfPresent(oauth, "client_id", authParams, "client_id")
+		clientSecret := getString(authParams, "client_secret")
+		if clientSecret == redactedSecretPlaceholder {
+			clientSecret = getStringFromState(d, "auth.0.oauth2_client_credentials.0.client_secret")
+		}
+		if clientSecret != "" {
+			oauth["client_secret"] = clientSecret
+		}
+		setStringIfPresent(oauth, "scope", authParams, "scope")
+		setStringIfPresent(oauth, "audience", authParams, "audience")
+		auth["oauth2_client_credentials"] = []map[string]interface{}{oauth}
+	case "custom":
+		auth["method"] = "custom"
+		custom := map[string]interface{}{}
+		setStringIfPresent(custom, "token_url", authParams, "token_url")
+		body := map[string]string{}
+		for key, value := range authParams {
+			switch key {
+			case "token_url", "upstream_headers", "response":
+				continue
+			default:
+				if value != nil {
+					body[key] = fmt.Sprint(value)
+				}
+			}
+		}
+		if len(body) > 0 {
+			custom["body"] = body
+		}
+		auth["custom"] = []map[string]interface{}{custom}
+	case "static_token":
+		staticToken := map[string]interface{}{}
+		if bearer.headerName != "" {
+			staticToken["header_name"] = bearer.headerName
+			if bearer.value != "" {
+				staticToken["value"] = bearer.value
+			}
+		}
+		if len(staticToken) > 0 {
+			auth["method"] = "static_token"
+			auth["static_token"] = []map[string]interface{}{staticToken}
+		} else {
+			auth["method"] = "none"
+		}
+	default:
+		auth["method"] = "none"
+	}
+
+	if upstreamHeaders := flattenUpstreamHeaders(authParams["upstream_headers"]); len(upstreamHeaders) > 0 {
+		auth["upstream_header"] = upstreamHeaders
+	}
+	if response := flattenResponseFields(authParams["response"]); len(response) > 0 {
+		auth["response"] = []map[string]interface{}{response}
+	}
+
+	return auth
+}
+
+func setStringIfPresent(dst map[string]interface{}, dstKey string, src map[string]interface{}, srcKey string) {
+	if v := getString(src, srcKey); v != "" {
+		dst[dstKey] = v
+	}
+}
+
+func stringifyMap(raw interface{}) map[string]string {
+	switch v := raw.(type) {
+	case map[string]string:
+		out := make(map[string]string, len(v))
+		for key, value := range v {
+			out[key] = value
+		}
+		return out
+	case map[string]interface{}:
+		return lo.MapEntries(v, func(key string, value interface{}) (string, string) {
+			return key, fmt.Sprint(value)
+		})
+	default:
+		return map[string]string{}
+	}
+}
+
+func flattenUpstreamHeaders(raw interface{}) []map[string]interface{} {
+	items, ok := raw.([]interface{})
+	if !ok || len(items) == 0 {
+		return nil
+	}
+	return lo.FilterMap(items, func(item interface{}, _ int) (map[string]interface{}, bool) {
+		m, ok := item.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+		name := getString(m, "name")
+		if name == "" {
+			return nil, false
+		}
+		entry := map[string]interface{}{"name": name}
+		if format := getString(m, "format"); format != "" {
+			entry["format"] = format
+		} else if value := getString(m, "value"); value != "" {
+			entry["value"] = value
+		} else {
+			return nil, false
+		}
+		return entry, true
+	})
+}
+
+func flattenResponseFields(raw interface{}) map[string]interface{} {
+	m := mapFromInterface(raw)
+	response := map[string]interface{}{}
+	setStringIfPresent(response, "token_field", m, "token_field")
+	setStringIfPresent(response, "token_type_field", m, "token_type_field")
+	setStringIfPresent(response, "expires_in_field", m, "expires_in_field")
+	return response
+}
+
+func mapFromInterface(raw interface{}) map[string]interface{} {
+	out := map[string]interface{}{}
+	if raw == nil {
+		return out
+	}
+	switch v := raw.(type) {
+	case map[string]interface{}:
+		for key, value := range v {
+			out[key] = value
+		}
+	case map[string]string:
+		for key, value := range v {
+			out[key] = value
+		}
+	}
+	return out
+}
+
+func getString(src map[string]interface{}, key string) string {
+	raw, ok := src[key]
+	if !ok || raw == nil {
+		return ""
+	}
+	return fmt.Sprint(raw)
+}
+
+func getStringFromState(d *schema.ResourceData, path string) string {
+	raw := d.Get(path)
+	if raw == nil {
+		return ""
+	}
+	s, _ := raw.(string)
+	return s
+}
+
 func getSingleBlock(parent map[string]interface{}, key string) (map[string]interface{}, bool) {
 	raw, ok := parent[key]
 	if !ok {
@@ -620,15 +872,14 @@ func buildUpstreamHeaders(auth map[string]interface{}) []map[string]string {
 	if !ok || len(raw) == 0 {
 		return nil
 	}
-	out := make([]map[string]string, 0, len(raw))
-	for _, item := range raw {
+	return lo.FilterMap(raw, func(item interface{}, _ int) (map[string]string, bool) {
 		hdr, ok := item.(map[string]interface{})
 		if !ok {
-			continue
+			return nil, false
 		}
 		name, _ := hdr["name"].(string)
 		if name == "" {
-			continue
+			return nil, false
 		}
 		format, _ := hdr["format"].(string)
 		value, _ := hdr["value"].(string)
@@ -639,17 +890,25 @@ func buildUpstreamHeaders(auth map[string]interface{}) []map[string]string {
 		case value != "":
 			entry["value"] = value
 		default:
-			continue
+			return nil, false
 		}
-		out = append(out, entry)
-	}
-	return out
+		return entry, true
+	})
 }
 
 // validateMCPIntegrationDiff enforces format-xor-value per upstream_header entry
 // and rejects unknown placeholders in `format`. Surfacing these at plan time
 // gives users actionable diagnostics with the offending block index.
 func validateMCPIntegrationDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	connectivityList, ok := d.Get("connectivity").([]interface{})
+	if ok && len(connectivityList) > 0 {
+		if connectivity, ok := connectivityList[0].(map[string]interface{}); ok {
+			if err := validateConnectivityBlock(connectivity); err != nil {
+				return err
+			}
+		}
+	}
+
 	auths, ok := d.Get("auth").([]interface{})
 	if !ok || len(auths) == 0 {
 		return nil
@@ -659,16 +918,10 @@ func validateMCPIntegrationDiff(_ context.Context, d *schema.ResourceDiff, _ int
 		return nil
 	}
 	method, _ := auth["method"].(string)
-	if method == "custom" {
-		cu, ok := getSingleBlock(auth, "custom")
-		if !ok {
-			return fmt.Errorf("auth.custom block is required when auth.method is \"custom\"")
-		}
-		tu, _ := cu["token_url"].(string)
-		if strings.TrimSpace(tu) == "" {
-			return fmt.Errorf("auth.custom.token_url is required when auth.method is \"custom\"")
-		}
+	if err := validateAuthMethodBlock(method, auth); err != nil {
+		return err
 	}
+
 	headers, ok := auth["upstream_header"].([]interface{})
 	if !ok {
 		return nil
@@ -689,6 +942,57 @@ func validateMCPIntegrationDiff(_ context.Context, d *schema.ResourceDiff, _ int
 			if err := validateUpstreamHeaderFormat(format, i); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+func validateConnectivityBlock(connectivity map[string]interface{}) error {
+	mode, _ := connectivity["mode"].(string)
+	if mode != "agent-tunnel" {
+		return nil
+	}
+	providerCluster, _ := connectivity["provider_cluster"].(string)
+	if strings.TrimSpace(providerCluster) == "" {
+		return fmt.Errorf("connectivity.provider_cluster is required when connectivity.mode is \"agent-tunnel\"")
+	}
+	return nil
+}
+
+func validateAuthMethodBlock(method string, auth map[string]interface{}) error {
+	switch method {
+	case "static_token":
+		if _, ok := getSingleBlock(auth, "static_token"); !ok {
+			return fmt.Errorf("auth.static_token block is required when auth.method is \"static_token\"")
+		}
+	case "token_exchange":
+		te, ok := getSingleBlock(auth, "token_exchange")
+		if !ok {
+			return fmt.Errorf("auth.token_exchange block is required when auth.method is \"token_exchange\"")
+		}
+		st, ok := getSingleBlock(te, "subject_token")
+		if !ok {
+			return fmt.Errorf("auth.token_exchange.subject_token block is required when auth.method is \"token_exchange\"")
+		}
+		value, _ := st["value"].(string)
+		filePath, _ := st["file_path"].(string)
+		hasValue := strings.TrimSpace(value) != ""
+		hasFilePath := strings.TrimSpace(filePath) != ""
+		if hasValue == hasFilePath {
+			return fmt.Errorf("auth.token_exchange.subject_token must set exactly one of `value` or `file_path`")
+		}
+	case "oauth2_client_credentials":
+		if _, ok := getSingleBlock(auth, "oauth2_client_credentials"); !ok {
+			return fmt.Errorf("auth.oauth2_client_credentials block is required when auth.method is \"oauth2_client_credentials\"")
+		}
+	case "custom":
+		cu, ok := getSingleBlock(auth, "custom")
+		if !ok {
+			return fmt.Errorf("auth.custom block is required when auth.method is \"custom\"")
+		}
+		tu, _ := cu["token_url"].(string)
+		if strings.TrimSpace(tu) == "" {
+			return fmt.Errorf("auth.custom.token_url is required when auth.method is \"custom\"")
 		}
 	}
 	return nil

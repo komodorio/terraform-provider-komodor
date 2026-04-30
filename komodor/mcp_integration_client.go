@@ -68,6 +68,9 @@ func (c *Client) UpdateMCPIntegration(id string, req *MCPIntegrationRequest) err
 
 func (c *Client) DeleteMCPIntegration(id string) error {
 	url := fmt.Sprintf("%s/%s", c.GetKlaudiaMCPIntegrationsUrl(), id)
-	_, _, err := c.executeHttpRequest(http.MethodDelete, url, nil)
+	_, statusCode, err := c.executeHttpRequest(http.MethodDelete, url, nil)
+	if err != nil && statusCode == http.StatusNotFound {
+		return nil
+	}
 	return err
 }
