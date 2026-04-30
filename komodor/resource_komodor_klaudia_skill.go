@@ -36,7 +36,7 @@ func resourceKomodorKlaudiaSkill() *schema.Resource {
 				ValidateFunc: validation.StringLenBetween(1, 50000),
 			},
 			"clusters": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "Clusters this skill is active for. Use `[\"*\"]` for all clusters.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
@@ -59,7 +59,7 @@ func resourceKlaudiaSkillCreate(ctx context.Context, d *schema.ResourceData, met
 		Description:  d.Get("description").(string),
 		Instructions: d.Get("instructions").(string),
 		UseCases:     []string{"rca", "chat"},
-		Clusters:     expandStringList(d.Get("clusters").([]interface{})),
+		Clusters:     expandStringList(d.Get("clusters").(*schema.Set).List()),
 	}
 
 	skill, err := c.CreateSkill(req)
@@ -67,6 +67,14 @@ func resourceKlaudiaSkillCreate(ctx context.Context, d *schema.ResourceData, met
 		return diag.Errorf("error creating Klaudia skill: %s", err)
 	}
 	d.SetId(skill.ID)
+
+	if isEnabled := d.Get("is_enabled").(bool); !isEnabled {
+		disabled := false
+		if _, err := c.UpdateSkill(skill.ID, &UpdateSkillRequest{IsEnabled: &disabled}); err != nil {
+			return diag.Errorf("error setting Klaudia skill %s is_enabled=false after create: %s", skill.ID, err)
+		}
+	}
+
 	return resourceKlaudiaSkillRead(ctx, d, meta)
 }
 
@@ -107,7 +115,7 @@ func resourceKlaudiaSkillUpdate(ctx context.Context, d *schema.ResourceData, met
 		req.Instructions = &v
 	}
 	if d.HasChange("clusters") {
-		req.Clusters = expandStringList(d.Get("clusters").([]interface{}))
+		req.Clusters = expandStringList(d.Get("clusters").(*schema.Set).List())
 	}
 	if d.HasChange("is_enabled") {
 		v := d.Get("is_enabled").(bool)

@@ -79,6 +79,9 @@ func (c *Client) UpdateSkill(id string, req *UpdateSkillRequest) (*Skill, error)
 }
 
 func (c *Client) DeleteSkill(id string) error {
-	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetKlaudiaSkillsUrl(), id), nil)
+	_, statusCode, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetKlaudiaSkillsUrl(), id), nil)
+	if err != nil && statusCode == http.StatusNotFound {
+		return nil
+	}
 	return err
 }
