@@ -387,8 +387,11 @@ func resourceMCPIntegrationRead(ctx context.Context, d *schema.ResourceData, met
 	}
 	_ = d.Set("skill_id", skillID)
 	cfg := integration.Configuration
-	connectivity, extractedBearer := flattenConnectivityFromConfig(cfg)
+	connectivity := flattenConnectivityFromConfig(cfg)
 	_ = d.Set("connectivity", []map[string]interface{}{connectivity})
+
+	auth, authOwnedHeader := flattenAuthFromConfig(cfg)
+	_ = d.Set("auth", []map[string]interface{}{auth})
 
 	mcp := map[string]interface{}{
 		"url":       cfg["url"],
@@ -396,8 +399,8 @@ func resourceMCPIntegrationRead(ctx context.Context, d *schema.ResourceData, met
 	}
 	if h, ok := cfg["headers"]; ok && h != nil {
 		if hm := stringifyMap(h); len(hm) > 0 {
-			if extractedBearer.headerName != "" {
-				delete(hm, extractedBearer.headerName)
+			if authOwnedHeader != "" {
+				delete(hm, authOwnedHeader)
 			}
 			if len(hm) > 0 {
 				mcp["headers"] = hm
@@ -405,8 +408,6 @@ func resourceMCPIntegrationRead(ctx context.Context, d *schema.ResourceData, met
 		}
 	}
 	_ = d.Set("mcp_server", []map[string]interface{}{mcp})
-	auth := flattenAuthFromConfig(d, cfg, extractedBearer)
-	_ = d.Set("auth", []map[string]interface{}{auth})
 
 	return nil
 }
@@ -606,12 +607,11 @@ func mcpServerStringHeaders(mcpServer map[string]interface{}) map[string]string 
 
 const redactedSecretPlaceholder = "••••••••"
 
-type bearerHeader struct {
-	headerName string
-	value      string
+func isRedactedAPIValue(v string) bool {
+	return v == redactedSecretPlaceholder
 }
 
-func flattenConnectivityFromConfig(cfg map[string]interface{}) (map[string]interface{}, bearerHeader) {
+func flattenConnectivityFromConfig(cfg map[string]interface{}) map[string]interface{} {
 	connectivity := map[string]interface{}{
 		"mode": "public",
 	}
@@ -622,21 +622,12 @@ func flattenConnectivityFromConfig(cfg map[string]interface{}) (map[string]inter
 		}
 	}
 
-	headers := stringifyMap(cfg["headers"])
-	bearer := bearerHeader{}
-	for name, value := range headers {
-		if strings.HasPrefix(value, "Bearer ") {
-			bearer.headerName = name
-			bearer.value = strings.TrimPrefix(value, "Bearer ")
-			break
-		}
-	}
-
-	return connectivity, bearer
+	return connectivity
 }
 
-func flattenAuthFromConfig(d *schema.ResourceData, cfg map[string]interface{}, bearer bearerHeader) map[string]interface{} {
+func flattenAuthFromConfig(cfg map[string]interface{}) (map[string]interface{}, string) {
 	auth := map[string]interface{}{}
+	authOwnedHeader := ""
 	authParams := mapFromInterface(cfg["auth_params"])
 	method, _ := cfg["auth_method"].(string)
 	switch method {
@@ -650,23 +641,14 @@ func flattenAuthFromConfig(d *schema.ResourceData, cfg map[string]interface{}, b
 		setStringIfPresent(tokenExchange, "scope", authParams, "scope")
 		setStringIfPresent(tokenExchange, "actor_token_type", authParams, "actor_token_type")
 		setStringIfPresent(tokenExchange, "client_id", authParams, "client_id")
-		clientSecret := getString(authParams, "client_secret")
-		if clientSecret == redactedSecretPlaceholder {
-			clientSecret = getStringFromState(d, "auth.0.token_exchange.0.client_secret")
-		}
-		if clientSecret != "" {
-			tokenExchange["client_secret"] = clientSecret
+		if cs := getString(authParams, "client_secret"); cs != "" && !isRedactedAPIValue(cs) {
+			tokenExchange["client_secret"] = cs
 		}
 
 		subjectToken := map[string]interface{}{}
 		setStringIfPresent(subjectToken, "type", authParams, "subject_token_type")
-		if st := getString(authParams, "subject_token"); st != "" {
-			if st == redactedSecretPlaceholder {
-				st = getStringFromState(d, "auth.0.token_exchange.0.subject_token.0.value")
-			}
-			if st != "" {
-				subjectToken["value"] = st
-			}
+		if st := getString(authParams, "subject_token"); st != "" && !isRedactedAPIValue(st) {
+			subjectToken["value"] = st
 		}
 		setStringIfPresent(subjectToken, "file_path", authParams, "subject_token_path")
 		if len(subjectToken) > 0 {
@@ -695,12 +677,8 @@ func flattenAuthFromConfig(d *schema.ResourceData, cfg map[string]interface{}, b
 		oauth := map[string]interface{}{}
 		setStringIfPresent(oauth, "token_url", authParams, "token_url")
 		setStringIfPresent(oauth, "client_id", authParams, "client_id")
-		clientSecret := getString(authParams, "client_secret")
-		if clientSecret == redactedSecretPlaceholder {
-			clientSecret = getStringFromState(d, "auth.0.oauth2_client_credentials.0.client_secret")
-		}
-		if clientSecret != "" {
-			oauth["client_secret"] = clientSecret
+		if cs := getString(authParams, "client_secret"); cs != "" && !isRedactedAPIValue(cs) {
+			oauth["client_secret"] = cs
 		}
 		setStringIfPresent(oauth, "scope", authParams, "scope")
 		setStringIfPresent(oauth, "audience", authParams, "audience")
@@ -725,19 +703,23 @@ func flattenAuthFromConfig(d *schema.ResourceData, cfg map[string]interface{}, b
 		}
 		auth["custom"] = []map[string]interface{}{custom}
 	case "static_token":
-		staticToken := map[string]interface{}{}
-		if bearer.headerName != "" {
-			staticToken["header_name"] = bearer.headerName
-			if bearer.value != "" {
-				staticToken["value"] = bearer.value
+		auth["method"] = "static_token"
+		headers := stringifyMap(cfg["headers"])
+		headerName := "Authorization"
+		bearerValue := ""
+		for name, value := range headers {
+			if strings.HasPrefix(value, "Bearer ") {
+				headerName = name
+				bearerValue = strings.TrimPrefix(value, "Bearer ")
+				authOwnedHeader = name
+				break
 			}
 		}
-		if len(staticToken) > 0 {
-			auth["method"] = "static_token"
-			auth["static_token"] = []map[string]interface{}{staticToken}
-		} else {
-			auth["method"] = "none"
+		staticToken := map[string]interface{}{"header_name": headerName}
+		if bearerValue != "" && !isRedactedAPIValue(bearerValue) {
+			staticToken["value"] = bearerValue
 		}
+		auth["static_token"] = []map[string]interface{}{staticToken}
 	default:
 		auth["method"] = "none"
 	}
@@ -749,7 +731,7 @@ func flattenAuthFromConfig(d *schema.ResourceData, cfg map[string]interface{}, b
 		auth["response"] = []map[string]interface{}{response}
 	}
 
-	return auth
+	return auth, authOwnedHeader
 }
 
 func setStringIfPresent(dst map[string]interface{}, dstKey string, src map[string]interface{}, srcKey string) {
@@ -834,15 +816,6 @@ func getString(src map[string]interface{}, key string) string {
 		return ""
 	}
 	return fmt.Sprint(raw)
-}
-
-func getStringFromState(d *schema.ResourceData, path string) string {
-	raw := d.Get(path)
-	if raw == nil {
-		return ""
-	}
-	s, _ := raw.(string)
-	return s
 }
 
 func getSingleBlock(parent map[string]interface{}, key string) (map[string]interface{}, bool) {

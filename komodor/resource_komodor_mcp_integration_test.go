@@ -2,8 +2,6 @@ package komodor
 
 import (
 	"testing"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestValidateConnectivityBlock(t *testing.T) {
@@ -52,37 +50,7 @@ func TestValidateAuthMethodBlock(t *testing.T) {
 	}
 }
 
-func TestFlattenAuthFromConfigUsesStateForRedactedSecrets(t *testing.T) {
-	d := schema.TestResourceDataRaw(t, resourceKomodorMCPIntegration().Schema, map[string]interface{}{
-		"name":     "integration",
-		"skill_id": "skill-1",
-		"connectivity": []interface{}{
-			map[string]interface{}{
-				"mode": "public",
-			},
-		},
-		"mcp_server": []interface{}{
-			map[string]interface{}{
-				"url":       "http://example.com",
-				"transport": "sse",
-			},
-		},
-		"auth": []interface{}{
-			map[string]interface{}{
-				"method": "token_exchange",
-				"token_exchange": []interface{}{
-					map[string]interface{}{
-						"token_url":            "https://auth.example.com/token",
-						"client_secret":        "stored-client-secret",
-						"subject_token":        []interface{}{map[string]interface{}{"value": "stored-subject-token", "type": "urn:ietf:params:oauth:token-type:jwt"}},
-						"grant_type":           "urn:ietf:params:oauth:grant-type:token-exchange",
-						"requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
-					},
-				},
-			},
-		},
-	})
-
+func TestFlattenAuthFromConfigOmitsRedactedSecrets(t *testing.T) {
 	cfg := map[string]interface{}{
 		"auth_method": "rfc8693_token_exchange",
 		"auth_params": map[string]interface{}{
@@ -94,19 +62,22 @@ func TestFlattenAuthFromConfigUsesStateForRedactedSecrets(t *testing.T) {
 		},
 	}
 
-	auth := flattenAuthFromConfig(d, cfg, bearerHeader{})
+	auth, stripKey := flattenAuthFromConfig(cfg)
+	if stripKey != "" {
+		t.Fatalf("expected no header strip key for token_exchange, got %q", stripKey)
+	}
 	te := auth["token_exchange"].([]map[string]interface{})[0]
-	if got := te["client_secret"]; got != "stored-client-secret" {
-		t.Fatalf("expected stored client secret, got %v", got)
+	if _, ok := te["client_secret"]; ok {
+		t.Fatalf("expected client_secret to be omitted when API returns redacted placeholder")
 	}
 	subjectToken := te["subject_token"].([]map[string]interface{})[0]
-	if got := subjectToken["value"]; got != "stored-subject-token" {
-		t.Fatalf("expected stored subject token, got %v", got)
+	if _, ok := subjectToken["value"]; ok {
+		t.Fatalf("expected subject_token.value to be omitted when API returns redacted placeholder")
 	}
 }
 
 func TestFlattenConnectivityFromConfig(t *testing.T) {
-	connectivity, bearer := flattenConnectivityFromConfig(map[string]interface{}{
+	connectivity := flattenConnectivityFromConfig(map[string]interface{}{
 		"use_tunnel":      true,
 		"tunnel_cluster":  "hub-1",
 		"headers":         map[string]interface{}{"Authorization": "Bearer secret-token", "X-Tenant": "acme"},
@@ -120,7 +91,46 @@ func TestFlattenConnectivityFromConfig(t *testing.T) {
 	if got := connectivity["provider_cluster"]; got != "hub-1" {
 		t.Fatalf("expected provider_cluster=hub-1, got %v", got)
 	}
-	if bearer.headerName != "Authorization" || bearer.value != "secret-token" {
-		t.Fatalf("unexpected bearer extraction: %+v", bearer)
+}
+
+func TestFlattenAuthFromConfigStaticTokenReturnsStripKey(t *testing.T) {
+	cfg := map[string]interface{}{
+		"auth_method": "static_token",
+		"headers": map[string]interface{}{
+			"X-Custom-Auth": "Bearer my-token",
+			"X-Tenant":      "acme",
+		},
+	}
+	auth, stripKey := flattenAuthFromConfig(cfg)
+	if stripKey != "X-Custom-Auth" {
+		t.Fatalf("expected strip key X-Custom-Auth, got %q", stripKey)
+	}
+	st := auth["static_token"].([]map[string]interface{})[0]
+	if got := st["header_name"]; got != "X-Custom-Auth" {
+		t.Fatalf("expected header_name X-Custom-Auth, got %v", got)
+	}
+	if got := st["value"]; got != "my-token" {
+		t.Fatalf("expected value my-token, got %v", got)
+	}
+}
+
+func TestFlattenAuthFromConfigNonStaticAuthLeavesNoStripKey(t *testing.T) {
+	cfg := map[string]interface{}{
+		"auth_method": "oauth2_client_credentials",
+		"headers": map[string]interface{}{
+			"Authorization": "Bearer should-not-strip",
+		},
+		"auth_params": map[string]interface{}{
+			"token_url":     "https://token.example.com",
+			"client_id":     "id",
+			"client_secret": "secret",
+		},
+	}
+	auth, stripKey := flattenAuthFromConfig(cfg)
+	if stripKey != "" {
+		t.Fatalf("expected no strip key for oauth2, got %q", stripKey)
+	}
+	if _, ok := auth["static_token"]; ok {
+		t.Fatalf("expected no static_token block for oauth2")
 	}
 }
