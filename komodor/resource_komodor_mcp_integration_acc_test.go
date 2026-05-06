@@ -165,7 +165,7 @@ resource "komodor_mcp_integration" "te_test" {
       requested_token_type = "urn:ietf:params:oauth:token-type:access_token"
     }
 
-    upstream_header {
+    token_header {
       name   = "Authorization"
       format = "{token_type} {access_token}"
     }
@@ -219,7 +219,7 @@ resource "komodor_mcp_integration" "te_test" {
       requested_token_type = "urn:ietf:params:oauth:token-type:access_token"
     }
 
-    upstream_header {
+    token_header {
       name   = "Authorization"
       format = "{token_type} {access_token}"
     }
@@ -255,10 +255,6 @@ resource "komodor_mcp_integration" "test" {
   mcp_server {
     url       = %q
     transport = "sse"
-  }
-
-  auth {
-    method = "none"
   }
 }
 `, skillName, integrationName, mcpURL)

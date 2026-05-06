@@ -6,25 +6,114 @@ import (
 	"net/http"
 )
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Wire types — match the ai-investigator MCP API exactly. The plugin sends and
+// receives the same shape, so no flattening / un-flattening is needed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type MCPServer struct {
+	URL       string            `json:"url"`
+	Transport string            `json:"transport,omitempty"`
+	Headers   map[string]string `json:"headers,omitempty"`
+}
+
+type AgentTunnel struct {
+	ProviderCluster string `json:"provider_cluster"`
+}
+
+type Connectivity struct {
+	Mode        string       `json:"mode"`
+	AgentTunnel *AgentTunnel `json:"agent_tunnel,omitempty"`
+}
+
+type StaticTokenAuth struct {
+	Value      string `json:"value"`
+	HeaderName string `json:"header_name,omitempty"`
+}
+
+type SubjectToken struct {
+	Type     string `json:"type"`
+	Value    string `json:"value,omitempty"`
+	FilePath string `json:"file_path,omitempty"`
+}
+
+type TokenExchangeAuth struct {
+	TokenURL           string            `json:"token_url"`
+	GrantType          string            `json:"grant_type,omitempty"`
+	SubjectToken       SubjectToken      `json:"subject_token"`
+	Audience           string            `json:"audience,omitempty"`
+	Scope              string            `json:"scope,omitempty"`
+	RequestedTokenType string            `json:"requested_token_type,omitempty"`
+	ActorToken         string            `json:"actor_token,omitempty"`
+	ActorTokenType     string            `json:"actor_token_type,omitempty"`
+	ClientID           string            `json:"client_id,omitempty"`
+	ClientSecret       string            `json:"client_secret,omitempty"`
+	ExtraParams        map[string]string `json:"extra_params,omitempty"`
+}
+
+type OAuth2Auth struct {
+	TokenURL     string `json:"token_url"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	Scope        string `json:"scope,omitempty"`
+	Audience     string `json:"audience,omitempty"`
+	GrantType    string `json:"grant_type,omitempty"`
+}
+
+type CustomAuth struct {
+	TokenURL string            `json:"token_url"`
+	Body     map[string]string `json:"body,omitempty"`
+}
+
+type TokenHeader struct {
+	Name   string `json:"name,omitempty"`
+	Format string `json:"format"`
+}
+
+type ResponseConfig struct {
+	TokenField     string `json:"token_field,omitempty"`
+	TokenTypeField string `json:"token_type_field,omitempty"`
+	ExpiresInField string `json:"expires_in_field,omitempty"`
+}
+
+type AuthConfig struct {
+	Method                  string             `json:"method"`
+	StaticToken             *StaticTokenAuth   `json:"static_token,omitempty"`
+	TokenExchange           *TokenExchangeAuth `json:"token_exchange,omitempty"`
+	OAuth2ClientCredentials *OAuth2Auth        `json:"oauth2_client_credentials,omitempty"`
+	Custom                  *CustomAuth        `json:"custom,omitempty"`
+	TokenHeader             *TokenHeader       `json:"token_header,omitempty"`
+	Response                *ResponseConfig    `json:"response,omitempty"`
+}
+
+type MCPConfiguration struct {
+	MCPServer    MCPServer    `json:"mcp_server"`
+	Connectivity Connectivity `json:"connectivity"`
+	Auth         *AuthConfig  `json:"auth,omitempty"`
+	IncludeTools []string     `json:"include_tools,omitempty"`
+	ExcludeTools []string     `json:"exclude_tools,omitempty"`
+	Mode         string       `json:"mode,omitempty"`
+}
+
 type MCPIntegration struct {
-	ID            string                 `json:"id"`
-	AccountID     string                 `json:"accountId"`
-	Name          string                 `json:"name"`
-	Status        string                 `json:"status"`
-	Configuration map[string]interface{} `json:"configuration"`
-	Tools         []interface{}          `json:"tools"`
-	UseCases      []string               `json:"useCases"`
-	Clusters      []string               `json:"clusters"`
-	SkillID       *string                `json:"skillId"`
+	ID            string           `json:"id"`
+	AccountID     string           `json:"accountId"`
+	Name          string           `json:"name"`
+	Status        string           `json:"status"`
+	Configuration MCPConfiguration `json:"configuration"`
+	Tools         []interface{}    `json:"tools"`
+	UseCases      []string         `json:"useCases"`
+	Clusters      []string         `json:"clusters"`
+	SkillID       *string          `json:"skillId"`
 }
 
 type MCPIntegrationRequest struct {
-	Name          string                 `json:"name"`
-	Configuration map[string]interface{} `json:"configuration"`
-	Tools         []interface{}          `json:"tools,omitempty"`
-	UseCases      []string               `json:"useCases"`
-	Clusters      []string               `json:"clusters"`
-	SkillID       *string                `json:"skillId,omitempty"`
+	Name          string           `json:"name"`
+	Configuration MCPConfiguration `json:"configuration"`
+	Tools         []interface{}    `json:"tools,omitempty"`
+	UseCases      []string         `json:"useCases"`
+	Clusters      []string         `json:"clusters"`
+	SkillID       *string          `json:"skillId,omitempty"`
 }
 
 func (c *Client) CreateMCPIntegration(req *MCPIntegrationRequest) (*MCPIntegration, error) {

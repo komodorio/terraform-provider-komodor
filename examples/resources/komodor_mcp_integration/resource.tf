@@ -7,7 +7,8 @@ resource "komodor_klaudia_skill" "example" {
   is_enabled   = true
 }
 
-# Example 1: Public connectivity with no authentication
+# Example 1: Public connectivity with no authentication.
+# Omit the `auth` block entirely for unauthenticated MCP servers.
 resource "komodor_mcp_integration" "public_no_auth" {
   name     = "my-public-mcp"
   skill_id = komodor_klaudia_skill.example.id
@@ -20,20 +21,21 @@ resource "komodor_mcp_integration" "public_no_auth" {
     url       = "https://mcp.example.com/mcp"
     transport = "sse"
   }
-
-  auth {
-    method = "none"
-  }
 }
 
-# Example 2: Agent-tunnel connectivity with static token authentication
+# Example 2: Agent-tunnel connectivity with static token authentication.
+# Note: connectivity uses a discriminated nested block (`agent_tunnel { provider_cluster }`).
+# The static token value is the raw token — Klaudia wraps it in `Bearer <token>` for the
+# `Authorization` header (or in the format you specify).
 resource "komodor_mcp_integration" "tunnel_static_token" {
   name     = "my-tunneled-mcp"
   skill_id = komodor_klaudia_skill.example.id
 
   connectivity {
-    mode             = "agent-tunnel"
-    provider_cluster = "my-hub-cluster"
+    mode = "agent-tunnel"
+    agent_tunnel {
+      provider_cluster = "my-hub-cluster"
+    }
   }
 
   mcp_server {
@@ -51,7 +53,9 @@ resource "komodor_mcp_integration" "tunnel_static_token" {
   }
 }
 
-# Example 3: OAuth 2.0 client credentials
+# Example 3: OAuth 2.0 client credentials.
+# `token_header` is singular and contains a single template injecting the acquired
+# token into the request header(s).
 resource "komodor_mcp_integration" "oauth2" {
   name     = "my-oauth2-mcp"
   skill_id = komodor_klaudia_skill.example.id
@@ -76,20 +80,23 @@ resource "komodor_mcp_integration" "oauth2" {
       audience      = "secure-mcp"
     }
 
-    upstream_header {
+    token_header {
       name   = "Authorization"
       format = "{token_type} {access_token}"
     }
   }
 }
 
-# Example 4: Token exchange (RFC 8693) with upstream header forwarding
+# Example 4: Token exchange (RFC 8693) with the token injected into a custom header.
 resource "komodor_mcp_integration" "token_exchange" {
   name     = "my-oauth-mcp"
   skill_id = komodor_klaudia_skill.example.id
 
   connectivity {
-    mode = "public"
+    mode = "agent-tunnel"
+    agent_tunnel {
+      provider_cluster = "my-hub-cluster"
+    }
   }
 
   mcp_server {
@@ -106,6 +113,8 @@ resource "komodor_mcp_integration" "token_exchange" {
       audience   = "secure-mcp"
 
       subject_token {
+        # subject_token.file_path requires connectivity.mode = "agent-tunnel"
+        # — the agent reads the token from this file inside the cluster.
         file_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
         type      = "urn:ietf:params:oauth:token-type:jwt"
       }
@@ -113,7 +122,7 @@ resource "komodor_mcp_integration" "token_exchange" {
       requested_token_type = "urn:ietf:params:oauth:token-type:access_token"
     }
 
-    upstream_header {
+    token_header {
       name   = "Authorization"
       format = "{token_type} {access_token}"
     }
@@ -126,7 +135,7 @@ resource "komodor_mcp_integration" "token_exchange" {
   }
 }
 
-# Example 5: Custom auth — POST form body to a token URL, then call MCP with the issued token
+# Example 5: Custom auth — POST form body to a token URL, then call MCP with the issued token.
 resource "komodor_mcp_integration" "custom_token" {
   name     = "my-custom-auth-mcp"
   skill_id = komodor_klaudia_skill.example.id
@@ -138,7 +147,7 @@ resource "komodor_mcp_integration" "custom_token" {
   mcp_server {
     url       = "https://mcp.example.com/mcp"
     transport = "sse"
-    # Optional static headers on every MCP request.
+    # Optional static (non-auth) headers on every MCP request.
     headers = {
       "X-Client-Name" = "klaudia-terraform"
     }
@@ -148,17 +157,16 @@ resource "komodor_mcp_integration" "custom_token" {
     method = "custom"
 
     custom {
-      # Required. Klaudia POSTs x-www-form-urlencoded to this URL using all string fields below.
+      # Klaudia POSTs x-www-form-urlencoded to this URL using the body fields below.
       token_url = "https://auth.example.com/issue-token"
       body = {
-        # Any extra string keys are included in the token request.
         grant_type    = "client_credentials"
         client_id     = "my-client-id"
         client_secret = "my-client-secret" # prefer var.sensitive + Vault; values appear in tfstate
       }
     }
 
-    upstream_header {
+    token_header {
       name   = "Authorization"
       format = "{token_type} {access_token}"
     }
