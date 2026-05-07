@@ -58,7 +58,6 @@ func resourceKlaudiaSkillCreate(ctx context.Context, d *schema.ResourceData, met
 		Name:         d.Get("name").(string),
 		Description:  d.Get("description").(string),
 		Instructions: d.Get("instructions").(string),
-		UseCases:     []string{"rca", "chat"},
 		Clusters:     expandStringList(d.Get("clusters").(*schema.Set).List()),
 	}
 

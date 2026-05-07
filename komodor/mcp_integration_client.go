@@ -102,7 +102,6 @@ type MCPIntegration struct {
 	Status        string           `json:"status"`
 	Configuration MCPConfiguration `json:"configuration"`
 	Tools         []interface{}    `json:"tools"`
-	UseCases      []string         `json:"useCases"`
 	Clusters      []string         `json:"clusters"`
 	SkillID       *string          `json:"skillId"`
 }
@@ -111,7 +110,6 @@ type MCPIntegrationRequest struct {
 	Name          string           `json:"name"`
 	Configuration MCPConfiguration `json:"configuration"`
 	Tools         []interface{}    `json:"tools,omitempty"`
-	UseCases      []string         `json:"useCases"`
 	Clusters      []string         `json:"clusters"`
 	SkillID       *string          `json:"skillId,omitempty"`
 }

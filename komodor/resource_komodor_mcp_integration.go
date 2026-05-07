@@ -440,7 +440,6 @@ func buildMCPRequest(d *schema.ResourceData) *MCPIntegrationRequest {
 	return &MCPIntegrationRequest{
 		Name:          d.Get("name").(string),
 		Configuration: cfg,
-		UseCases:      []string{"chat", "rca"},
 		Clusters:      []string{"*"},
 		SkillID:       skillID,
 	}

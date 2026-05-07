@@ -12,7 +12,6 @@ type Skill struct {
 	Name         string   `json:"name"`
 	Description  string   `json:"description"`
 	Instructions string   `json:"instructions"`
-	UseCases     []string `json:"useCases"`
 	Clusters     []string `json:"clusters"`
 	IsEnabled    bool     `json:"isEnabled"`
 }
@@ -21,7 +20,6 @@ type CreateSkillRequest struct {
 	Name         string   `json:"name"`
 	Description  string   `json:"description"`
 	Instructions string   `json:"instructions"`
-	UseCases     []string `json:"useCases"`
 	Clusters     []string `json:"clusters"`
 }
 
@@ -29,7 +27,6 @@ type UpdateSkillRequest struct {
 	Name         *string  `json:"name,omitempty"`
 	Description  *string  `json:"description,omitempty"`
 	Instructions *string  `json:"instructions,omitempty"`
-	UseCases     []string `json:"useCases,omitempty"`
 	Clusters     []string `json:"clusters,omitempty"`
 	IsEnabled    *bool    `json:"isEnabled,omitempty"`
 }
