@@ -138,7 +138,7 @@ func TestFlattenAuth_OmitsRedactedSecrets(t *testing.T) {
 				Value: redactedSecretPlaceholder,
 			},
 		},
-	})
+	}, nil)
 	if len(auth) != 1 {
 		t.Fatalf("expected one auth block, got %d", len(auth))
 	}

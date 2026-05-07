@@ -391,7 +391,7 @@ func resourceMCPIntegrationRead(ctx context.Context, d *schema.ResourceData, met
 	cfg := integration.Configuration
 	_ = d.Set("connectivity", flattenConnectivity(cfg.Connectivity))
 	_ = d.Set("mcp_server", flattenMCPServer(cfg.MCPServer))
-	_ = d.Set("auth", flattenAuth(cfg.Auth))
+	_ = d.Set("auth", flattenAuth(cfg.Auth, d))
 
 	return nil
 }
@@ -566,14 +566,12 @@ func flattenMCPServer(s MCPServer) []map[string]interface{} {
 	out := map[string]interface{}{
 		"url":       s.URL,
 		"transport": s.Transport,
-	}
-	if len(s.Headers) > 0 {
-		out["headers"] = s.Headers
+		"headers":   s.Headers,
 	}
 	return []map[string]interface{}{out}
 }
 
-func flattenAuth(a *AuthConfig) []map[string]interface{} {
+func flattenAuth(a *AuthConfig, d *schema.ResourceData) []map[string]interface{} {
 	if a == nil {
 		return nil
 	}
@@ -585,11 +583,15 @@ func flattenAuth(a *AuthConfig) []map[string]interface{} {
 		}
 		if v := a.StaticToken.Value; v != "" && !isRedactedAPIValue(v) {
 			st["value"] = v
+		} else if d != nil {
+			if existing := d.Get("auth.0.static_token.0.value").(string); existing != "" {
+				st["value"] = existing
+			}
 		}
 		out["static_token"] = []map[string]interface{}{st}
 	}
 	if a.TokenExchange != nil {
-		out["token_exchange"] = flattenTokenExchange(a.TokenExchange)
+		out["token_exchange"] = flattenTokenExchange(a.TokenExchange, d)
 	}
 	if a.OAuth2ClientCredentials != nil {
 		cc := map[string]interface{}{
@@ -600,6 +602,10 @@ func flattenAuth(a *AuthConfig) []map[string]interface{} {
 		}
 		if v := a.OAuth2ClientCredentials.ClientSecret; v != "" && !isRedactedAPIValue(v) {
 			cc["client_secret"] = v
+		} else if d != nil {
+			if existing := d.Get("auth.0.oauth2_client_credentials.0.client_secret").(string); existing != "" {
+				cc["client_secret"] = existing
+			}
 		}
 		out["oauth2_client_credentials"] = []map[string]interface{}{cc}
 	}
@@ -636,7 +642,7 @@ func flattenAuth(a *AuthConfig) []map[string]interface{} {
 	return []map[string]interface{}{out}
 }
 
-func flattenTokenExchange(te *TokenExchangeAuth) []map[string]interface{} {
+func flattenTokenExchange(te *TokenExchangeAuth, d *schema.ResourceData) []map[string]interface{} {
 	out := map[string]interface{}{
 		"token_url":            te.TokenURL,
 		"grant_type":           te.GrantType,
@@ -645,19 +651,29 @@ func flattenTokenExchange(te *TokenExchangeAuth) []map[string]interface{} {
 		"requested_token_type": te.RequestedTokenType,
 		"actor_token_type":     te.ActorTokenType,
 		"client_id":            te.ClientID,
+		"extra_params":         te.ExtraParams,
 	}
 	if v := te.ClientSecret; v != "" && !isRedactedAPIValue(v) {
 		out["client_secret"] = v
+	} else if d != nil {
+		if existing := d.Get("auth.0.token_exchange.0.client_secret").(string); existing != "" {
+			out["client_secret"] = existing
+		}
 	}
 	if v := te.ActorToken; v != "" && !isRedactedAPIValue(v) {
 		out["actor_token"] = v
-	}
-	if len(te.ExtraParams) > 0 {
-		out["extra_params"] = te.ExtraParams
+	} else if d != nil {
+		if existing := d.Get("auth.0.token_exchange.0.actor_token").(string); existing != "" {
+			out["actor_token"] = existing
+		}
 	}
 	subj := map[string]interface{}{"type": te.SubjectToken.Type}
 	if v := te.SubjectToken.Value; v != "" && !isRedactedAPIValue(v) {
 		subj["value"] = v
+	} else if d != nil {
+		if existing := d.Get("auth.0.token_exchange.0.subject_token.0.value").(string); existing != "" {
+			subj["value"] = existing
+		}
 	}
 	if v := te.SubjectToken.FilePath; v != "" {
 		subj["file_path"] = v
