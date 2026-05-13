@@ -10,7 +10,7 @@ import (
 
 func dataSourceKomodorCostRightSizingPolicy() *schema.Resource {
 	return &schema.Resource{
-		Description: "Looks up an existing komodor_cost_right_sizing_policy by name. Exposes top-level scalar attributes; the nested scope and guard_rails blocks are not surfaced here — manage the policy as a resource if you need them.",
+		Description: "Looks up an existing komodor_cost_right_sizing_policy by name. Exposes top-level scalar attributes; the nested scope and guardrails blocks are not surfaced here — manage the policy as a resource if you need them.",
 		ReadContext: dataSourceKomodorCostRightSizingPolicyRead,
 		Schema: map[string]*schema.Schema{
 			"name": {

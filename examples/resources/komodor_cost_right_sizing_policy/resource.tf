@@ -25,7 +25,7 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
   allow_qos_upgrade   = false
   allow_qos_downgrade = false
 
-  guard_rails {
+  guardrails {
     managed_resources {
       cpu_requests    = true
       cpu_limits      = false

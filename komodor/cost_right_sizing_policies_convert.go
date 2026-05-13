@@ -306,7 +306,7 @@ func expandRightSizingPolicy(d *schema.ResourceData) rightSizingPolicyTFData {
 		Tags:                toStringList(d.Get("tags").([]interface{})),
 		ForceDelete:         d.Get("force_delete").(bool),
 	}
-	if gr := d.Get("guard_rails").([]interface{}); len(gr) > 0 {
+	if gr := d.Get("guardrails").([]interface{}); len(gr) > 0 {
 		expanded := expandGuardRails(gr[0].(map[string]interface{}))
 		tf.GuardRails = &expanded
 	}
@@ -444,7 +444,7 @@ func flattenRightSizingPolicy(d *schema.ResourceData, tf rightSizingPolicyTFData
 		"optimization_preset":    tf.OptimizationPreset,
 		"allow_qos_upgrade":      tf.AllowQoSUpgrade,
 		"allow_qos_downgrade":    tf.AllowQoSDowngrade,
-		"guard_rails":            flattenGuardRails(tf.GuardRails),
+		"guardrails":             flattenGuardRails(tf.GuardRails),
 		"tags":                   tf.Tags,
 		"policy_source":          tf.PolicySource,
 		"created_by":             tf.CreatedBy,

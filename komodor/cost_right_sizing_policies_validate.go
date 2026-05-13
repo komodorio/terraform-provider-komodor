@@ -28,17 +28,17 @@ func resourceKomodorCostRightSizingPolicyCustomizeDiff(_ context.Context, d *sch
 }
 
 // validatePresetGuardRailsCombination enforces:
-//   - non-custom preset must NOT include an explicit guard_rails block
-//   - "custom" preset MUST include a guard_rails block
+//   - non-custom preset must NOT include an explicit guardrails block
+//   - "custom" preset MUST include a guardrails block
 func validatePresetGuardRailsCombination(d *schema.ResourceDiff) error {
 	preset := d.Get("optimization_preset").(string)
 	hasGuardRails := userProvidedGuardRails(d)
 
 	if preset != rsPresetCustom && hasGuardRails {
-		return fmt.Errorf(`optimization_preset = %q cannot be combined with an explicit guard_rails block. To override preset values, set optimization_preset = "custom" and provide the full guard_rails block (you can copy preset defaults from the komodor_cost_right_sizing_policy_defaults data source)`, preset)
+		return fmt.Errorf(`optimization_preset = %q cannot be combined with an explicit guardrails block. To override preset values, set optimization_preset = "custom" and provide the full guardrails block`, preset)
 	}
 	if preset == rsPresetCustom && !hasGuardRails {
-		return fmt.Errorf(`guard_rails is required when optimization_preset = "custom"`)
+		return fmt.Errorf(`guardrails is required when optimization_preset = "custom"`)
 	}
 	return nil
 }
@@ -94,14 +94,14 @@ func validateScopeDimension(idx int, scope map[string]interface{}, itemsKey, pat
 	return nil
 }
 
-// validateGuardRailsBlock checks rules inside guard_rails — only when the
+// validateGuardRailsBlock checks rules inside guardrails — only when the
 // user actually provided the block (skipped when Computed values come from
 // the API on Read/Update).
 func validateGuardRailsBlock(d *schema.ResourceDiff) error {
 	if !userProvidedGuardRails(d) {
 		return nil
 	}
-	grBlocks := d.Get("guard_rails").([]interface{})
+	grBlocks := d.Get("guardrails").([]interface{})
 	if len(grBlocks) == 0 {
 		return nil
 	}
@@ -165,8 +165,8 @@ func readToggleable(v interface{}) (int, bool) {
 }
 
 // userProvidedGuardRails inspects the raw HCL config (not the merged
-// state) to determine whether the user explicitly wrote a guard_rails
-// block. Necessary because guard_rails is Optional+Computed: the API
+// state) to determine whether the user explicitly wrote a guardrails
+// block. Necessary because guardrails is Optional+Computed: the API
 // populates state on Read, so d.Get would return non-empty even when
 // the user omitted the block.
 func userProvidedGuardRails(d *schema.ResourceDiff) bool {
@@ -174,7 +174,7 @@ func userProvidedGuardRails(d *schema.ResourceDiff) bool {
 	if !raw.IsKnown() || raw.IsNull() {
 		return false
 	}
-	gr := raw.GetAttr("guard_rails")
+	gr := raw.GetAttr("guardrails")
 	if !gr.IsKnown() || gr.IsNull() {
 		return false
 	}

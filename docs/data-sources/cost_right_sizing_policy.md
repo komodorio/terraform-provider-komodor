@@ -3,26 +3,26 @@
 page_title: "komodor_cost_right_sizing_policy Data Source - komodor"
 subcategory: ""
 description: |-
-  Looks up an existing komodor_cost_right_sizing_policy by name. Exposes top-level scalar attributes; the nested scope and guard_rails blocks are not surfaced here — manage the policy as a resource if you need them.
+  Looks up an existing komodor_cost_right_sizing_policy by name. Exposes top-level scalar attributes; the nested scope and guardrails blocks are not surfaced here — manage the policy as a resource if you need them.
 ---
 
 # komodor_cost_right_sizing_policy (Data Source)
 
-Looks up an existing komodor_cost_right_sizing_policy by name. Exposes top-level scalar attributes; the nested scope and guard_rails blocks are not surfaced here — manage the policy as a resource if you need them.
+Looks up an existing komodor_cost_right_sizing_policy by name. Exposes top-level scalar attributes; the nested scope and guardrails blocks are not surfaced here — manage the policy as a resource if you need them.
 
 ## Example Usage
 
 ```terraform
 # Look up an existing right-sizing policy by name. Only top-level scalar
-# attributes are exposed — scope and guard_rails are not surfaced here.
+# attributes are exposed — scope and guardrails are not surfaced here.
 data "komodor_cost_right_sizing_policy" "source" {
   name = "production-default"
 }
 
 # Create a new policy that copies the source's behavior fields but targets a
 # different cluster set. scope is required and must be specified explicitly.
-# guard_rails is omitted here because the source uses a named preset; switch
-# optimization_preset to "custom" and add an explicit guard_rails block if you
+# guardrails is omitted here because the source uses a named preset; switch
+# optimization_preset to "custom" and add an explicit guardrails block if you
 # want to override the preset's values.
 resource "komodor_cost_right_sizing_policy" "production_eu" {
   name        = "production-eu"

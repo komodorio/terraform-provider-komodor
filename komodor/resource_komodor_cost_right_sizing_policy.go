@@ -103,7 +103,7 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				ValidateDiagFunc: validateUnsupportedString("optimization_preset", rsOptimizationPresets),
-				Description:      `Optimization preset. "custom" requires an explicit guard_rails block; named presets (sandbox/development/staging/production) are resolved to guardrail values server-side and exposed as Computed read-only attributes. Updates to a preset's definition do not affect existing policies.`,
+				Description:      `Optimization preset. "custom" requires an explicit guardrails block; named presets (sandbox/development/staging/production) are resolved to guardrail values server-side and exposed as Computed read-only attributes. Updates to a preset's definition do not affect existing policies.`,
 			},
 			"allow_qos_upgrade": {
 				Type:        schema.TypeBool,
@@ -117,7 +117,7 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Default:     false,
 				Description: "Allow QoS downgrade (e.g., Guarantee → Burstable) for savings.",
 			},
-			"guard_rails": {
+			"guardrails": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,

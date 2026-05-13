@@ -40,7 +40,7 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
   allow_qos_upgrade   = false
   allow_qos_downgrade = false
 
-  guard_rails {
+  guardrails {
     managed_resources {
       cpu_requests    = true
       cpu_limits      = false
@@ -300,7 +300,7 @@ resource "komodor_cost_right_sizing_policy" "staging" {
 
 - `apply_protocol` (String) When to apply right-sizing changes. One of: "immediate", "onCreation".
 - `name` (String) Unique policy name within the account.
-- `optimization_preset` (String) Optimization preset. "custom" requires an explicit guard_rails block; named presets (sandbox/development/staging/production) are resolved to guardrail values server-side and exposed as Computed read-only attributes. Updates to a preset's definition do not affect existing policies.
+- `optimization_preset` (String) Optimization preset. "custom" requires an explicit guardrails block; named presets (sandbox/development/staging/production) are resolved to guardrail values server-side and exposed as Computed read-only attributes. Updates to a preset's definition do not affect existing policies.
 - `percentile` (Number) Usage percentile to base recommendations on. One of: 70, 80, 90, 95, 99.
 - `priority` (Number) Policy evaluation priority. Higher value wins when multiple policies match the same workload.
 - `scope` (Block List, Min: 1) One or more scope blocks. Multiple scopes are evaluated with OR. (see [below for nested schema](#nestedblock--scope))
@@ -313,7 +313,7 @@ resource "komodor_cost_right_sizing_policy" "staging" {
 - `allow_restart` (Boolean) Whether Komodor may restart pods to apply right-sizing. Effective only when apply_protocol = "onCreation".
 - `description` (String) Free-text description of the policy.
 - `force_delete` (Boolean) When true, cascade-deletes any active workload overrides on destroy. Has no effect on create/update.
-- `guard_rails` (Block List, Max: 1) Right-sizing guardrails. Required when optimization_preset = "custom"; must be omitted otherwise (resolved server-side from the named preset and exposed as Computed). (see [below for nested schema](#nestedblock--guard_rails))
+- `guardrails` (Block List, Max: 1) Right-sizing guardrails. Required when optimization_preset = "custom"; must be omitted otherwise (resolved server-side from the named preset and exposed as Computed). (see [below for nested schema](#nestedblock--guardrails))
 - `tags` (List of String) Optional client-managed tags for categorization. Each tag must be lowercase, start with a letter or digit, and contain only letters, digits, and the characters `_ - : . /`. Max 200 characters per tag; max 20 tags per policy.
 
 ### Read-Only
@@ -388,39 +388,30 @@ Optional:
 
 
 
-<a id="nestedblock--guard_rails"></a>
-### Nested Schema for `guard_rails`
+<a id="nestedblock--guardrails"></a>
+### Nested Schema for `guardrails`
 
 Required:
 
-- `buffer` (Block List, Min: 1, Max: 1) Headroom percentage on top of recommended request values. (see [below for nested schema](#nestedblock--guard_rails--buffer))
-- `constraints` (Block List, Min: 1, Max: 1) Per-cycle scaling constraints expressed as percentages. (see [below for nested schema](#nestedblock--guard_rails--constraints))
-- `managed_resources` (Block List, Min: 1, Max: 1) Which resource fields right-sizing may modify. At least one must be true. (see [below for nested schema](#nestedblock--guard_rails--managed_resources))
+- `buffer` (Block List, Min: 1, Max: 1) Headroom percentage on top of recommended request values. (see [below for nested schema](#nestedblock--guardrails--buffer))
+- `constraints` (Block List, Min: 1, Max: 1) Per-cycle scaling constraints expressed as percentages. (see [below for nested schema](#nestedblock--guardrails--constraints))
+- `managed_resources` (Block List, Min: 1, Max: 1) Which resource fields right-sizing may modify. At least one must be true. (see [below for nested schema](#nestedblock--guardrails--managed_resources))
 
 Optional:
 
-- `absolute_constraints` (Block List, Max: 1) Absolute floor/ceiling values for CPU (millicores) and memory (bytes). (see [below for nested schema](#nestedblock--guard_rails--absolute_constraints))
+- `absolute_constraints` (Block List, Max: 1) Absolute floor/ceiling values for CPU (millicores) and memory (bytes). (see [below for nested schema](#nestedblock--guardrails--absolute_constraints))
 - `allow_right_sizing_up` (Boolean) Whether right-sizing may scale resources up.
 
-<a id="nestedblock--guard_rails--buffer"></a>
-### Nested Schema for `guard_rails.buffer`
+<a id="nestedblock--guardrails--buffer"></a>
+### Nested Schema for `guardrails.buffer`
 
 Optional:
 
-- `cpu` (Block List, Max: 1) CPU buffer percentage. (see [below for nested schema](#nestedblock--guard_rails--buffer--cpu))
-- `memory` (Block List, Max: 1) Memory buffer percentage. (see [below for nested schema](#nestedblock--guard_rails--buffer--memory))
+- `cpu` (Block List, Max: 1) CPU buffer percentage. (see [below for nested schema](#nestedblock--guardrails--buffer--cpu))
+- `memory` (Block List, Max: 1) Memory buffer percentage. (see [below for nested schema](#nestedblock--guardrails--buffer--memory))
 
-<a id="nestedblock--guard_rails--buffer--cpu"></a>
-### Nested Schema for `guard_rails.buffer.cpu`
-
-Optional:
-
-- `enabled` (Boolean) Whether the value is applied.
-- `value` (Number) The numeric value (effective only when enabled).
-
-
-<a id="nestedblock--guard_rails--buffer--memory"></a>
-### Nested Schema for `guard_rails.buffer.memory`
+<a id="nestedblock--guardrails--buffer--cpu"></a>
+### Nested Schema for `guardrails.buffer.cpu`
 
 Optional:
 
@@ -428,46 +419,8 @@ Optional:
 - `value` (Number) The numeric value (effective only when enabled).
 
 
-
-<a id="nestedblock--guard_rails--constraints"></a>
-### Nested Schema for `guard_rails.constraints`
-
-Optional:
-
-- `decrease_cpu_by` (Block List, Max: 1) Max percent to decrease CPU per cycle. (see [below for nested schema](#nestedblock--guard_rails--constraints--decrease_cpu_by))
-- `decrease_memory_by` (Block List, Max: 1) Max percent to decrease memory per cycle. (see [below for nested schema](#nestedblock--guard_rails--constraints--decrease_memory_by))
-- `increase_cpu_by` (Block List, Max: 1) Max percent to increase CPU per cycle. (see [below for nested schema](#nestedblock--guard_rails--constraints--increase_cpu_by))
-- `increase_memory_by` (Block List, Max: 1) Max percent to increase memory per cycle. (see [below for nested schema](#nestedblock--guard_rails--constraints--increase_memory_by))
-
-<a id="nestedblock--guard_rails--constraints--decrease_cpu_by"></a>
-### Nested Schema for `guard_rails.constraints.decrease_cpu_by`
-
-Optional:
-
-- `enabled` (Boolean) Whether the value is applied.
-- `value` (Number) The numeric value (effective only when enabled).
-
-
-<a id="nestedblock--guard_rails--constraints--decrease_memory_by"></a>
-### Nested Schema for `guard_rails.constraints.decrease_memory_by`
-
-Optional:
-
-- `enabled` (Boolean) Whether the value is applied.
-- `value` (Number) The numeric value (effective only when enabled).
-
-
-<a id="nestedblock--guard_rails--constraints--increase_cpu_by"></a>
-### Nested Schema for `guard_rails.constraints.increase_cpu_by`
-
-Optional:
-
-- `enabled` (Boolean) Whether the value is applied.
-- `value` (Number) The numeric value (effective only when enabled).
-
-
-<a id="nestedblock--guard_rails--constraints--increase_memory_by"></a>
-### Nested Schema for `guard_rails.constraints.increase_memory_by`
+<a id="nestedblock--guardrails--buffer--memory"></a>
+### Nested Schema for `guardrails.buffer.memory`
 
 Optional:
 
@@ -476,8 +429,55 @@ Optional:
 
 
 
-<a id="nestedblock--guard_rails--managed_resources"></a>
-### Nested Schema for `guard_rails.managed_resources`
+<a id="nestedblock--guardrails--constraints"></a>
+### Nested Schema for `guardrails.constraints`
+
+Optional:
+
+- `decrease_cpu_by` (Block List, Max: 1) Max percent to decrease CPU per cycle. (see [below for nested schema](#nestedblock--guardrails--constraints--decrease_cpu_by))
+- `decrease_memory_by` (Block List, Max: 1) Max percent to decrease memory per cycle. (see [below for nested schema](#nestedblock--guardrails--constraints--decrease_memory_by))
+- `increase_cpu_by` (Block List, Max: 1) Max percent to increase CPU per cycle. (see [below for nested schema](#nestedblock--guardrails--constraints--increase_cpu_by))
+- `increase_memory_by` (Block List, Max: 1) Max percent to increase memory per cycle. (see [below for nested schema](#nestedblock--guardrails--constraints--increase_memory_by))
+
+<a id="nestedblock--guardrails--constraints--decrease_cpu_by"></a>
+### Nested Schema for `guardrails.constraints.decrease_cpu_by`
+
+Optional:
+
+- `enabled` (Boolean) Whether the value is applied.
+- `value` (Number) The numeric value (effective only when enabled).
+
+
+<a id="nestedblock--guardrails--constraints--decrease_memory_by"></a>
+### Nested Schema for `guardrails.constraints.decrease_memory_by`
+
+Optional:
+
+- `enabled` (Boolean) Whether the value is applied.
+- `value` (Number) The numeric value (effective only when enabled).
+
+
+<a id="nestedblock--guardrails--constraints--increase_cpu_by"></a>
+### Nested Schema for `guardrails.constraints.increase_cpu_by`
+
+Optional:
+
+- `enabled` (Boolean) Whether the value is applied.
+- `value` (Number) The numeric value (effective only when enabled).
+
+
+<a id="nestedblock--guardrails--constraints--increase_memory_by"></a>
+### Nested Schema for `guardrails.constraints.increase_memory_by`
+
+Optional:
+
+- `enabled` (Boolean) Whether the value is applied.
+- `value` (Number) The numeric value (effective only when enabled).
+
+
+
+<a id="nestedblock--guardrails--managed_resources"></a>
+### Nested Schema for `guardrails.managed_resources`
 
 Optional:
 
@@ -487,31 +487,22 @@ Optional:
 - `memory_requests` (Boolean) Manage memory requests.
 
 
-<a id="nestedblock--guard_rails--absolute_constraints"></a>
-### Nested Schema for `guard_rails.absolute_constraints`
+<a id="nestedblock--guardrails--absolute_constraints"></a>
+### Nested Schema for `guardrails.absolute_constraints`
 
 Optional:
 
-- `cpu_limits_millicores_max` (Block List, Max: 1) Ceiling for CPU limits in millicores. (see [below for nested schema](#nestedblock--guard_rails--absolute_constraints--cpu_limits_millicores_max))
-- `cpu_limits_millicores_min` (Block List, Max: 1) Floor for CPU limits in millicores. (see [below for nested schema](#nestedblock--guard_rails--absolute_constraints--cpu_limits_millicores_min))
-- `cpu_request_millicores_max` (Block List, Max: 1) Ceiling for CPU request in millicores. (see [below for nested schema](#nestedblock--guard_rails--absolute_constraints--cpu_request_millicores_max))
-- `cpu_request_millicores_min` (Block List, Max: 1) Floor for CPU request in millicores. (see [below for nested schema](#nestedblock--guard_rails--absolute_constraints--cpu_request_millicores_min))
-- `memory_limits_bytes_max` (Block List, Max: 1) Ceiling for memory limits in bytes. (see [below for nested schema](#nestedblock--guard_rails--absolute_constraints--memory_limits_bytes_max))
-- `memory_limits_bytes_min` (Block List, Max: 1) Floor for memory limits in bytes. (see [below for nested schema](#nestedblock--guard_rails--absolute_constraints--memory_limits_bytes_min))
-- `memory_request_bytes_max` (Block List, Max: 1) Ceiling for memory request in bytes. (see [below for nested schema](#nestedblock--guard_rails--absolute_constraints--memory_request_bytes_max))
-- `memory_request_bytes_min` (Block List, Max: 1) Floor for memory request in bytes. (see [below for nested schema](#nestedblock--guard_rails--absolute_constraints--memory_request_bytes_min))
+- `cpu_limits_millicores_max` (Block List, Max: 1) Ceiling for CPU limits in millicores. (see [below for nested schema](#nestedblock--guardrails--absolute_constraints--cpu_limits_millicores_max))
+- `cpu_limits_millicores_min` (Block List, Max: 1) Floor for CPU limits in millicores. (see [below for nested schema](#nestedblock--guardrails--absolute_constraints--cpu_limits_millicores_min))
+- `cpu_request_millicores_max` (Block List, Max: 1) Ceiling for CPU request in millicores. (see [below for nested schema](#nestedblock--guardrails--absolute_constraints--cpu_request_millicores_max))
+- `cpu_request_millicores_min` (Block List, Max: 1) Floor for CPU request in millicores. (see [below for nested schema](#nestedblock--guardrails--absolute_constraints--cpu_request_millicores_min))
+- `memory_limits_bytes_max` (Block List, Max: 1) Ceiling for memory limits in bytes. (see [below for nested schema](#nestedblock--guardrails--absolute_constraints--memory_limits_bytes_max))
+- `memory_limits_bytes_min` (Block List, Max: 1) Floor for memory limits in bytes. (see [below for nested schema](#nestedblock--guardrails--absolute_constraints--memory_limits_bytes_min))
+- `memory_request_bytes_max` (Block List, Max: 1) Ceiling for memory request in bytes. (see [below for nested schema](#nestedblock--guardrails--absolute_constraints--memory_request_bytes_max))
+- `memory_request_bytes_min` (Block List, Max: 1) Floor for memory request in bytes. (see [below for nested schema](#nestedblock--guardrails--absolute_constraints--memory_request_bytes_min))
 
-<a id="nestedblock--guard_rails--absolute_constraints--cpu_limits_millicores_max"></a>
-### Nested Schema for `guard_rails.absolute_constraints.cpu_limits_millicores_max`
-
-Optional:
-
-- `enabled` (Boolean) Whether the value is applied.
-- `value` (Number) The numeric value (effective only when enabled).
-
-
-<a id="nestedblock--guard_rails--absolute_constraints--cpu_limits_millicores_min"></a>
-### Nested Schema for `guard_rails.absolute_constraints.cpu_limits_millicores_min`
+<a id="nestedblock--guardrails--absolute_constraints--cpu_limits_millicores_max"></a>
+### Nested Schema for `guardrails.absolute_constraints.cpu_limits_millicores_max`
 
 Optional:
 
@@ -519,8 +510,8 @@ Optional:
 - `value` (Number) The numeric value (effective only when enabled).
 
 
-<a id="nestedblock--guard_rails--absolute_constraints--cpu_request_millicores_max"></a>
-### Nested Schema for `guard_rails.absolute_constraints.cpu_request_millicores_max`
+<a id="nestedblock--guardrails--absolute_constraints--cpu_limits_millicores_min"></a>
+### Nested Schema for `guardrails.absolute_constraints.cpu_limits_millicores_min`
 
 Optional:
 
@@ -528,8 +519,8 @@ Optional:
 - `value` (Number) The numeric value (effective only when enabled).
 
 
-<a id="nestedblock--guard_rails--absolute_constraints--cpu_request_millicores_min"></a>
-### Nested Schema for `guard_rails.absolute_constraints.cpu_request_millicores_min`
+<a id="nestedblock--guardrails--absolute_constraints--cpu_request_millicores_max"></a>
+### Nested Schema for `guardrails.absolute_constraints.cpu_request_millicores_max`
 
 Optional:
 
@@ -537,8 +528,8 @@ Optional:
 - `value` (Number) The numeric value (effective only when enabled).
 
 
-<a id="nestedblock--guard_rails--absolute_constraints--memory_limits_bytes_max"></a>
-### Nested Schema for `guard_rails.absolute_constraints.memory_limits_bytes_max`
+<a id="nestedblock--guardrails--absolute_constraints--cpu_request_millicores_min"></a>
+### Nested Schema for `guardrails.absolute_constraints.cpu_request_millicores_min`
 
 Optional:
 
@@ -546,8 +537,8 @@ Optional:
 - `value` (Number) The numeric value (effective only when enabled).
 
 
-<a id="nestedblock--guard_rails--absolute_constraints--memory_limits_bytes_min"></a>
-### Nested Schema for `guard_rails.absolute_constraints.memory_limits_bytes_min`
+<a id="nestedblock--guardrails--absolute_constraints--memory_limits_bytes_max"></a>
+### Nested Schema for `guardrails.absolute_constraints.memory_limits_bytes_max`
 
 Optional:
 
@@ -555,8 +546,8 @@ Optional:
 - `value` (Number) The numeric value (effective only when enabled).
 
 
-<a id="nestedblock--guard_rails--absolute_constraints--memory_request_bytes_max"></a>
-### Nested Schema for `guard_rails.absolute_constraints.memory_request_bytes_max`
+<a id="nestedblock--guardrails--absolute_constraints--memory_limits_bytes_min"></a>
+### Nested Schema for `guardrails.absolute_constraints.memory_limits_bytes_min`
 
 Optional:
 
@@ -564,8 +555,17 @@ Optional:
 - `value` (Number) The numeric value (effective only when enabled).
 
 
-<a id="nestedblock--guard_rails--absolute_constraints--memory_request_bytes_min"></a>
-### Nested Schema for `guard_rails.absolute_constraints.memory_request_bytes_min`
+<a id="nestedblock--guardrails--absolute_constraints--memory_request_bytes_max"></a>
+### Nested Schema for `guardrails.absolute_constraints.memory_request_bytes_max`
+
+Optional:
+
+- `enabled` (Boolean) Whether the value is applied.
+- `value` (Number) The numeric value (effective only when enabled).
+
+
+<a id="nestedblock--guardrails--absolute_constraints--memory_request_bytes_min"></a>
+### Nested Schema for `guardrails.absolute_constraints.memory_request_bytes_min`
 
 Optional:
 
