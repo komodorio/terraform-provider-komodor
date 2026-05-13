@@ -77,6 +77,22 @@ func (c *Client) GetUserRoleBindingUrl() string {
 	return c.GetV2Endpoint() + "/rbac/users/roles"
 }
 
+// GetKlaudiaV2Endpoint returns the Klaudia API v2 endpoint, served by
+// public-api under /api/v2/klaudia and proxied to ai-investigator.
+func (c *Client) GetKlaudiaV2Endpoint() string {
+	return c.GetV2Endpoint() + "/klaudia"
+}
+
+// GetKlaudiaSkillsUrl returns the Klaudia skills endpoint
+func (c *Client) GetKlaudiaSkillsUrl() string {
+	return c.GetKlaudiaV2Endpoint() + "/skills"
+}
+
+// GetKlaudiaMCPIntegrationsUrl returns the Klaudia MCP integrations endpoint
+func (c *Client) GetKlaudiaMCPIntegrationsUrl() string {
+	return c.GetKlaudiaV2Endpoint() + "/integrations/mcp"
+}
+
 // prepareRequest creates a new HTTP request with the necessary headers
 func (c *Client) prepareRequest(method, url string, body *[]byte) (*http.Request, error) {
 	var reader io.Reader

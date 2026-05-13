@@ -54,6 +54,8 @@ func Provider() *schema.Provider {
 			"komodor_kubernetes":               resourceKomodorKubernetes(),
 			"komodor_workspace":                resourceKomodorWorkspace(),
 			"komodor_user":                     resourceKomodorUser(),
+			"komodor_klaudia_skill":            resourceKomodorKlaudiaSkill(),
+			"komodor_mcp_integration":          resourceKomodorMCPIntegration(),
 			"komodor_cost_right_sizing_policy": resourceKomodorCostRightSizingPolicy(),
 		},
 
