@@ -15,8 +15,10 @@ func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopeP
 		AllowQoSUpgradeV2:   boolPtr(tf.AllowQoSUpgrade),
 		AllowQoSDowngrade:   boolPtr(tf.AllowQoSDowngrade),
 		AllowHpaRightSizing: boolPtr(tf.AllowHpaRightSizing),
-		AllowRestart:        boolPtr(tf.AllowRestart),
 		Scopes:              tfToAPIScopes(tf.Scopes),
+	}
+	if tf.ApplyProtocol != rsApplyImmediate {
+		api.AllowRestart = boolPtr(tf.AllowRestart)
 	}
 	if tf.Description != "" {
 		api.Description = stringPtr(tf.Description)
@@ -24,6 +26,10 @@ func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopeP
 	if tf.GuardRails != nil {
 		gr := tfToAPIGuardRails(*tf.GuardRails)
 		api.GuardRails = &gr
+	}
+	if len(tf.Tags) > 0 {
+		tags := tf.Tags
+		api.Tags = &tags
 	}
 	return api
 }
@@ -52,6 +58,9 @@ func apiToTFRightSizingPolicy(api RightSizingMultiScopePolicy) rightSizingPolicy
 	if api.GuardRails != nil {
 		gr := apiToTFGuardRails(*api.GuardRails)
 		tf.GuardRails = &gr
+	}
+	if api.Tags != nil {
+		tf.Tags = *api.Tags
 	}
 	return tf
 }
@@ -294,6 +303,7 @@ func expandRightSizingPolicy(d *schema.ResourceData) rightSizingPolicyTFData {
 		OptimizationPreset:  d.Get("optimization_preset").(string),
 		AllowQoSUpgrade:     d.Get("allow_qos_upgrade").(bool),
 		AllowQoSDowngrade:   d.Get("allow_qos_downgrade").(bool),
+		Tags:                toStringList(d.Get("tags").([]interface{})),
 		ForceDelete:         d.Get("force_delete").(bool),
 	}
 	if gr := d.Get("guard_rails").([]interface{}); len(gr) > 0 {
@@ -435,6 +445,7 @@ func flattenRightSizingPolicy(d *schema.ResourceData, tf rightSizingPolicyTFData
 		"allow_qos_upgrade":      tf.AllowQoSUpgrade,
 		"allow_qos_downgrade":    tf.AllowQoSDowngrade,
 		"guard_rails":            flattenGuardRails(tf.GuardRails),
+		"tags":                   tf.Tags,
 		"policy_source":          tf.PolicySource,
 		"created_by":             tf.CreatedBy,
 		"last_modified_by":       tf.LastModifiedBy,

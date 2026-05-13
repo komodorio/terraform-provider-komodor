@@ -37,6 +37,7 @@ type RightSizingMultiScopePolicy struct {
 	AllowRestart        *bool                       `json:"allowRestart,omitempty"`
 	GuardRails          *PolicyGuardRails           `json:"guardRails,omitempty"`
 	Scopes              []PolicyResourceScope       `json:"scopes"`
+	Tags                *[]string                   `json:"tags,omitempty"`
 
 	// server-set audit fields (per PRD §5.3.1)
 	PolicySource   *string `json:"policySource,omitempty"`
@@ -142,6 +143,7 @@ type rightSizingPolicyTFData struct {
 	AllowQoSUpgrade     bool
 	AllowQoSDowngrade   bool
 	GuardRails          *guardRailsTFData
+	Tags                []string
 	ForceDelete         bool
 
 	// computed

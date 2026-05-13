@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+var rsTagPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_\-:./]*$`)
 
 const (
 	rsPresetSandbox     = "sandbox"
@@ -121,6 +124,21 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				MaxItems:    1,
 				Description: `Right-sizing guardrails. Required when optimization_preset = "custom"; must be omitted otherwise (resolved server-side from the named preset and exposed as Computed).`,
 				Elem:        costRSPGuardRailsResource(),
+			},
+
+			// tags
+			"tags": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    20,
+				Description: "Optional client-managed tags for categorization. Each tag must be lowercase, start with a letter or digit, and contain only letters, digits, and the characters `_ - : . /`. Max 200 characters per tag; max 20 tags per policy.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+					ValidateFunc: validation.All(
+						validation.StringLenBetween(1, 200),
+						validation.StringMatch(rsTagPattern, "must be lowercase, start with a letter or digit, and contain only letters, digits, and `_ - : . /`"),
+					),
+				},
 			},
 
 			// delete-time control (TFP-only; not sent to the API)

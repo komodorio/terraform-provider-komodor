@@ -260,6 +260,7 @@ resource "komodor_cost_right_sizing_policy" "staging" {
 - `description` (String) Free-text description of the policy.
 - `force_delete` (Boolean) When true, cascade-deletes any active workload overrides on destroy. Has no effect on create/update.
 - `guard_rails` (Block List, Max: 1) Right-sizing guardrails. Required when optimization_preset = "custom"; must be omitted otherwise (resolved server-side from the named preset and exposed as Computed). (see [below for nested schema](#nestedblock--guard_rails))
+- `tags` (List of String) Optional client-managed tags for categorization. Each tag must be lowercase, start with a letter or digit, and contain only letters, digits, and the characters `_ - : . /`. Max 200 characters per tag; max 20 tags per policy.
 
 ### Read-Only
 
