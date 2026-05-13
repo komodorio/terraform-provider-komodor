@@ -331,14 +331,14 @@ func costRSPBufferResource() *schema.Resource {
 }
 
 func costRSPPercentageToggleableSchema(desc string) *schema.Schema {
-	return costRSPToggleableSchemaWith(desc, validation.IntBetween(0, 100))
+	return costRSPToggleableSchemaWith(desc, validation.ToDiagFunc(validation.IntBetween(0, 100)))
 }
 
 func costRSPAbsoluteToggleableSchema(desc string) *schema.Schema {
-	return costRSPToggleableSchemaWith(desc, validation.IntAtLeast(0))
+	return costRSPToggleableSchemaWith(desc, validation.ToDiagFunc(validation.IntAtLeast(0)))
 }
 
-func costRSPToggleableSchemaWith(desc string, valueValidator schema.SchemaValidateFunc) *schema.Schema {
+func costRSPToggleableSchemaWith(desc string, valueValidator schema.SchemaValidateDiagFunc) *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    true,
@@ -353,11 +353,11 @@ func costRSPToggleableSchemaWith(desc string, valueValidator schema.SchemaValida
 					Description: "Whether the value is applied.",
 				},
 				"value": {
-					Type:         schema.TypeInt,
-					Optional:     true,
-					Default:      0,
-					ValidateFunc: valueValidator,
-					Description:  "The numeric value (effective only when enabled).",
+					Type:             schema.TypeInt,
+					Optional:         true,
+					Default:          0,
+					ValidateDiagFunc: valueValidator,
+					Description:      "The numeric value (effective only when enabled).",
 				},
 			},
 		},

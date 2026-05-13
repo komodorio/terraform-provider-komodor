@@ -8,15 +8,6 @@ import (
 	"net/url"
 )
 
-type rightSizingPoliciesAPI interface {
-	GetAll(ctx context.Context) ([]GetAllRightSizingPoliciesRow, error)
-	GetByID(ctx context.Context, id string) (*GetMultiScopePolicyResponse, int, error)
-	GetByName(ctx context.Context, name string) (*GetMultiScopePolicyResponse, int, error)
-	Create(ctx context.Context, body RightSizingMultiScopePolicy) (*GetMultiScopePolicyResponse, error)
-	Update(ctx context.Context, id string, body RightSizingMultiScopePolicy) (*GetMultiScopePolicyResponse, error)
-	Delete(ctx context.Context, id string, force bool) error
-}
-
 type rightSizingPoliciesClient struct {
 	http rightSizingHTTPClient
 }
