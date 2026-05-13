@@ -20,9 +20,6 @@ func rsPolicyByIdPath(id string) string {
 	return rsPoliciesPath + "/" + url.PathEscape(id)
 }
 
-// rightSizingHTTPClient is the transport used by the behavior client.
-// Implementations marshal request bodies, set headers, and return raw
-// response bytes for the caller to decode.
 type rightSizingHTTPClient interface {
 	Get(ctx context.Context, path string, query url.Values) ([]byte, int, error)
 	Post(ctx context.Context, path string, body any) ([]byte, int, error)

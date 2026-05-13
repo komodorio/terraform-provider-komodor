@@ -308,8 +308,8 @@ resource "komodor_cost_right_sizing_policy" "staging" {
 ### Optional
 
 - `allow_hpa_right_sizing` (Boolean) Whether HPA-managed workloads are subject to right-sizing.
-- `allow_qos_downgrade` (Boolean) Allow QoS downgrade (e.g., Guarantee → Burstable) for savings.
-- `allow_qos_upgrade` (Boolean) Allow QoS upgrade (e.g., BestEffort → Burstable) for reliability.
+- `allow_qos_downgrade` (Boolean) Allow to Decrease QoS (Support savings). e.g. Guarantee → Burstable.
+- `allow_qos_upgrade` (Boolean) Allow to Increase QoS (Support reliability). e.g. BestEffort → Burstable → Guarantee. Default depends on optimization_preset: `false` for sandbox/development, `true` for staging/production/custom.
 - `allow_restart` (Boolean) Whether Komodor may restart pods to apply right-sizing. Effective only when apply_protocol = "onCreation".
 - `description` (String) Free-text description of the policy.
 - `force_delete` (Boolean) When true, cascade-deletes any active workload overrides on destroy. Has no effect on create/update.

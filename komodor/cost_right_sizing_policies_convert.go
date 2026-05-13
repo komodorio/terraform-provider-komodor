@@ -2,9 +2,6 @@ package komodor
 
 import "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-// tfToAPIRightSizingPolicy converts the TF-layer model into the API request
-// body. Optional fields with zero values are sent as nil pointers; bools are
-// always sent (the user's value, even when false).
 func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopePolicy {
 	api := RightSizingMultiScopePolicy{
 		Name:                tf.Name,
@@ -34,8 +31,6 @@ func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopeP
 	return api
 }
 
-// apiToTFRightSizingPolicy converts an API response into the TF-layer model.
-// Pointer fields default to the zero value when nil.
 func apiToTFRightSizingPolicy(api RightSizingMultiScopePolicy) rightSizingPolicyTFData {
 	tf := rightSizingPolicyTFData{
 		Name:                api.Name,
@@ -64,8 +59,6 @@ func apiToTFRightSizingPolicy(api RightSizingMultiScopePolicy) rightSizingPolicy
 	}
 	return tf
 }
-
-// ---- scopes ----
 
 func tfToAPIScopes(tfScopes []scopeTFData) []PolicyResourceScope {
 	if len(tfScopes) == 0 {
@@ -177,8 +170,6 @@ func apiToTFPattern(p PolicyPattern) patternTFData {
 	}
 }
 
-// ---- guardrails ----
-
 func tfToAPIGuardRails(tf guardRailsTFData) PolicyGuardRails {
 	gr := PolicyGuardRails{
 		ManagedResources: PolicyGuardRailsManagedResources{
@@ -267,8 +258,6 @@ func apiToTFToggleable(api ToggleableValue) toggleableValueTFData {
 	return toggleableValueTFData{Enabled: api.Enabled, Value: int(api.Value)}
 }
 
-// ---- pointer helpers ----
-
 func stringPtr(s string) *string { return &s }
 func boolPtr(b bool) *bool       { return &b }
 
@@ -285,10 +274,6 @@ func boolValue(p *bool) bool {
 	}
 	return *p
 }
-
-// ============================================================================
-// expand: HCL → TF struct (read from *schema.ResourceData)
-// ============================================================================
 
 func expandRightSizingPolicy(d *schema.ResourceData) rightSizingPolicyTFData {
 	tf := rightSizingPolicyTFData{
@@ -425,11 +410,6 @@ func stringFromMap(m map[string]interface{}, key string) string {
 	}
 	return ""
 }
-
-// ============================================================================
-// flatten: TF struct → HCL (write to *schema.ResourceData)
-// Skips force_delete (TFP-only) and id (set via d.SetId).
-// ============================================================================
 
 func flattenRightSizingPolicy(d *schema.ResourceData, tf rightSizingPolicyTFData) error {
 	for k, v := range map[string]interface{}{

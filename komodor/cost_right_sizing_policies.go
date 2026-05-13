@@ -1,9 +1,5 @@
 package komodor
 
-// API-layer types — wire shape for /api/v2/cost/right-sizing/policies.
-// Mirrors github.com/komodorio/mono/pkg/komodor_cost (internal API).
-// TODO: revise once the public API swagger is published.
-
 type RightSizingPolicyPercentile int32
 
 const (
@@ -39,7 +35,6 @@ type RightSizingMultiScopePolicy struct {
 	Scopes              []PolicyResourceScope       `json:"scopes"`
 	Tags                *[]string                   `json:"tags,omitempty"`
 
-	// server-set audit fields (per PRD §5.3.1)
 	PolicySource   *string `json:"policySource,omitempty"`
 	CreatedBy      *string `json:"createdBy,omitempty"`
 	LastModifiedBy *string `json:"lastModifiedBy,omitempty"`
@@ -127,9 +122,6 @@ type ToggleableValue struct {
 	Value   int64 `json:"value"`
 }
 
-// TF-layer types — populated from *schema.ResourceData by expand* and read
-// by flatten*. Conversion lives in cost_right_sizing_policies_convert.go.
-
 type rightSizingPolicyTFData struct {
 	Name                string
 	Description         string
@@ -146,7 +138,6 @@ type rightSizingPolicyTFData struct {
 	Tags                []string
 	ForceDelete         bool
 
-	// computed
 	Id             string
 	PolicySource   string
 	CreatedBy      string

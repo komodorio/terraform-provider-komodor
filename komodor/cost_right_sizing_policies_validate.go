@@ -11,10 +11,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// resourceKomodorCostRightSizingPolicyCustomizeDiff runs all cross-field
-// validations at plan time. Each sub-check returns the first error it finds.
 func resourceKomodorCostRightSizingPolicyCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	for _, check := range []func(*schema.ResourceDiff) error{
+		applyPresetDefaults,
 		validatePresetGuardRailsCombination,
 		validateApplyProtocolWithRestart,
 		validateScopes,
@@ -27,9 +26,21 @@ func resourceKomodorCostRightSizingPolicyCustomizeDiff(_ context.Context, d *sch
 	return nil
 }
 
-// validatePresetGuardRailsCombination enforces:
-//   - non-custom preset must NOT include an explicit guardrails block
-//   - "custom" preset MUST include a guardrails block
+func applyPresetDefaults(d *schema.ResourceDiff) error {
+	raw := d.GetRawConfig()
+	if !raw.IsKnown() || raw.IsNull() {
+		return nil
+	}
+	if v := raw.GetAttr("allow_qos_upgrade"); v.IsKnown() && !v.IsNull() {
+		return nil // user set it explicitly — respect that
+	}
+	switch d.Get("optimization_preset").(string) {
+	case rsPresetStaging, rsPresetProduction, rsPresetCustom:
+		return d.SetNew("allow_qos_upgrade", true)
+	}
+	return nil
+}
+
 func validatePresetGuardRailsCombination(d *schema.ResourceDiff) error {
 	preset := d.Get("optimization_preset").(string)
 	hasGuardRails := userProvidedGuardRails(d)
@@ -43,8 +54,6 @@ func validatePresetGuardRailsCombination(d *schema.ResourceDiff) error {
 	return nil
 }
 
-// validateApplyProtocolWithRestart rejects the only invalid combination:
-// apply_protocol = "immediate" together with allow_restart = true.
 func validateApplyProtocolWithRestart(d *schema.ResourceDiff) error {
 	if d.Get("apply_protocol").(string) == rsApplyImmediate && d.Get("allow_restart").(bool) {
 		return fmt.Errorf(`allow_restart cannot be true when apply_protocol = "immediate". The "immediate" protocol applies right-sizing in-place and does not require workload restarts`)
@@ -52,10 +61,6 @@ func validateApplyProtocolWithRestart(d *schema.ResourceDiff) error {
 	return nil
 }
 
-// validateScopes enforces, for each scope block:
-//   - per dimension, items and patterns are mutually exclusive
-//   - clusters, namespaces, and workloads must each have one form set
-//   - resource_types is optional (may have neither)
 func validateScopes(d *schema.ResourceDiff) error {
 	scopes := d.Get("scope").([]interface{})
 	for i, raw := range scopes {
@@ -94,9 +99,6 @@ func validateScopeDimension(idx int, scope map[string]interface{}, itemsKey, pat
 	return nil
 }
 
-// validateGuardRailsBlock checks rules inside guardrails — only when the
-// user actually provided the block (skipped when Computed values come from
-// the API on Read/Update).
 func validateGuardRailsBlock(d *schema.ResourceDiff) error {
 	if !userProvidedGuardRails(d) {
 		return nil
@@ -119,7 +121,7 @@ func validateGuardRailsBlock(d *schema.ResourceDiff) error {
 func validateManagedResources(gr map[string]interface{}) error {
 	mrBlocks, _ := gr["managed_resources"].([]interface{})
 	if len(mrBlocks) == 0 {
-		return nil // schema marks managed_resources as Required; SDK will catch absence
+		return nil
 	}
 	mr := mrBlocks[0].(map[string]interface{})
 	if !mr["cpu_requests"].(bool) && !mr["cpu_limits"].(bool) && !mr["memory_requests"].(bool) && !mr["memory_limits"].(bool) {
@@ -164,11 +166,6 @@ func readToggleable(v interface{}) (int, bool) {
 	return m["value"].(int), m["enabled"].(bool)
 }
 
-// userProvidedGuardRails inspects the raw HCL config (not the merged
-// state) to determine whether the user explicitly wrote a guardrails
-// block. Necessary because guardrails is Optional+Computed: the API
-// populates state on Read, so d.Get would return non-empty even when
-// the user omitted the block.
 func userProvidedGuardRails(d *schema.ResourceDiff) bool {
 	raw := d.GetRawConfig()
 	if !raw.IsKnown() || raw.IsNull() {
@@ -181,8 +178,6 @@ func userProvidedGuardRails(d *schema.ResourceDiff) bool {
 	return gr.LengthInt() > 0
 }
 
-// validateUnsupportedString returns a ValidateDiagFunc that rejects strings
-// not in `allowed`, with an "unsupported X" message style.
 func validateUnsupportedString(field string, allowed []string) schema.SchemaValidateDiagFunc {
 	return func(v interface{}, _ cty.Path) diag.Diagnostics {
 		val, ok := v.(string)
@@ -198,8 +193,6 @@ func validateUnsupportedString(field string, allowed []string) schema.SchemaVali
 	}
 }
 
-// validateUnsupportedInt returns a ValidateDiagFunc that rejects ints not
-// in `allowed`, with an "unsupported X" message style.
 func validateUnsupportedInt(field string, allowed []int) schema.SchemaValidateDiagFunc {
 	return func(v interface{}, _ cty.Path) diag.Diagnostics {
 		val, ok := v.(int)

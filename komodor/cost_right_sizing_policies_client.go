@@ -8,9 +8,6 @@ import (
 	"net/url"
 )
 
-// rightSizingPoliciesAPI is the behavior surface used by the resource and
-// data-source layer. Implementations decode JSON responses, build query
-// strings, and combine multiple HTTP calls (e.g. GetByName).
 type rightSizingPoliciesAPI interface {
 	GetAll(ctx context.Context) ([]GetAllRightSizingPoliciesRow, error)
 	GetByID(ctx context.Context, id string) (*GetMultiScopePolicyResponse, int, error)

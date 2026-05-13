@@ -44,7 +44,6 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 			StateContext: resourceKomodorCostRightSizingPolicyImport,
 		},
 		Schema: map[string]*schema.Schema{
-			// step 1 - name
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -63,7 +62,6 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Description:  "Policy evaluation priority. Higher value wins when multiple policies match the same workload.",
 			},
 
-			// step 2 - scope
 			"scope": {
 				Type:        schema.TypeList,
 				Required:    true,
@@ -72,7 +70,6 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Elem:        costRSPScopeResource(),
 			},
 
-			// step 3 - when to apply
 			"apply_protocol": {
 				Type:             schema.TypeString,
 				Required:         true,
@@ -92,7 +89,6 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Description: "Whether HPA-managed workloads are subject to right-sizing.",
 			},
 
-			// step 4 - guardrails
 			"percentile": {
 				Type:             schema.TypeInt,
 				Required:         true,
@@ -109,13 +105,13 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Allow QoS upgrade (e.g., BestEffort → Burstable) for reliability.",
+				Description: "Allow to Increase QoS (Support reliability). e.g. BestEffort → Burstable → Guarantee. Default depends on optimization_preset: `false` for sandbox/development, `true` for staging/production/custom.",
 			},
 			"allow_qos_downgrade": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Allow QoS downgrade (e.g., Guarantee → Burstable) for savings.",
+				Description: "Allow to Decrease QoS (Support savings). e.g. Guarantee → Burstable.",
 			},
 			"guardrails": {
 				Type:        schema.TypeList,
@@ -126,7 +122,6 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Elem:        costRSPGuardRailsResource(),
 			},
 
-			// tags
 			"tags": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -141,7 +136,6 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				},
 			},
 
-			// delete-time control (TFP-only; not sent to the API)
 			"force_delete": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -149,7 +143,6 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Description: "When true, cascade-deletes any active workload overrides on destroy. Has no effect on create/update.",
 			},
 
-			// computed (server-set)
 			"id": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -362,10 +355,6 @@ func costRSPToggleableSchemaWith(desc string, valueValidator schema.SchemaValida
 	}
 }
 
-// ============================================================================
-// CRUD
-// ============================================================================
-
 func resourceKomodorCostRightSizingPolicyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := newRightSizingClientFromMeta(meta)
 	api := tfToAPIRightSizingPolicy(expandRightSizingPolicy(d))
@@ -420,9 +409,6 @@ func newRightSizingClientFromMeta(meta interface{}) *rightSizingPoliciesClient {
 	return newRightSizingPoliciesClient(newRightSizingHTTP(c.BaseURL, c.ApiKey))
 }
 
-// resourceKomodorCostRightSizingPolicyImport accepts either a policy ID or a
-// policy name. Tries ID first; on failure falls back to a list+iterate name
-// lookup (the public API has no get-by-name endpoint).
 func resourceKomodorCostRightSizingPolicyImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	identifier := d.Id()
 	client := newRightSizingClientFromMeta(meta)
