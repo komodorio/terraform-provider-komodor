@@ -18,7 +18,6 @@ type rightSizingPoliciesAPI interface {
 	Create(ctx context.Context, body RightSizingMultiScopePolicy) (*GetMultiScopePolicyResponse, error)
 	Update(ctx context.Context, id string, body RightSizingMultiScopePolicy) (*GetMultiScopePolicyResponse, error)
 	Delete(ctx context.Context, id string, force bool) error
-	GetDefaults(ctx context.Context) (*RightSizingPolicyDefaults, error)
 }
 
 type rightSizingPoliciesClient struct {
@@ -99,16 +98,4 @@ func (c *rightSizingPoliciesClient) Delete(ctx context.Context, id string, force
 		return fmt.Errorf("delete right-sizing policy: %w", err)
 	}
 	return nil
-}
-
-func (c *rightSizingPoliciesClient) GetDefaults(ctx context.Context) (*RightSizingPolicyDefaults, error) {
-	body, _, err := c.http.Get(ctx, rsDefaultsPath, nil)
-	if err != nil {
-		return nil, fmt.Errorf("get right-sizing policy defaults: %w", err)
-	}
-	var defaults RightSizingPolicyDefaults
-	if err = json.Unmarshal(body, &defaults); err != nil {
-		return nil, fmt.Errorf("decode defaults response: %w", err)
-	}
-	return &defaults, nil
 }

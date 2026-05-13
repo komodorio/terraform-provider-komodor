@@ -126,25 +126,6 @@ type ToggleableValue struct {
 	Value   int64 `json:"value"`
 }
 
-type RightSizingPolicyDefaults struct {
-	DefaultPolicy       RightSizingMultiScopePolicy `json:"defaultPolicy"`
-	OptimizationPresets OptimizationPresets         `json:"optimizationPresets"`
-}
-
-type OptimizationPresets struct {
-	Sandbox     OptimizationPreset `json:"sandbox"`
-	Development OptimizationPreset `json:"development"`
-	Staging     OptimizationPreset `json:"staging"`
-	Production  OptimizationPreset `json:"production"`
-}
-
-type OptimizationPreset struct {
-	Percentile        RightSizingPolicyPercentile `json:"percentile"`
-	AllowQoSUpgradeV2 *bool                       `json:"allowQoSUpgradeV2,omitempty"`
-	AllowQoSDowngrade *bool                       `json:"allowQoSDowngrade,omitempty"`
-	GuardRails        PolicyGuardRails            `json:"guardRails"`
-}
-
 // TF-layer types — populated from *schema.ResourceData by expand* and read
 // by flatten*. Conversion lives in cost_right_sizing_policies_convert.go.
 

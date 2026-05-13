@@ -2,7 +2,7 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
   # step 1 - name
   name        = "production-conservative"
   description = "Conservative right-sizing for prod workloads"
-  priority    = 100
+  priority    = 1000
 
   # step 2 - scope
   scope {

@@ -58,14 +58,12 @@ func Provider() *schema.Provider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"komodor_role":                              dataSourceKomodorRole(),
-			"komodor_policy_v2":                         dataSourceKomodorPolicyV2(),
-			"komodor_kubernetes":                        dataSourceKomodorKubernetes(),
-			"komodor_user":                              dataSourceKomodorUser(),
-			"komodor_workspace":                         dataSourceKomodorWorkspace(),
-			"komodor_cost_right_sizing_policy":          dataSourceKomodorCostRightSizingPolicy(),
-			"komodor_cost_right_sizing_policy_presets":  dataSourceKomodorCostRightSizingPolicyPresets(),
-			"komodor_cost_right_sizing_policy_defaults": dataSourceKomodorCostRightSizingPolicyDefaults(),
+			"komodor_role":                     dataSourceKomodorRole(),
+			"komodor_policy_v2":                dataSourceKomodorPolicyV2(),
+			"komodor_kubernetes":               dataSourceKomodorKubernetes(),
+			"komodor_user":                     dataSourceKomodorUser(),
+			"komodor_workspace":                dataSourceKomodorWorkspace(),
+			"komodor_cost_right_sizing_policy": dataSourceKomodorCostRightSizingPolicy(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

@@ -12,13 +12,12 @@ import (
 
 const (
 	rsPoliciesPath = "/api/v2/cost/right-sizing/policies"
-	rsDefaultsPath = "/api/v2/cost/right-sizing/policies/defaults"
 )
 
 var _ rightSizingHTTPClient = (*rightSizingHTTP)(nil)
 
 func rsPolicyByIdPath(id string) string {
-	return rsPoliciesPath + "/by-id/" + url.PathEscape(id)
+	return rsPoliciesPath + "/" + url.PathEscape(id)
 }
 
 // rightSizingHTTPClient is the transport used by the behavior client.
