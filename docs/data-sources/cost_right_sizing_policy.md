@@ -33,7 +33,9 @@ resource "komodor_cost_right_sizing_policy" "production_eu" {
     clusters       = ["prod-eu-west-1", "prod-eu-central-1"]
     namespaces     = ["payments", "checkout", "auth"]
     resource_types = ["Deployment", "StatefulSet"]
-    workload_names = ["*"]
+    workload_names_patterns {
+      include = "*"
+    }
   }
 
   apply_protocol         = data.komodor_cost_right_sizing_policy.source.apply_protocol

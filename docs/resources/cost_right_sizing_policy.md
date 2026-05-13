@@ -24,7 +24,9 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
     clusters       = ["prod-us-east-1", "prod-eu-west-1"]
     namespaces     = ["payments", "checkout"]
     resource_types = ["Deployment", "StatefulSet"]
-    workload_names = ["*"]
+    workload_names_patterns {
+      include = "*"
+    }
   }
 
   # step 3 - when to apply
@@ -134,7 +136,9 @@ resource "komodor_cost_right_sizing_policy" "development" {
       exclude = "team-*-experimental"
     }
     resource_types = ["Deployment", "StatefulSet"]
-    workload_names = ["*"]
+    workload_names_patterns {
+      include = "*"
+    }
   }
 
   # step 3 - when to apply
@@ -151,6 +155,48 @@ resource "komodor_cost_right_sizing_policy" "development" {
 ```
 
 ```terraform
+resource "komodor_cost_right_sizing_policy" "multi_scope" {
+  name        = "multi-scope-example"
+  description = "Right-sizing policy with multiple OR-evaluated scope statements"
+  priority    = 500
+
+  scope {
+    # statement 1 — exact production EU clusters + exact namespaces
+    clusters       = ["prod-eu-west-1", "prod-eu-central-1"]
+    namespaces     = ["payments", "checkout"]
+    resource_types = ["Deployment", "StatefulSet"]
+    workload_names_patterns {
+      include = "*"
+    }
+  }
+
+  scope {
+    # statement 2 — cluster + namespace patterns with canary exclusion
+    clusters_patterns {
+      include = "staging-*"
+      exclude = "staging-*-canary"
+    }
+    namespaces_patterns {
+      include = "team-*"
+    }
+    resource_types = ["Deployment"]
+    workload_names_patterns {
+      include = "*"
+    }
+  }
+
+  apply_protocol         = "onCreation"
+  allow_restart          = true
+  allow_hpa_right_sizing = false
+
+  percentile          = 95
+  optimization_preset = "production"
+  allow_qos_upgrade   = true
+  allow_qos_downgrade = false
+}
+```
+
+```terraform
 resource "komodor_cost_right_sizing_policy" "production" {
   # step 1 - name
   name        = "production-default"
@@ -162,7 +208,9 @@ resource "komodor_cost_right_sizing_policy" "production" {
     clusters       = ["prod-us-east-1", "prod-eu-west-1", "prod-ap-southeast-2"]
     namespaces     = ["payments", "checkout", "auth", "api"]
     resource_types = ["Deployment", "StatefulSet"]
-    workload_names = ["*"]
+    workload_names_patterns {
+      include = "*"
+    }
   }
 
   # step 3 - when to apply
@@ -190,9 +238,13 @@ resource "komodor_cost_right_sizing_policy" "sandbox" {
     clusters_patterns {
       include = "sandbox-*"
     }
-    namespaces     = ["*"]
+    namespaces_patterns {
+      include = "*"
+    }
     resource_types = ["Deployment", "StatefulSet"]
-    workload_names = ["*"]
+    workload_names_patterns {
+      include = "*"
+    }
   }
 
   # step 3 - when to apply
@@ -223,7 +275,9 @@ resource "komodor_cost_right_sizing_policy" "staging" {
     }
     namespaces     = ["payments", "checkout", "auth"]
     resource_types = ["Deployment", "StatefulSet"]
-    workload_names = ["*"]
+    workload_names_patterns {
+      include = "*"
+    }
   }
 
   # step 3 - when to apply
@@ -276,14 +330,14 @@ resource "komodor_cost_right_sizing_policy" "staging" {
 
 Optional:
 
-- `clusters` (List of String) Exact cluster names. Mutually exclusive with clusters_patterns.
-- `clusters_patterns` (Block List, Max: 1) Glob pattern for cluster names. Mutually exclusive with clusters. (see [below for nested schema](#nestedblock--scope--clusters_patterns))
-- `namespaces` (List of String) Exact namespace names. Mutually exclusive with namespaces_patterns.
-- `namespaces_patterns` (Block List, Max: 1) Glob pattern for namespace names. Mutually exclusive with namespaces. (see [below for nested schema](#nestedblock--scope--namespaces_patterns))
-- `resource_types` (List of String) Workload kinds (e.g., Deployment, StatefulSet). Mutually exclusive with resource_types_patterns.
-- `resource_types_patterns` (Block List, Max: 1) Glob pattern for workload kinds. Mutually exclusive with resource_types. (see [below for nested schema](#nestedblock--scope--resource_types_patterns))
-- `workload_names` (List of String) Exact workload names. Mutually exclusive with workload_names_patterns.
-- `workload_names_patterns` (Block List, Max: 1) Glob pattern for workload names. Mutually exclusive with workload_names. (see [below for nested schema](#nestedblock--scope--workload_names_patterns))
+- `clusters` (List of String) Exact cluster names. The string `"*"` is treated literally — to match all clusters, use `clusters_patterns { include = "*" }` instead. Mutually exclusive with clusters_patterns.
+- `clusters_patterns` (Block List, Max: 1) Glob pattern for cluster names (`include = "*"` matches all). Mutually exclusive with clusters. (see [below for nested schema](#nestedblock--scope--clusters_patterns))
+- `namespaces` (List of String) Exact namespace names. The string `"*"` is treated literally — to match all namespaces, use `namespaces_patterns { include = "*" }` instead. Mutually exclusive with namespaces_patterns.
+- `namespaces_patterns` (Block List, Max: 1) Glob pattern for namespace names (`include = "*"` matches all). Mutually exclusive with namespaces. (see [below for nested schema](#nestedblock--scope--namespaces_patterns))
+- `resource_types` (List of String) Workload kinds (e.g., Deployment, StatefulSet). The string `"*"` is treated literally — to match all kinds, use `resource_types_patterns { include = "*" }` instead. Mutually exclusive with resource_types_patterns.
+- `resource_types_patterns` (Block List, Max: 1) Glob pattern for workload kinds (`include = "*"` matches all). Mutually exclusive with resource_types. (see [below for nested schema](#nestedblock--scope--resource_types_patterns))
+- `workload_names` (List of String) Exact workload names. The string `"*"` is treated literally — to match all workloads, use `workload_names_patterns { include = "*" }` instead. Mutually exclusive with workload_names_patterns.
+- `workload_names_patterns` (Block List, Max: 1) Glob pattern for workload names (`include = "*"` matches all). Mutually exclusive with workload_names. (see [below for nested schema](#nestedblock--scope--workload_names_patterns))
 
 <a id="nestedblock--scope--clusters_patterns"></a>
 ### Nested Schema for `scope.clusters_patterns`

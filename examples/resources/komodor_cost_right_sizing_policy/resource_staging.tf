@@ -12,7 +12,9 @@ resource "komodor_cost_right_sizing_policy" "staging" {
     }
     namespaces     = ["payments", "checkout", "auth"]
     resource_types = ["Deployment", "StatefulSet"]
-    workload_names = ["*"]
+    workload_names_patterns {
+      include = "*"
+    }
   }
 
   # step 3 - when to apply

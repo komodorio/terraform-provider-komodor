@@ -9,7 +9,9 @@ resource "komodor_cost_right_sizing_policy" "production" {
     clusters       = ["prod-us-east-1", "prod-eu-west-1", "prod-ap-southeast-2"]
     namespaces     = ["payments", "checkout", "auth", "api"]
     resource_types = ["Deployment", "StatefulSet"]
-    workload_names = ["*"]
+    workload_names_patterns {
+      include = "*"
+    }
   }
 
   # step 3 - when to apply

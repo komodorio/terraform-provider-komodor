@@ -14,7 +14,9 @@ resource "komodor_cost_right_sizing_policy" "development" {
       exclude = "team-*-experimental"
     }
     resource_types = ["Deployment", "StatefulSet"]
-    workload_names = ["*"]
+    workload_names_patterns {
+      include = "*"
+    }
   }
 
   # step 3 - when to apply

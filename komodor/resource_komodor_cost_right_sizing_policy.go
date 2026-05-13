@@ -204,14 +204,14 @@ func costRSPScopeResource() *schema.Resource {
 	}
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"clusters":                stringList("Exact cluster names. Mutually exclusive with clusters_patterns."),
-			"clusters_patterns":       patternBlock("Glob pattern for cluster names. Mutually exclusive with clusters."),
-			"namespaces":              stringList("Exact namespace names. Mutually exclusive with namespaces_patterns."),
-			"namespaces_patterns":     patternBlock("Glob pattern for namespace names. Mutually exclusive with namespaces."),
-			"resource_types":          stringList("Workload kinds (e.g., Deployment, StatefulSet). Mutually exclusive with resource_types_patterns."),
-			"resource_types_patterns": patternBlock("Glob pattern for workload kinds. Mutually exclusive with resource_types."),
-			"workload_names":          stringList("Exact workload names. Mutually exclusive with workload_names_patterns."),
-			"workload_names_patterns": patternBlock("Glob pattern for workload names. Mutually exclusive with workload_names."),
+			"clusters":                stringList("Exact cluster names. The string `\"*\"` is treated literally — to match all clusters, use `clusters_patterns { include = \"*\" }` instead. Mutually exclusive with clusters_patterns."),
+			"clusters_patterns":       patternBlock("Glob pattern for cluster names (`include = \"*\"` matches all). Mutually exclusive with clusters."),
+			"namespaces":              stringList("Exact namespace names. The string `\"*\"` is treated literally — to match all namespaces, use `namespaces_patterns { include = \"*\" }` instead. Mutually exclusive with namespaces_patterns."),
+			"namespaces_patterns":     patternBlock("Glob pattern for namespace names (`include = \"*\"` matches all). Mutually exclusive with namespaces."),
+			"resource_types":          stringList("Workload kinds (e.g., Deployment, StatefulSet). The string `\"*\"` is treated literally — to match all kinds, use `resource_types_patterns { include = \"*\" }` instead. Mutually exclusive with resource_types_patterns."),
+			"resource_types_patterns": patternBlock("Glob pattern for workload kinds (`include = \"*\"` matches all). Mutually exclusive with resource_types."),
+			"workload_names":          stringList("Exact workload names. The string `\"*\"` is treated literally — to match all workloads, use `workload_names_patterns { include = \"*\" }` instead. Mutually exclusive with workload_names_patterns."),
+			"workload_names_patterns": patternBlock("Glob pattern for workload names (`include = \"*\"` matches all). Mutually exclusive with workload_names."),
 		},
 	}
 }

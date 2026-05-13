@@ -9,9 +9,13 @@ resource "komodor_cost_right_sizing_policy" "sandbox" {
     clusters_patterns {
       include = "sandbox-*"
     }
-    namespaces     = ["*"]
+    namespaces_patterns {
+      include = "*"
+    }
     resource_types = ["Deployment", "StatefulSet"]
-    workload_names = ["*"]
+    workload_names_patterns {
+      include = "*"
+    }
   }
 
   # step 3 - when to apply
