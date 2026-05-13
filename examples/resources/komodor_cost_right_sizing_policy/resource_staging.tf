@@ -23,8 +23,5 @@ resource "komodor_cost_right_sizing_policy" "staging" {
   allow_hpa_right_sizing = false
 
   # step 4 - guardrails
-  percentile          = 90
   optimization_preset = "staging"
-  allow_qos_upgrade   = true
-  allow_qos_downgrade = false
 }

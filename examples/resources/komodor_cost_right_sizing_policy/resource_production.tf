@@ -20,8 +20,5 @@ resource "komodor_cost_right_sizing_policy" "production" {
   allow_hpa_right_sizing = false
 
   # step 4 - guardrails
-  percentile          = 99
   optimization_preset = "production"
-  allow_qos_upgrade   = true
-  allow_qos_downgrade = false
 }

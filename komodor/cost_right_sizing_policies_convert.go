@@ -7,10 +7,7 @@ func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopeP
 		Name:                tf.Name,
 		Priority:            int32(tf.Priority),
 		OptimizationPreset:  tf.OptimizationPreset,
-		Percentile:          RightSizingPolicyPercentile(tf.Percentile),
 		ApplyProtocol:       tf.ApplyProtocol,
-		AllowQoSUpgradeV2:   boolPtr(tf.AllowQoSUpgrade),
-		AllowQoSDowngrade:   boolPtr(tf.AllowQoSDowngrade),
 		AllowHpaRightSizing: boolPtr(tf.AllowHpaRightSizing),
 		Scopes:              tfToAPIScopes(tf.Scopes),
 	}
@@ -20,9 +17,14 @@ func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopeP
 	if tf.Description != "" {
 		api.Description = stringPtr(tf.Description)
 	}
-	if tf.GuardRails != nil {
+	if tf.OptimizationPreset == rsPresetCustom && tf.GuardRails != nil {
 		gr := tfToAPIGuardRails(*tf.GuardRails)
 		api.GuardRails = &gr
+		api.AllowQoSUpgradeV2 = boolPtr(tf.GuardRails.AllowQoSUpgrade)
+		api.AllowQoSDowngrade = boolPtr(tf.GuardRails.AllowQoSDowngrade)
+		api.Percentile = RightSizingPolicyPercentile(tf.GuardRails.Percentile)
+	} else {
+		api.Percentile = presetPercentiles[tf.OptimizationPreset]
 	}
 	if len(tf.Tags) > 0 {
 		tags := tf.Tags
@@ -40,10 +42,7 @@ func apiToTFRightSizingPolicy(api RightSizingMultiScopePolicy) rightSizingPolicy
 		ApplyProtocol:       api.ApplyProtocol,
 		AllowRestart:        boolValue(api.AllowRestart),
 		AllowHpaRightSizing: boolValue(api.AllowHpaRightSizing),
-		Percentile:          int(api.Percentile),
 		OptimizationPreset:  api.OptimizationPreset,
-		AllowQoSUpgrade:     boolValue(api.AllowQoSUpgradeV2),
-		AllowQoSDowngrade:   boolValue(api.AllowQoSDowngrade),
 		PolicySource:        stringValue(api.PolicySource),
 		CreatedBy:           stringValue(api.CreatedBy),
 		LastModifiedBy:      stringValue(api.LastModifiedBy),
@@ -52,6 +51,9 @@ func apiToTFRightSizingPolicy(api RightSizingMultiScopePolicy) rightSizingPolicy
 	}
 	if api.GuardRails != nil {
 		gr := apiToTFGuardRails(*api.GuardRails)
+		gr.Percentile = int(api.Percentile)
+		gr.AllowQoSUpgrade = boolValue(api.AllowQoSUpgradeV2)
+		gr.AllowQoSDowngrade = boolValue(api.AllowQoSDowngrade)
 		tf.GuardRails = &gr
 	}
 	if api.Tags != nil {
@@ -284,10 +286,7 @@ func expandRightSizingPolicy(d *schema.ResourceData) rightSizingPolicyTFData {
 		ApplyProtocol:       d.Get("apply_protocol").(string),
 		AllowRestart:        d.Get("allow_restart").(bool),
 		AllowHpaRightSizing: d.Get("allow_hpa_right_sizing").(bool),
-		Percentile:          d.Get("percentile").(int),
 		OptimizationPreset:  d.Get("optimization_preset").(string),
-		AllowQoSUpgrade:     d.Get("allow_qos_upgrade").(bool),
-		AllowQoSDowngrade:   d.Get("allow_qos_downgrade").(bool),
 		Tags:                toStringList(d.Get("tags").([]interface{})),
 		ForceDelete:         d.Get("force_delete").(bool),
 	}
@@ -336,7 +335,10 @@ func expandPattern(v interface{}) *patternTFData {
 
 func expandGuardRails(m map[string]interface{}) guardRailsTFData {
 	gr := guardRailsTFData{
+		Percentile:         m["percentile"].(int),
 		AllowRightSizingUp: m["allow_right_sizing_up"].(bool),
+		AllowQoSUpgrade:    m["allow_qos_upgrade"].(bool),
+		AllowQoSDowngrade:  m["allow_qos_downgrade"].(bool),
 	}
 	if mr := m["managed_resources"].([]interface{}); len(mr) > 0 {
 		gr.ManagedResources = expandManagedResources(mr[0].(map[string]interface{}))
@@ -420,10 +422,7 @@ func flattenRightSizingPolicy(d *schema.ResourceData, tf rightSizingPolicyTFData
 		"apply_protocol":         tf.ApplyProtocol,
 		"allow_restart":          tf.AllowRestart,
 		"allow_hpa_right_sizing": tf.AllowHpaRightSizing,
-		"percentile":             tf.Percentile,
 		"optimization_preset":    tf.OptimizationPreset,
-		"allow_qos_upgrade":      tf.AllowQoSUpgrade,
-		"allow_qos_downgrade":    tf.AllowQoSDowngrade,
 		"guardrails":             flattenGuardRails(tf.GuardRails),
 		"tags":                   tf.Tags,
 		"policy_source":          tf.PolicySource,
@@ -480,8 +479,11 @@ func flattenGuardRails(gr *guardRailsTFData) []interface{} {
 		return nil
 	}
 	m := map[string]interface{}{
+		"percentile":            gr.Percentile,
 		"managed_resources":     flattenManagedResources(gr.ManagedResources),
 		"allow_right_sizing_up": gr.AllowRightSizingUp,
+		"allow_qos_upgrade":     gr.AllowQoSUpgrade,
+		"allow_qos_downgrade":   gr.AllowQoSDowngrade,
 		"constraints":           flattenConstraints(gr.Constraints),
 		"buffer":                flattenBuffer(gr.Buffer),
 	}

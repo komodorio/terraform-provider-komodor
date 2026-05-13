@@ -30,6 +30,15 @@ var (
 		rsPresetSandbox, rsPresetDevelopment, rsPresetStaging, rsPresetProduction, rsPresetCustom,
 	}
 	rsApplyProtocols = []string{rsApplyImmediate, rsApplyOnCreation}
+
+	// presetPercentiles mirrors mono/services/komodor-cost/pkg/endpoints/policies/default_policy.go
+	// — keep in sync if upstream preset definitions change.
+	presetPercentiles = map[string]RightSizingPolicyPercentile{
+		rsPresetSandbox:     N70,
+		rsPresetDevelopment: N80,
+		rsPresetStaging:     N90,
+		rsPresetProduction:  N95,
+	}
 )
 
 func resourceKomodorCostRightSizingPolicy() *schema.Resource {
@@ -89,29 +98,11 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Description: "Whether HPA-managed workloads are subject to right-sizing.",
 			},
 
-			"percentile": {
-				Type:             schema.TypeInt,
-				Required:         true,
-				ValidateDiagFunc: validateUnsupportedInt("percentile", validPercentiles),
-				Description:      "Usage percentile to base recommendations on. One of: 70, 80, 90, 95, 99.",
-			},
 			"optimization_preset": {
 				Type:             schema.TypeString,
 				Required:         true,
 				ValidateDiagFunc: validateUnsupportedString("optimization_preset", rsOptimizationPresets),
 				Description:      `Optimization preset. "custom" requires an explicit guardrails block; named presets (sandbox/development/staging/production) are resolved to guardrail values server-side and exposed as Computed read-only attributes. Updates to a preset's definition do not affect existing policies.`,
-			},
-			"allow_qos_upgrade": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Allow to Increase QoS (Support reliability). e.g. BestEffort → Burstable → Guarantee. Default depends on optimization_preset: `false` for sandbox/development, `true` for staging/production/custom.",
-			},
-			"allow_qos_downgrade": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Allow to Decrease QoS (Support savings). e.g. Guarantee → Burstable.",
 			},
 			"guardrails": {
 				Type:        schema.TypeList,
@@ -229,6 +220,12 @@ func costRSPPatternResource() *schema.Resource {
 func costRSPGuardRailsResource() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
+			"percentile": {
+				Type:             schema.TypeInt,
+				Required:         true,
+				ValidateDiagFunc: validateUnsupportedInt("percentile", validPercentiles),
+				Description:      "Usage percentile to base recommendations on. One of: 70, 80, 90, 95, 99.",
+			},
 			"managed_resources": {
 				Type:        schema.TypeList,
 				Required:    true,
@@ -241,6 +238,18 @@ func costRSPGuardRailsResource() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "Whether right-sizing may scale resources up.",
+			},
+			"allow_qos_upgrade": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Allow to Increase QoS (Support reliability). e.g. BestEffort → Burstable → Guarantee.",
+			},
+			"allow_qos_downgrade": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Allow to Decrease QoS (Support savings). e.g. Guarantee → Burstable.",
 			},
 			"constraints": {
 				Type:        schema.TypeList,

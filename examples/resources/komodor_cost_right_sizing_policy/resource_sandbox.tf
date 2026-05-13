@@ -24,8 +24,5 @@ resource "komodor_cost_right_sizing_policy" "sandbox" {
   allow_hpa_right_sizing = false
 
   # step 4 - guardrails
-  percentile          = 70
   optimization_preset = "sandbox"
-  allow_qos_upgrade   = false
-  allow_qos_downgrade = false
 }

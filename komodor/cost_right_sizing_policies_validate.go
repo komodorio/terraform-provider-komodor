@@ -13,7 +13,6 @@ import (
 
 func resourceKomodorCostRightSizingPolicyCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	for _, check := range []func(*schema.ResourceDiff) error{
-		applyPresetDefaults,
 		validatePresetGuardRailsCombination,
 		validateApplyProtocolWithRestart,
 		validateScopes,
@@ -22,21 +21,6 @@ func resourceKomodorCostRightSizingPolicyCustomizeDiff(_ context.Context, d *sch
 		if err := check(d); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func applyPresetDefaults(d *schema.ResourceDiff) error {
-	raw := d.GetRawConfig()
-	if !raw.IsKnown() || raw.IsNull() {
-		return nil
-	}
-	if v := raw.GetAttr("allow_qos_upgrade"); v.IsKnown() && !v.IsNull() {
-		return nil // user set it explicitly — respect that
-	}
-	switch d.Get("optimization_preset").(string) {
-	case rsPresetStaging, rsPresetProduction, rsPresetCustom:
-		return d.SetNew("allow_qos_upgrade", true)
 	}
 	return nil
 }

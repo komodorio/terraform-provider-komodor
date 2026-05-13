@@ -35,12 +35,11 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
   allow_hpa_right_sizing = false
 
   # step 4 - guardrails
-  percentile          = 95
   optimization_preset = "custom"
-  allow_qos_upgrade   = false
-  allow_qos_downgrade = false
 
   guardrails {
+    percentile = 95
+
     managed_resources {
       cpu_requests    = true
       cpu_limits      = false
@@ -49,6 +48,8 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
     }
 
     allow_right_sizing_up = true
+    allow_qos_upgrade     = false
+    allow_qos_downgrade   = false
 
     constraints {
       increase_cpu_by {
@@ -147,10 +148,7 @@ resource "komodor_cost_right_sizing_policy" "development" {
   allow_hpa_right_sizing = false
 
   # step 4 - guardrails
-  percentile          = 80
   optimization_preset = "development"
-  allow_qos_upgrade   = false
-  allow_qos_downgrade = false
 }
 ```
 
@@ -189,10 +187,7 @@ resource "komodor_cost_right_sizing_policy" "multi_scope" {
   allow_restart          = true
   allow_hpa_right_sizing = false
 
-  percentile          = 95
   optimization_preset = "production"
-  allow_qos_upgrade   = true
-  allow_qos_downgrade = false
 }
 ```
 
@@ -219,10 +214,7 @@ resource "komodor_cost_right_sizing_policy" "production" {
   allow_hpa_right_sizing = false
 
   # step 4 - guardrails
-  percentile          = 99
   optimization_preset = "production"
-  allow_qos_upgrade   = true
-  allow_qos_downgrade = false
 }
 ```
 
@@ -253,10 +245,7 @@ resource "komodor_cost_right_sizing_policy" "sandbox" {
   allow_hpa_right_sizing = false
 
   # step 4 - guardrails
-  percentile          = 70
   optimization_preset = "sandbox"
-  allow_qos_upgrade   = false
-  allow_qos_downgrade = false
 }
 ```
 
@@ -286,10 +275,7 @@ resource "komodor_cost_right_sizing_policy" "staging" {
   allow_hpa_right_sizing = false
 
   # step 4 - guardrails
-  percentile          = 90
   optimization_preset = "staging"
-  allow_qos_upgrade   = true
-  allow_qos_downgrade = false
 }
 ```
 
@@ -301,15 +287,12 @@ resource "komodor_cost_right_sizing_policy" "staging" {
 - `apply_protocol` (String) When to apply right-sizing changes. One of: "immediate", "onCreation".
 - `name` (String) Unique policy name within the account.
 - `optimization_preset` (String) Optimization preset. "custom" requires an explicit guardrails block; named presets (sandbox/development/staging/production) are resolved to guardrail values server-side and exposed as Computed read-only attributes. Updates to a preset's definition do not affect existing policies.
-- `percentile` (Number) Usage percentile to base recommendations on. One of: 70, 80, 90, 95, 99.
 - `priority` (Number) Policy evaluation priority. Higher value wins when multiple policies match the same workload.
 - `scope` (Block List, Min: 1) One or more scope blocks. Multiple scopes are evaluated with OR. (see [below for nested schema](#nestedblock--scope))
 
 ### Optional
 
 - `allow_hpa_right_sizing` (Boolean) Whether HPA-managed workloads are subject to right-sizing.
-- `allow_qos_downgrade` (Boolean) Allow to Decrease QoS (Support savings). e.g. Guarantee → Burstable.
-- `allow_qos_upgrade` (Boolean) Allow to Increase QoS (Support reliability). e.g. BestEffort → Burstable → Guarantee. Default depends on optimization_preset: `false` for sandbox/development, `true` for staging/production/custom.
 - `allow_restart` (Boolean) Whether Komodor may restart pods to apply right-sizing. Effective only when apply_protocol = "onCreation".
 - `description` (String) Free-text description of the policy.
 - `force_delete` (Boolean) When true, cascade-deletes any active workload overrides on destroy. Has no effect on create/update.
@@ -396,10 +379,13 @@ Required:
 - `buffer` (Block List, Min: 1, Max: 1) Headroom percentage on top of recommended request values. (see [below for nested schema](#nestedblock--guardrails--buffer))
 - `constraints` (Block List, Min: 1, Max: 1) Per-cycle scaling constraints expressed as percentages. (see [below for nested schema](#nestedblock--guardrails--constraints))
 - `managed_resources` (Block List, Min: 1, Max: 1) Which resource fields right-sizing may modify. At least one must be true. (see [below for nested schema](#nestedblock--guardrails--managed_resources))
+- `percentile` (Number) Usage percentile to base recommendations on. One of: 70, 80, 90, 95, 99.
 
 Optional:
 
 - `absolute_constraints` (Block List, Max: 1) Absolute floor/ceiling values for CPU (millicores) and memory (bytes). (see [below for nested schema](#nestedblock--guardrails--absolute_constraints))
+- `allow_qos_downgrade` (Boolean) Allow to Decrease QoS (Support savings). e.g. Guarantee → Burstable.
+- `allow_qos_upgrade` (Boolean) Allow to Increase QoS (Support reliability). e.g. BestEffort → Burstable → Guarantee.
 - `allow_right_sizing_up` (Boolean) Whether right-sizing may scale resources up.
 
 <a id="nestedblock--guardrails--buffer"></a>

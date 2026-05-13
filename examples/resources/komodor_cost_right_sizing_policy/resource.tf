@@ -20,12 +20,11 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
   allow_hpa_right_sizing = false
 
   # step 4 - guardrails
-  percentile          = 95
   optimization_preset = "custom"
-  allow_qos_upgrade   = false
-  allow_qos_downgrade = false
 
   guardrails {
+    percentile = 95
+
     managed_resources {
       cpu_requests    = true
       cpu_limits      = false
@@ -34,6 +33,8 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
     }
 
     allow_right_sizing_up = true
+    allow_qos_upgrade     = false
+    allow_qos_downgrade   = false
 
     constraints {
       increase_cpu_by {

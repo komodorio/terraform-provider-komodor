@@ -130,10 +130,7 @@ type rightSizingPolicyTFData struct {
 	ApplyProtocol       string
 	AllowRestart        bool
 	AllowHpaRightSizing bool
-	Percentile          int
 	OptimizationPreset  string
-	AllowQoSUpgrade     bool
-	AllowQoSDowngrade   bool
 	GuardRails          *guardRailsTFData
 	Tags                []string
 	ForceDelete         bool
@@ -163,8 +160,11 @@ type patternTFData struct {
 }
 
 type guardRailsTFData struct {
+	Percentile          int
 	ManagedResources    managedResourcesTFData
 	AllowRightSizingUp  bool
+	AllowQoSUpgrade     bool
+	AllowQoSDowngrade   bool
 	Constraints         constraintsTFData
 	AbsoluteConstraints *absoluteConstraintsTFData
 	Buffer              bufferTFData

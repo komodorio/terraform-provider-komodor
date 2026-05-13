@@ -32,8 +32,5 @@ resource "komodor_cost_right_sizing_policy" "multi_scope" {
   allow_restart          = true
   allow_hpa_right_sizing = false
 
-  percentile          = 95
   optimization_preset = "production"
-  allow_qos_upgrade   = true
-  allow_qos_downgrade = false
 }
