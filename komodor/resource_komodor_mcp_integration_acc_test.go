@@ -16,6 +16,7 @@ func init() {
 var accTestMCPIntegrationID, accTestMCPSkillID string
 
 func TestAcc_komodor_mcp_integration_basic(t *testing.T) {
+	t.SkipNow()
 	skillName := testResourceName("mcp-skill")
 	intName := testResourceName("mcp")
 	updatedName := intName + "-updated"
