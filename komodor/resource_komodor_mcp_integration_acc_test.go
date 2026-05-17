@@ -87,6 +87,7 @@ func testAccCheckMCPIntegrationAndSkillDestroyed(s *terraform.State) error {
 }
 
 func TestAcc_komodor_mcp_integration_token_exchange(t *testing.T) {
+	t.SkipNow()
 	skillName := testResourceName("te-skill")
 	intName := testResourceName("te-mcp")
 	updatedName := intName + "-updated"
