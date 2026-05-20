@@ -21,20 +21,20 @@ func (p RightSizingPolicyPercentile) IsValid() bool {
 }
 
 type RightSizingMultiScopePolicy struct {
-	Name                string                      `json:"name"`
-	Description         *string                     `json:"description,omitempty"`
-	Priority            int32                       `json:"priority"`
-	OptimizationPreset  string                      `json:"optimizationPreset"`
+	Name                string                       `json:"name"`
+	Description         *string                      `json:"description,omitempty"`
+	Priority            int32                        `json:"priority"`
+	OptimizationPreset  string                       `json:"optimizationPreset"`
 	Percentile          *RightSizingPolicyPercentile `json:"percentile,omitempty"`
-	ApplyProtocol       string                      `json:"applyProtocol"`
-	AllowQoSUpgrade     *string                     `json:"allowQoSUpgrade,omitempty"`
-	AllowQoSUpgradeV2   *bool                       `json:"allowQoSUpgradeV2,omitempty"`
-	AllowQoSDowngrade   *bool                       `json:"allowQoSDowngrade,omitempty"`
-	AllowHpaRightSizing *bool                       `json:"allowHpaRightSizing,omitempty"`
-	AllowRestart        *bool                       `json:"allowRestart,omitempty"`
-	GuardRails          *PolicyGuardRails           `json:"guardRails,omitempty"`
-	Scopes              []PolicyResourceScope       `json:"scopes"`
-	Tags                *[]string                   `json:"tags,omitempty"`
+	ApplyProtocol       string                       `json:"applyProtocol"`
+	AllowQoSUpgrade     *string                      `json:"allowQoSUpgrade,omitempty"`
+	AllowQoSUpgradeV2   *bool                        `json:"allowQoSUpgradeV2,omitempty"`
+	AllowQoSDowngrade   *bool                        `json:"allowQoSDowngrade,omitempty"`
+	AllowHpaRightSizing *bool                        `json:"allowHpaRightSizing,omitempty"`
+	AllowRestart        *bool                        `json:"allowRestart,omitempty"`
+	GuardRails          *PolicyGuardRails            `json:"guardRails,omitempty"`
+	Scopes              []PolicyResourceScope        `json:"scopes"`
+	Tags                *[]string                    `json:"tags,omitempty"`
 
 	CreatedBy      *string `json:"createdBy,omitempty"`
 	LastModifiedBy *string `json:"lastModifiedBy,omitempty"`
