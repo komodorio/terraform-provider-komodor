@@ -9,6 +9,13 @@ func intFromPercentile(p *RightSizingPolicyPercentile) int {
 	return int(*p)
 }
 
+func qosUpgradeV1FromV2(v2 bool) string {
+	if v2 {
+		return qosUpgradeBestEffortToBurstable
+	}
+	return qosUpgradeNotAllowed
+}
+
 func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopePolicy {
 	api := RightSizingMultiScopePolicy{
 		Name:                tf.Name,
@@ -18,15 +25,16 @@ func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopeP
 		AllowHpaRightSizing: boolPtr(tf.AllowHpaRightSizing),
 		Scopes:              tfToAPIScopes(tf.Scopes),
 	}
-	if tf.ApplyProtocol != rsApplyImmediate {
+	if tf.ApplyProtocol != applyImmediate {
 		api.AllowRestart = boolPtr(tf.AllowRestart)
 	}
 	if tf.Description != "" {
 		api.Description = stringPtr(tf.Description)
 	}
-	if tf.OptimizationPreset == rsPresetCustom && tf.GuardRails != nil {
+	if tf.OptimizationPreset == presetCustom && tf.GuardRails != nil {
 		gr := tfToAPIGuardRails(*tf.GuardRails)
 		api.GuardRails = &gr
+		api.AllowQoSUpgrade = stringPtr(qosUpgradeV1FromV2(tf.GuardRails.AllowQoSUpgrade))
 		api.AllowQoSUpgradeV2 = boolPtr(tf.GuardRails.AllowQoSUpgrade)
 		api.AllowQoSDowngrade = boolPtr(tf.GuardRails.AllowQoSDowngrade)
 		p := RightSizingPolicyPercentile(tf.GuardRails.Percentile)
@@ -49,7 +57,6 @@ func apiToTFRightSizingPolicy(api RightSizingMultiScopePolicy) rightSizingPolicy
 		AllowRestart:        boolValue(api.AllowRestart),
 		AllowHpaRightSizing: boolValue(api.AllowHpaRightSizing),
 		OptimizationPreset:  api.OptimizationPreset,
-		PolicySource:        stringValue(api.PolicySource),
 		CreatedBy:           stringValue(api.CreatedBy),
 		LastModifiedBy:      stringValue(api.LastModifiedBy),
 		CreatedAt:           stringValue(api.CreatedAt),
@@ -433,9 +440,8 @@ func flattenRightSizingPolicy(d *schema.ResourceData, tf rightSizingPolicyTFData
 		"optimization_preset":    tf.OptimizationPreset,
 		"guardrails":             flattenGuardRails(tf.GuardRails),
 		"tags":                   tf.Tags,
-		"policy_source":          tf.PolicySource,
 		"created_by":             tf.CreatedBy,
-		"last_modified_by":       tf.LastModifiedBy,
+		"updated_by":             tf.LastModifiedBy,
 		"created_at":             tf.CreatedAt,
 		"updated_at":             tf.UpdatedAt,
 	} {

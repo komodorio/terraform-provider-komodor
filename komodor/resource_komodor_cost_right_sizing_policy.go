@@ -12,26 +12,29 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var rsTagPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_\-:./]*$`)
+var tagPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_\-:./]*$`)
 
 const (
-	rsPresetSandbox     = "sandbox"
-	rsPresetDevelopment = "development"
-	rsPresetStaging     = "staging"
-	rsPresetProduction  = "production"
-	rsPresetCustom      = "custom"
+	presetSandbox     = "sandbox"
+	presetDevelopment = "development"
+	presetStaging     = "staging"
+	presetProduction  = "production"
+	presetCustom      = "custom"
 
-	rsApplyImmediate  = "immediate"
-	rsApplyOnCreation = "onCreation"
+	applyImmediate  = "immediate"
+	applyOnCreation = "onCreation"
 
-	rsManagedByTag = "managed-by:tf"
+	managedByTag = "managed-by:tf"
+
+	qosUpgradeNotAllowed            = "notAllowed"
+	qosUpgradeBestEffortToBurstable = "bestEffortToBurstable"
 )
 
 var (
-	rsOptimizationPresets = []string{
-		rsPresetSandbox, rsPresetDevelopment, rsPresetStaging, rsPresetProduction, rsPresetCustom,
+	optimizationPresets = []string{
+		presetSandbox, presetDevelopment, presetStaging, presetProduction, presetCustom,
 	}
-	rsApplyProtocols = []string{rsApplyImmediate, rsApplyOnCreation}
+	applyProtocols = []string{applyImmediate, applyOnCreation}
 )
 
 func resourceKomodorCostRightSizingPolicy() *schema.Resource {
@@ -75,7 +78,7 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 			"apply_protocol": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateDiagFunc: validateUnsupportedString("apply_protocol", rsApplyProtocols),
+				ValidateDiagFunc: validateUnsupportedString("apply_protocol", applyProtocols),
 				Description:      `When to apply right-sizing changes. One of: "immediate", "onCreation".`,
 			},
 			"allow_restart": {
@@ -94,7 +97,7 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 			"optimization_preset": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateDiagFunc: validateUnsupportedString("optimization_preset", rsOptimizationPresets),
+				ValidateDiagFunc: validateUnsupportedString("optimization_preset", optimizationPresets),
 				Description:      `Optimization preset. "custom" requires an explicit guardrails block; named presets (sandbox/development/staging/production) are resolved to guardrail values server-side and exposed as Computed read-only attributes. Updates to a preset's definition do not affect existing policies.`,
 			},
 			"guardrails": {
@@ -116,7 +119,7 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 					Type: schema.TypeString,
 					ValidateFunc: validation.All(
 						validation.StringLenBetween(1, 200),
-						validation.StringMatch(rsTagPattern, "must be lowercase, start with a letter or digit, and contain only letters, digits, and `_ - : . /`"),
+						validation.StringMatch(tagPattern, "must be lowercase, start with a letter or digit, and contain only letters, digits, and `_ - : . /`"),
 					),
 				},
 			},
@@ -133,17 +136,12 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Computed:    true,
 				Description: "Server-generated unique identifier.",
 			},
-			"policy_source": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: `The source channel that last mutated this policy. One of: "terraform", "public-api", "webapp-ui".`,
-			},
 			"created_by": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Email of the user who created the policy.",
 			},
-			"last_modified_by": {
+			"updated_by": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Email of the user who last modified the policy.",

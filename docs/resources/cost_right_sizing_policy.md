@@ -172,9 +172,8 @@ resource "komodor_cost_right_sizing_policy" "production" {
 - `created_at` (String) Creation timestamp.
 - `created_by` (String) Email of the user who created the policy.
 - `id` (String) Server-generated unique identifier.
-- `last_modified_by` (String) Email of the user who last modified the policy.
-- `policy_source` (String) The source channel that last mutated this policy. One of: "terraform", "public-api", "webapp-ui".
 - `updated_at` (String) Last-update timestamp.
+- `updated_by` (String) Email of the user who last modified the policy.
 
 <a id="nestedblock--scope"></a>
 ### Nested Schema for `scope`

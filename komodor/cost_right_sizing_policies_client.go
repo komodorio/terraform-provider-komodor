@@ -37,7 +37,26 @@ func (c *rightSizingPoliciesClient) GetByID(ctx context.Context, id string) (*Ge
 	if err = json.Unmarshal(body, &resp); err != nil {
 		return nil, status, fmt.Errorf("decode get response: %w", err)
 	}
+	hoistMetadata(&resp)
 	return &resp, status, nil
+}
+
+func hoistMetadata(resp *GetMultiScopePolicyResponse) {
+	if resp == nil {
+		return
+	}
+	if resp.CreatedBy != nil {
+		resp.Policy.CreatedBy = resp.CreatedBy
+	}
+	if resp.LastModifiedBy != nil {
+		resp.Policy.LastModifiedBy = resp.LastModifiedBy
+	}
+	if resp.CreatedAt != nil {
+		resp.Policy.CreatedAt = resp.CreatedAt
+	}
+	if resp.UpdatedAt != nil {
+		resp.Policy.UpdatedAt = resp.UpdatedAt
+	}
 }
 
 func (c *rightSizingPoliciesClient) GetByName(ctx context.Context, name string) (*GetMultiScopePolicyResponse, int, error) {
@@ -62,6 +81,7 @@ func (c *rightSizingPoliciesClient) Create(ctx context.Context, body RightSizing
 	if err = json.Unmarshal(respBody, &resp); err != nil {
 		return nil, fmt.Errorf("decode create response: %w", err)
 	}
+	hoistMetadata(&resp)
 	return &resp, nil
 }
 
@@ -74,6 +94,7 @@ func (c *rightSizingPoliciesClient) Update(ctx context.Context, id string, body 
 	if err = json.Unmarshal(respBody, &resp); err != nil {
 		return nil, fmt.Errorf("decode update response: %w", err)
 	}
+	hoistMetadata(&resp)
 	return &resp, nil
 }
 

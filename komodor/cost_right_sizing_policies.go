@@ -27,6 +27,7 @@ type RightSizingMultiScopePolicy struct {
 	OptimizationPreset  string                      `json:"optimizationPreset"`
 	Percentile          *RightSizingPolicyPercentile `json:"percentile,omitempty"`
 	ApplyProtocol       string                      `json:"applyProtocol"`
+	AllowQoSUpgrade     *string                     `json:"allowQoSUpgrade,omitempty"`
 	AllowQoSUpgradeV2   *bool                       `json:"allowQoSUpgradeV2,omitempty"`
 	AllowQoSDowngrade   *bool                       `json:"allowQoSDowngrade,omitempty"`
 	AllowHpaRightSizing *bool                       `json:"allowHpaRightSizing,omitempty"`
@@ -35,7 +36,6 @@ type RightSizingMultiScopePolicy struct {
 	Scopes              []PolicyResourceScope       `json:"scopes"`
 	Tags                *[]string                   `json:"tags,omitempty"`
 
-	PolicySource   *string `json:"policySource,omitempty"`
 	CreatedBy      *string `json:"createdBy,omitempty"`
 	LastModifiedBy *string `json:"lastModifiedBy,omitempty"`
 	CreatedAt      *string `json:"createdAt,omitempty"`
@@ -43,8 +43,12 @@ type RightSizingMultiScopePolicy struct {
 }
 
 type GetMultiScopePolicyResponse struct {
-	Id     string                      `json:"id"`
-	Policy RightSizingMultiScopePolicy `json:"policy"`
+	Id             string                      `json:"id"`
+	Policy         RightSizingMultiScopePolicy `json:"policy"`
+	CreatedBy      *string                     `json:"createdBy,omitempty"`
+	LastModifiedBy *string                     `json:"lastModifiedBy,omitempty"`
+	CreatedAt      *string                     `json:"createdAt,omitempty"`
+	UpdatedAt      *string                     `json:"updatedAt,omitempty"`
 }
 
 type GetAllRightSizingPoliciesResponse struct {
@@ -136,7 +140,6 @@ type rightSizingPolicyTFData struct {
 	ForceDelete         bool
 
 	Id             string
-	PolicySource   string
 	CreatedBy      string
 	LastModifiedBy string
 	CreatedAt      string

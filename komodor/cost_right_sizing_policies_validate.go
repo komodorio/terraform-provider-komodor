@@ -31,12 +31,12 @@ func addManagedByTFTagIfDoesntExist(d *schema.ResourceDiff) error {
 	tags := make([]string, 0, len(raw)+1)
 	for _, t := range raw {
 		s, _ := t.(string)
-		if s == rsManagedByTag {
+		if s == managedByTag {
 			return nil
 		}
 		tags = append(tags, s)
 	}
-	tags = append(tags, rsManagedByTag)
+	tags = append(tags, managedByTag)
 	return d.SetNew("tags", tags)
 }
 
@@ -44,17 +44,17 @@ func validatePresetGuardRailsCombination(d *schema.ResourceDiff) error {
 	preset := d.Get("optimization_preset").(string)
 	hasGuardRails := userProvidedGuardRails(d)
 
-	if preset != rsPresetCustom && hasGuardRails {
+	if preset != presetCustom && hasGuardRails {
 		return fmt.Errorf(`optimization_preset = %q cannot be combined with an explicit guardrails block. To override preset values, set optimization_preset = "custom" and provide the full guardrails block`, preset)
 	}
-	if preset == rsPresetCustom && !hasGuardRails {
+	if preset == presetCustom && !hasGuardRails {
 		return fmt.Errorf(`guardrails is required when optimization_preset = "custom"`)
 	}
 	return nil
 }
 
 func validateApplyProtocolWithRestart(d *schema.ResourceDiff) error {
-	if d.Get("apply_protocol").(string) == rsApplyImmediate && d.Get("allow_restart").(bool) {
+	if d.Get("apply_protocol").(string) == applyImmediate && d.Get("allow_restart").(bool) {
 		return fmt.Errorf(`allow_restart cannot be true when apply_protocol = "immediate". The "immediate" protocol applies right-sizing in-place and does not require workload restarts`)
 	}
 	return nil

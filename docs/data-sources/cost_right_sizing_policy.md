@@ -64,9 +64,8 @@ resource "komodor_cost_right_sizing_policy" "production_eu" {
 - `created_by` (String) Email of the user who created the policy.
 - `description` (String) Free-text description of the policy.
 - `id` (String) Server-generated unique identifier.
-- `last_modified_by` (String) Email of the user who last modified the policy.
 - `optimization_preset` (String) Optimization preset.
 - `percentile` (Number) Usage percentile.
-- `policy_source` (String) Source channel that last mutated this policy.
 - `priority` (Number) Policy evaluation priority.
 - `updated_at` (String) Last-update timestamp.
+- `updated_by` (String) Email of the user who last modified the policy.
