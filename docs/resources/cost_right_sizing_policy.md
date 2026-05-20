@@ -289,8 +289,8 @@ Optional:
 
 - `decrease_cpu_by` (Block List, Max: 1) Max percent to decrease CPU per cycle. (see [below for nested schema](#nestedblock--guardrails--constraints--decrease_cpu_by))
 - `decrease_memory_by` (Block List, Max: 1) Max percent to decrease memory per cycle. (see [below for nested schema](#nestedblock--guardrails--constraints--decrease_memory_by))
-- `increase_cpu_by` (Block List, Max: 1) Max percent to increase CPU per cycle. (see [below for nested schema](#nestedblock--guardrails--constraints--increase_cpu_by))
-- `increase_memory_by` (Block List, Max: 1) Max percent to increase memory per cycle. (see [below for nested schema](#nestedblock--guardrails--constraints--increase_memory_by))
+- `increase_cpu_by` (Block List, Max: 1) Max percent to increase CPU per cycle. No upper bound. (see [below for nested schema](#nestedblock--guardrails--constraints--increase_cpu_by))
+- `increase_memory_by` (Block List, Max: 1) Max percent to increase memory per cycle. No upper bound. (see [below for nested schema](#nestedblock--guardrails--constraints--increase_memory_by))
 
 <a id="nestedblock--guardrails--constraints--decrease_cpu_by"></a>
 ### Nested Schema for `guardrails.constraints.decrease_cpu_by`

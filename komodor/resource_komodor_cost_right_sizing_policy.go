@@ -290,9 +290,9 @@ func costRSPManagedResourcesResource() *schema.Resource {
 func costRSPConstraintsResource() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"increase_cpu_by":    costRSPPercentageToggleableSchema("Max percent to increase CPU per cycle."),
+			"increase_cpu_by":    costRSPUnboundedToggleableSchema("Max percent to increase CPU per cycle. No upper bound."),
 			"decrease_cpu_by":    costRSPPercentageToggleableSchema("Max percent to decrease CPU per cycle."),
-			"increase_memory_by": costRSPPercentageToggleableSchema("Max percent to increase memory per cycle."),
+			"increase_memory_by": costRSPUnboundedToggleableSchema("Max percent to increase memory per cycle. No upper bound."),
 			"decrease_memory_by": costRSPPercentageToggleableSchema("Max percent to decrease memory per cycle."),
 		},
 	}
@@ -324,6 +324,10 @@ func costRSPBufferResource() *schema.Resource {
 
 func costRSPPercentageToggleableSchema(desc string) *schema.Schema {
 	return costRSPToggleableSchemaWith(desc, validation.ToDiagFunc(validation.IntBetween(0, 100)))
+}
+
+func costRSPUnboundedToggleableSchema(desc string) *schema.Schema {
+	return costRSPToggleableSchemaWith(desc, nil)
 }
 
 func costRSPAbsoluteToggleableSchema(desc string) *schema.Schema {
