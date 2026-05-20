@@ -25,7 +25,7 @@ type RightSizingMultiScopePolicy struct {
 	Description         *string                     `json:"description,omitempty"`
 	Priority            int32                       `json:"priority"`
 	OptimizationPreset  string                      `json:"optimizationPreset"`
-	Percentile          RightSizingPolicyPercentile `json:"percentile"`
+	Percentile          *RightSizingPolicyPercentile `json:"percentile,omitempty"`
 	ApplyProtocol       string                      `json:"applyProtocol"`
 	AllowQoSUpgradeV2   *bool                       `json:"allowQoSUpgradeV2,omitempty"`
 	AllowQoSDowngrade   *bool                       `json:"allowQoSDowngrade,omitempty"`

@@ -55,7 +55,7 @@ func dataSourceKomodorCostRightSizingPolicyRead(ctx context.Context, d *schema.R
 		"description":            stringValue(p.Description),
 		"priority":               int(p.Priority),
 		"optimization_preset":    p.OptimizationPreset,
-		"percentile":             int(p.Percentile),
+		"percentile":             intFromPercentile(p.Percentile),
 		"apply_protocol":         p.ApplyProtocol,
 		"allow_restart":          boolValue(p.AllowRestart),
 		"allow_hpa_right_sizing": boolValue(p.AllowHpaRightSizing),

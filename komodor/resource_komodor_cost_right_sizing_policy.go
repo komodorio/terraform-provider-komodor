@@ -23,6 +23,8 @@ const (
 
 	rsApplyImmediate  = "immediate"
 	rsApplyOnCreation = "onCreation"
+
+	rsManagedByTag = "managed-by:tf"
 )
 
 var (
@@ -30,15 +32,6 @@ var (
 		rsPresetSandbox, rsPresetDevelopment, rsPresetStaging, rsPresetProduction, rsPresetCustom,
 	}
 	rsApplyProtocols = []string{rsApplyImmediate, rsApplyOnCreation}
-
-	// presetPercentiles mirrors mono/services/komodor-cost/pkg/endpoints/policies/default_policy.go
-	// — keep in sync if upstream preset definitions change.
-	presetPercentiles = map[string]RightSizingPolicyPercentile{
-		rsPresetSandbox:     N70,
-		rsPresetDevelopment: N80,
-		rsPresetStaging:     N90,
-		rsPresetProduction:  N95,
-	}
 )
 
 func resourceKomodorCostRightSizingPolicy() *schema.Resource {
@@ -116,6 +109,7 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 			"tags": {
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				MaxItems:    20,
 				Description: "Optional client-managed tags for categorization. Each tag must be lowercase, start with a letter or digit, and contain only letters, digits, and the characters `_ - : . /`. Max 200 characters per tag; max 20 tags per policy.",
 				Elem: &schema.Schema{

@@ -2,6 +2,13 @@ package komodor
 
 import "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+func intFromPercentile(p *RightSizingPolicyPercentile) int {
+	if p == nil {
+		return 0
+	}
+	return int(*p)
+}
+
 func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopePolicy {
 	api := RightSizingMultiScopePolicy{
 		Name:                tf.Name,
@@ -22,9 +29,8 @@ func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopeP
 		api.GuardRails = &gr
 		api.AllowQoSUpgradeV2 = boolPtr(tf.GuardRails.AllowQoSUpgrade)
 		api.AllowQoSDowngrade = boolPtr(tf.GuardRails.AllowQoSDowngrade)
-		api.Percentile = RightSizingPolicyPercentile(tf.GuardRails.Percentile)
-	} else {
-		api.Percentile = presetPercentiles[tf.OptimizationPreset]
+		p := RightSizingPolicyPercentile(tf.GuardRails.Percentile)
+		api.Percentile = &p
 	}
 	if len(tf.Tags) > 0 {
 		tags := tf.Tags
@@ -51,7 +57,9 @@ func apiToTFRightSizingPolicy(api RightSizingMultiScopePolicy) rightSizingPolicy
 	}
 	if api.GuardRails != nil {
 		gr := apiToTFGuardRails(*api.GuardRails)
-		gr.Percentile = int(api.Percentile)
+		if api.Percentile != nil {
+			gr.Percentile = int(*api.Percentile)
+		}
 		gr.AllowQoSUpgrade = boolValue(api.AllowQoSUpgradeV2)
 		gr.AllowQoSDowngrade = boolValue(api.AllowQoSDowngrade)
 		tf.GuardRails = &gr

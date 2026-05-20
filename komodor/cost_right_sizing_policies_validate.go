@@ -17,12 +17,27 @@ func resourceKomodorCostRightSizingPolicyCustomizeDiff(_ context.Context, d *sch
 		validateApplyProtocolWithRestart,
 		validateScopes,
 		validateGuardRailsBlock,
+		addManagedByTFTagIfDoesntExist,
 	} {
 		if err := check(d); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func addManagedByTFTagIfDoesntExist(d *schema.ResourceDiff) error {
+	raw, _ := d.Get("tags").([]interface{})
+	tags := make([]string, 0, len(raw)+1)
+	for _, t := range raw {
+		s, _ := t.(string)
+		if s == rsManagedByTag {
+			return nil
+		}
+		tags = append(tags, s)
+	}
+	tags = append(tags, rsManagedByTag)
+	return d.SetNew("tags", tags)
 }
 
 func validatePresetGuardRailsCombination(d *schema.ResourceDiff) error {
