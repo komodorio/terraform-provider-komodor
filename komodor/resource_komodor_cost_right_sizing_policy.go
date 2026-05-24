@@ -25,6 +25,7 @@ const (
 	applyOnCreation = "onCreation"
 
 	managedByTag = "managed-by:tf"
+	maxUserTags  = 19
 
 	qosUpgradeNotAllowed            = "notAllowed"
 	qosUpgradeBestEffortToBurstable = "bestEffortToBurstable"
@@ -113,8 +114,8 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				MaxItems:    20,
-				Description: "Optional client-managed tags for categorization. Each tag must be lowercase, start with a letter or digit, and contain only letters, digits, and the characters `_ - : . /`. Max 200 characters per tag; max 20 tags per policy.",
+				MaxItems:    maxUserTags,
+				Description: "Optional client-managed tags for categorization. Each tag must be lowercase, start with a letter or digit, and contain only letters, digits, and the characters `_ - : . /`. Max 200 characters per tag; max 19 user tags per policy.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 					ValidateFunc: validation.All(
