@@ -115,7 +115,7 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 				MaxItems:    maxUserTags,
-				Description: "Optional client-managed tags for categorization. Each tag must be lowercase, start with a letter or digit, and contain only letters, digits, and the characters `_ - : . /`. Max 200 characters per tag; max 19 user tags per policy.",
+				Description: "Optional client-managed tags for categorization. Each tag must be lowercase, start with a letter or digit, and contain only letters, digits, and the characters `_ - : . /`. Max 200 characters per tag; max 19 tags per policy.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 					ValidateFunc: validation.All(
