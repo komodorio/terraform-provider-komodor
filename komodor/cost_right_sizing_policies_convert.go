@@ -305,7 +305,7 @@ func expandRightSizingPolicy(d *schema.ResourceData) rightSizingPolicyTFData {
 		Tags:                toStringList(d.Get("tags").([]interface{})),
 		ForceDelete:         d.Get("force_delete").(bool),
 	}
-	if gr := d.Get("guardrails").([]interface{}); len(gr) > 0 {
+	if gr := d.Get("guardrails").([]interface{}); len(gr) > 0 && gr[0] != nil {
 		expanded := expandGuardRails(gr[0].(map[string]interface{}))
 		tf.GuardRails = &expanded
 	}
@@ -355,17 +355,17 @@ func expandGuardRails(m map[string]interface{}) guardRailsTFData {
 		AllowQoSUpgrade:    m["allow_qos_upgrade"].(bool),
 		AllowQoSDowngrade:  m["allow_qos_downgrade"].(bool),
 	}
-	if mr := m["managed_resources"].([]interface{}); len(mr) > 0 {
+	if mr := m["managed_resources"].([]interface{}); len(mr) > 0 && mr[0] != nil {
 		gr.ManagedResources = expandManagedResources(mr[0].(map[string]interface{}))
 	}
-	if c := m["constraints"].([]interface{}); len(c) > 0 {
+	if c := m["constraints"].([]interface{}); len(c) > 0 && c[0] != nil {
 		gr.Constraints = expandConstraints(c[0].(map[string]interface{}))
 	}
-	if ac := m["absolute_constraints"].([]interface{}); len(ac) > 0 {
+	if ac := m["absolute_constraints"].([]interface{}); len(ac) > 0 && ac[0] != nil {
 		expanded := expandAbsoluteConstraints(ac[0].(map[string]interface{}))
 		gr.AbsoluteConstraints = &expanded
 	}
-	if b := m["buffer"].([]interface{}); len(b) > 0 {
+	if b := m["buffer"].([]interface{}); len(b) > 0 && b[0] != nil {
 		gr.Buffer = expandBuffer(b[0].(map[string]interface{}))
 	}
 	return gr
