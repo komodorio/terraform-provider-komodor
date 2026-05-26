@@ -43,10 +43,12 @@ func cleanupOrphanedAccResources() {
 		for _, role := range roles {
 			if role.Name == "viewer" {
 				log.Printf("[CLEANUP] Resetting default role: %s (%s)", role.Name, role.Id)
-				client.UpdateRole(role.Id, &NewRole{
+				if _, err := client.UpdateRole(role.Id, &NewRole{
 					Name:      role.Name,
 					IsDefault: true,
-				})
+				}); err != nil {
+					log.Printf("[CLEANUP] failed to reset default role %s: %s", role.Id, err)
+				}
 			}
 			if strings.HasPrefix(role.Name, accTestPrefix) {
 				log.Printf("[CLEANUP] deleting orphaned role: %s (%s)", role.Name, role.Id)
