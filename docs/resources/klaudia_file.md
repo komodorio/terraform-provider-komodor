@@ -42,11 +42,9 @@ resource "komodor_klaudia_file" "blueprint" {
 
 ### Optional
 
-> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
-
 - `checksum` (String) SHA-256 checksum used by Terraform to detect file content changes. Computed from `source_path` or `content` when available.
 - `clusters` (Block List, Max: 1) Optional cluster include/exclude scope for this file. (see [below for nested schema](#nestedblock--clusters))
-- `content` (String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Write-only file content supplied directly in configuration. This value is not persisted in plan or state. Requires Terraform 1.11 or newer.
+- `content` (String, Sensitive) Write-only file content supplied directly in configuration. This value is not persisted in plan or state. Requires Terraform 1.11 or newer.
 - `source_path` (String) Local path to read file content from. The path may be stored in state, but the file content is not.
 
 ### Read-Only
