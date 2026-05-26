@@ -738,7 +738,7 @@ func validateCrossBlocks(connectivity, mcpServer, auth map[string]interface{}, m
 			forbidden := strings.ToLower(headerName)
 			for name := range stringifyMap(mcpServer["headers"]) {
 				if strings.ToLower(name) == forbidden {
-					return fmt.Errorf("mcp_server.headers must not contain %q; it collides with auth.static_token.header_name. Use auth.static_token to set this header.", name)
+					return fmt.Errorf("mcp_server.headers must not contain %q; it collides with auth.static_token.header_name — use auth.static_token to set this header", name)
 				}
 			}
 		}
