@@ -16,7 +16,6 @@ func init() {
 var accTestMCPIntegrationID, accTestMCPSkillID string
 
 func TestAcc_komodor_mcp_integration_basic(t *testing.T) {
-	t.SkipNow()
 	skillName := testResourceName("mcp-skill")
 	intName := testResourceName("mcp")
 	updatedName := intName + "-updated"
@@ -88,7 +87,6 @@ func testAccCheckMCPIntegrationAndSkillDestroyed(s *terraform.State) error {
 }
 
 func TestAcc_komodor_mcp_integration_token_exchange(t *testing.T) {
-	t.SkipNow()
 	skillName := testResourceName("te-skill")
 	intName := testResourceName("te-mcp")
 	updatedName := intName + "-updated"
@@ -162,14 +160,13 @@ resource "komodor_mcp_integration" "te_test" {
         value = "test-subject-token"
         type  = "urn:ietf:params:oauth:token-type:jwt"
       }
+	  actor_token {
+		type = "urn:ietf:params:oauth:token-type:jwt"
+		value = "test-actor-token"
+      }
 
       audience             = "mock-mcp-server"
       requested_token_type = "urn:ietf:params:oauth:token-type:access_token"
-    }
-
-    token_header {
-      name   = "Authorization"
-      format = "{token_type} {access_token}"
     }
 
     response {
@@ -219,11 +216,6 @@ resource "komodor_mcp_integration" "te_test" {
 
       audience             = "mock-mcp-server-v2"
       requested_token_type = "urn:ietf:params:oauth:token-type:access_token"
-    }
-
-    token_header {
-      name   = "Authorization"
-      format = "{token_type} {access_token}"
     }
 
     response {

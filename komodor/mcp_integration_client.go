@@ -37,6 +37,12 @@ type SubjectToken struct {
 	FilePath string `json:"file_path,omitempty"`
 }
 
+type ActorToken struct {
+	Type     string `json:"type,omitempty"`
+	Value    string `json:"value,omitempty"`
+	FilePath string `json:"file_path,omitempty"`
+}
+
 type TokenExchangeAuth struct {
 	TokenURL           string            `json:"token_url"`
 	GrantType          string            `json:"grant_type,omitempty"`
@@ -44,8 +50,7 @@ type TokenExchangeAuth struct {
 	Audience           string            `json:"audience,omitempty"`
 	Scope              string            `json:"scope,omitempty"`
 	RequestedTokenType string            `json:"requested_token_type,omitempty"`
-	ActorToken         string            `json:"actor_token,omitempty"`
-	ActorTokenType     string            `json:"actor_token_type,omitempty"`
+	ActorToken         *ActorToken       `json:"actor_token,omitempty"`
 	ClientID           string            `json:"client_id,omitempty"`
 	ClientSecret       string            `json:"client_secret,omitempty"`
 	ExtraParams        map[string]string `json:"extra_params,omitempty"`
@@ -60,16 +65,6 @@ type OAuth2Auth struct {
 	GrantType    string `json:"grant_type,omitempty"`
 }
 
-type CustomAuth struct {
-	TokenURL string            `json:"token_url"`
-	Body     map[string]string `json:"body,omitempty"`
-}
-
-type TokenHeader struct {
-	Name   string `json:"name,omitempty"`
-	Format string `json:"format"`
-}
-
 type ResponseConfig struct {
 	TokenField     string `json:"token_field,omitempty"`
 	TokenTypeField string `json:"token_type_field,omitempty"`
@@ -81,8 +76,6 @@ type AuthConfig struct {
 	StaticToken             *StaticTokenAuth   `json:"static_token,omitempty"`
 	TokenExchange           *TokenExchangeAuth `json:"token_exchange,omitempty"`
 	OAuth2ClientCredentials *OAuth2Auth        `json:"oauth2_client_credentials,omitempty"`
-	Custom                  *CustomAuth        `json:"custom,omitempty"`
-	TokenHeader             *TokenHeader       `json:"token_header,omitempty"`
 	Response                *ResponseConfig    `json:"response,omitempty"`
 }
 

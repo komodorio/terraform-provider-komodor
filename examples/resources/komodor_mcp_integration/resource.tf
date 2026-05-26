@@ -54,8 +54,6 @@ resource "komodor_mcp_integration" "tunnel_static_token" {
 }
 
 # Example 3: OAuth 2.0 client credentials.
-# `token_header` is singular and contains a single template injecting the acquired
-# token into the request header(s).
 resource "komodor_mcp_integration" "oauth2" {
   name     = "my-oauth2-mcp"
   skill_id = komodor_klaudia_skill.example.id
@@ -79,15 +77,10 @@ resource "komodor_mcp_integration" "oauth2" {
       scope         = "mcp:read mcp:write"
       audience      = "secure-mcp"
     }
-
-    token_header {
-      name   = "Authorization"
-      format = "{token_type} {access_token}"
-    }
   }
 }
 
-# Example 4: Token exchange (RFC 8693) with the token injected into a custom header.
+# Example 4: Token exchange (RFC 8693).
 resource "komodor_mcp_integration" "token_exchange" {
   name     = "my-oauth-mcp"
   skill_id = komodor_klaudia_skill.example.id
@@ -120,55 +113,6 @@ resource "komodor_mcp_integration" "token_exchange" {
       }
 
       requested_token_type = "urn:ietf:params:oauth:token-type:access_token"
-    }
-
-    token_header {
-      name   = "Authorization"
-      format = "{token_type} {access_token}"
-    }
-
-    response {
-      token_field      = "access_token"
-      token_type_field = "token_type"
-      expires_in_field = "expires_in"
-    }
-  }
-}
-
-# Example 5: Custom auth — POST form body to a token URL, then call MCP with the issued token.
-resource "komodor_mcp_integration" "custom_token" {
-  name     = "my-custom-auth-mcp"
-  skill_id = komodor_klaudia_skill.example.id
-
-  connectivity {
-    mode = "public"
-  }
-
-  mcp_server {
-    url       = "https://mcp.example.com/mcp"
-    transport = "sse"
-    # Optional static (non-auth) headers on every MCP request.
-    headers = {
-      "X-Client-Name" = "klaudia-terraform"
-    }
-  }
-
-  auth {
-    method = "custom"
-
-    custom {
-      # Klaudia POSTs x-www-form-urlencoded to this URL using the body fields below.
-      token_url = "https://auth.example.com/issue-token"
-      body = {
-        grant_type    = "client_credentials"
-        client_id     = "my-client-id"
-        client_secret = "my-client-secret" # prefer var.sensitive + Vault; values appear in tfstate
-      }
-    }
-
-    token_header {
-      name   = "Authorization"
-      format = "{token_type} {access_token}"
     }
 
     response {

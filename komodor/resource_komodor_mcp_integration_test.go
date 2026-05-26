@@ -100,31 +100,6 @@ func TestValidateAuthMethodBlock_TokenExchangeAcceptsValueOnly(t *testing.T) {
 	}
 }
 
-func TestValidateAuthMethodBlock_CustomRequiresTokenURL(t *testing.T) {
-	auth := map[string]interface{}{
-		"custom": []interface{}{
-			map[string]interface{}{"token_url": ""},
-		},
-	}
-	err := validateAuthMethodBlock("custom", auth)
-	if err == nil {
-		t.Fatalf("expected missing token_url error")
-	}
-}
-
-func TestValidateTokenHeaderFormat_KnownPlaceholdersOk(t *testing.T) {
-	if err := validateTokenHeaderFormat("{token_type} {access_token}"); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestValidateTokenHeaderFormat_UnknownPlaceholderRejected(t *testing.T) {
-	err := validateTokenHeaderFormat("Bearer {token}")
-	if err == nil {
-		t.Fatalf("expected unknown placeholder error")
-	}
-}
-
 // flattenAuth round-trip: redacted secrets returned by the API must NOT leak
 // into terraform state.
 func TestFlattenAuth_OmitsRedactedSecrets(t *testing.T) {
@@ -176,5 +151,220 @@ func TestFlattenConnectivity_Public(t *testing.T) {
 	}
 	if _, ok := c[0]["agent_tunnel"]; ok {
 		t.Fatalf("expected no agent_tunnel block for public mode")
+	}
+}
+
+func TestValidateAuthMethodBlock_TokenExchangeActorTokenXOR(t *testing.T) {
+	auth := map[string]interface{}{
+		"token_exchange": []interface{}{
+			map[string]interface{}{
+				"subject_token": []interface{}{
+					map[string]interface{}{
+						"value": "subj",
+						"type":  "urn:ietf:params:oauth:token-type:jwt",
+					},
+				},
+				"actor_token": []interface{}{
+					map[string]interface{}{
+						"value":     "a",
+						"file_path": "/x",
+					},
+				},
+			},
+		},
+	}
+	err := validateAuthMethodBlock("token_exchange", auth)
+	if err == nil {
+		t.Fatalf("expected actor_token xor validation error")
+	}
+}
+
+func TestValidateAuthMethodBlock_TokenExchangeActorTokenValueOnly(t *testing.T) {
+	auth := map[string]interface{}{
+		"token_exchange": []interface{}{
+			map[string]interface{}{
+				"subject_token": []interface{}{
+					map[string]interface{}{
+						"value": "subj",
+						"type":  "urn:ietf:params:oauth:token-type:jwt",
+					},
+				},
+				"actor_token": []interface{}{
+					map[string]interface{}{
+						"value": "act",
+						"type":  "urn:ietf:params:oauth:token-type:access_token",
+					},
+				},
+			},
+		},
+	}
+	if err := validateAuthMethodBlock("token_exchange", auth); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateAuthMethodBlock_RejectsExtraStaticTokenBlock(t *testing.T) {
+	auth := map[string]interface{}{
+		"static_token": []interface{}{
+			map[string]interface{}{"value": "tok"},
+		},
+		"oauth2_client_credentials": []interface{}{
+			map[string]interface{}{
+				"token_url":     "https://auth.example.com/token",
+				"client_id":     "id",
+				"client_secret": "secret",
+			},
+		},
+	}
+	err := validateAuthMethodBlock("static_token", auth)
+	if err == nil {
+		t.Fatalf("expected exclusivity error when an extra method block is set")
+	}
+}
+
+func TestValidateAuthMethodBlock_RejectsExtraTokenExchangeBlockUnderOAuth(t *testing.T) {
+	auth := map[string]interface{}{
+		"oauth2_client_credentials": []interface{}{
+			map[string]interface{}{
+				"token_url":     "https://auth.example.com/token",
+				"client_id":     "id",
+				"client_secret": "secret",
+			},
+		},
+		"token_exchange": []interface{}{
+			map[string]interface{}{
+				"token_url": "https://auth.example.com/te",
+				"subject_token": []interface{}{
+					map[string]interface{}{"value": "subj", "type": "urn:ietf:params:oauth:token-type:jwt"},
+				},
+			},
+		},
+	}
+	err := validateAuthMethodBlock("oauth2_client_credentials", auth)
+	if err == nil {
+		t.Fatalf("expected exclusivity error when an extra method block is set")
+	}
+}
+
+func TestValidateCrossBlocks_SubjectTokenFilePathRequiresAgentTunnel(t *testing.T) {
+	connectivity := map[string]interface{}{"mode": "public"}
+	auth := map[string]interface{}{
+		"method": "token_exchange",
+		"token_exchange": []interface{}{
+			map[string]interface{}{
+				"subject_token": []interface{}{
+					map[string]interface{}{
+						"file_path": "/var/run/secrets/token",
+						"type":      "urn:ietf:params:oauth:token-type:jwt",
+					},
+				},
+			},
+		},
+	}
+	err := validateCrossBlocks(connectivity, nil, auth, "token_exchange")
+	if err == nil {
+		t.Fatalf("expected agent-tunnel requirement error for subject_token.file_path")
+	}
+}
+
+func TestValidateCrossBlocks_SubjectTokenFilePathOkWithAgentTunnel(t *testing.T) {
+	connectivity := map[string]interface{}{"mode": "agent-tunnel"}
+	auth := map[string]interface{}{
+		"method": "token_exchange",
+		"token_exchange": []interface{}{
+			map[string]interface{}{
+				"subject_token": []interface{}{
+					map[string]interface{}{
+						"file_path": "/var/run/secrets/token",
+						"type":      "urn:ietf:params:oauth:token-type:jwt",
+					},
+				},
+			},
+		},
+	}
+	if err := validateCrossBlocks(connectivity, nil, auth, "token_exchange"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateCrossBlocks_ActorTokenFilePathRequiresAgentTunnel(t *testing.T) {
+	connectivity := map[string]interface{}{"mode": "public"}
+	auth := map[string]interface{}{
+		"method": "token_exchange",
+		"token_exchange": []interface{}{
+			map[string]interface{}{
+				"subject_token": []interface{}{
+					map[string]interface{}{
+						"value": "subj",
+						"type":  "urn:ietf:params:oauth:token-type:jwt",
+					},
+				},
+				"actor_token": []interface{}{
+					map[string]interface{}{
+						"file_path": "/var/run/secrets/actor",
+					},
+				},
+			},
+		},
+	}
+	err := validateCrossBlocks(connectivity, nil, auth, "token_exchange")
+	if err == nil {
+		t.Fatalf("expected agent-tunnel requirement error for actor_token.file_path")
+	}
+}
+
+func TestValidateCrossBlocks_HeadersCollideWithStaticTokenHeaderName(t *testing.T) {
+	mcpServer := map[string]interface{}{
+		"headers": map[string]interface{}{"authorization": "Bearer leaked"},
+	}
+	auth := map[string]interface{}{
+		"method": "static_token",
+		"static_token": []interface{}{
+			map[string]interface{}{"value": "tok", "header_name": "Authorization"},
+		},
+	}
+	err := validateCrossBlocks(map[string]interface{}{"mode": "public"}, mcpServer, auth, "static_token")
+	if err == nil {
+		t.Fatalf("expected collision error between mcp_server.headers and static_token.header_name")
+	}
+}
+
+func TestValidateCrossBlocks_HeadersDoNotCollideForOtherHeaders(t *testing.T) {
+	mcpServer := map[string]interface{}{
+		"headers": map[string]interface{}{"X-Client-Name": "klaudia"},
+	}
+	auth := map[string]interface{}{
+		"method": "static_token",
+		"static_token": []interface{}{
+			map[string]interface{}{"value": "tok", "header_name": "Authorization"},
+		},
+	}
+	if err := validateCrossBlocks(map[string]interface{}{"mode": "public"}, mcpServer, auth, "static_token"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestFlattenTokenExchange_OmitsRedactedActorTokenValue(t *testing.T) {
+	te := flattenTokenExchange(&TokenExchangeAuth{
+		TokenURL: "https://auth.example.com/token",
+		SubjectToken: SubjectToken{
+			Type:  "urn:ietf:params:oauth:token-type:jwt",
+			Value: "subj",
+		},
+		ActorToken: &ActorToken{
+			Type:  "urn:ietf:params:oauth:token-type:access_token",
+			Value: redactedSecretPlaceholder,
+		},
+	}, nil)
+	if len(te) != 1 {
+		t.Fatalf("expected one token_exchange block")
+	}
+	m := te[0]
+	actor := m["actor_token"].([]map[string]interface{})[0]
+	if _, ok := actor["value"]; ok {
+		t.Fatalf("expected actor_token.value to be omitted when API returns redacted placeholder")
+	}
+	if actor["type"] != "urn:ietf:params:oauth:token-type:access_token" {
+		t.Fatalf("expected actor type preserved, got %v", actor["type"])
 	}
 }
