@@ -99,10 +99,6 @@ resource "komodor_klaudia_file" "test" {
   type        = %q
   filename    = %q
   source_path = %q
-
-  clusters {
-    include = ["*"]
-  }
 }
 `, fileType, filename, sourcePath)
 }

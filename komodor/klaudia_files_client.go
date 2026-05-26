@@ -51,7 +51,7 @@ func (c *Client) ListKlaudiaFiles(fileType string) (*KlaudiaFileListResponse, in
 }
 
 func (c *Client) UploadKlaudiaFile(fileType string, file klaudiaFilePayload, clusters *KlaudiaFileClusters) (*KlaudiaFileListResponse, error) {
-	body, contentType, err := buildKlaudiaFileMultipartBody([]klaudiaFilePayload{file}, clusters, true)
+	body, contentType, err := buildKlaudiaFileMultipartBody([]klaudiaFilePayload{file}, "files", clusters, true)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (c *Client) UpdateKlaudiaFile(fileType string, fileID string, file *klaudia
 		files = append(files, *file)
 	}
 
-	body, contentType, err := buildKlaudiaFileMultipartBody(files, clusters, false)
+	body, contentType, err := buildKlaudiaFileMultipartBody(files, "file", clusters, false)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -115,12 +115,12 @@ type klaudiaFilePayload struct {
 	Content  []byte
 }
 
-func buildKlaudiaFileMultipartBody(files []klaudiaFilePayload, clusters *KlaudiaFileClusters, clustersAsArray bool) (*bytes.Buffer, string, error) {
+func buildKlaudiaFileMultipartBody(files []klaudiaFilePayload, fileFieldName string, clusters *KlaudiaFileClusters, clustersAsArray bool) (*bytes.Buffer, string, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
 	for _, file := range files {
-		part, err := writer.CreateFormFile("files", file.Filename)
+		part, err := writer.CreateFormFile(fileFieldName, file.Filename)
 		if err != nil {
 			return nil, "", err
 		}
