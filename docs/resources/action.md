@@ -52,12 +52,12 @@ resource "komodor_policy_v2" "komo-example-policy" {
 
 ### Required
 
-- `action` (String)
-- `description` (String)
-- `ruleset` (String)
+- `action` (String) The name of the custom Kubernetes action.
+- `description` (String) A human-readable description of what this action does.
+- `ruleset` (String) JSON-encoded list of Kubernetes RBAC rules defining the permitted API groups, resources, and verbs.
 
 ### Read-Only
 
-- `created_at` (String)
-- `id` (String) The ID of this resource.
-- `updated_at` (String)
+- `created_at` (String) The date and time when the action was created.
+- `id` (String) The unique identifier of the action.
+- `updated_at` (String) The date and time when the action was last updated.

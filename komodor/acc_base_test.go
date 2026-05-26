@@ -1,6 +1,7 @@
 package komodor
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -88,6 +89,21 @@ func cleanupOrphanedAccResources() {
 		}
 	} else {
 		log.Printf("[CLEANUP] could not list custom k8s actions: %s", err)
+	}
+
+	// Right-sizing policies (uses the layered client built from the existing one)
+	rspClient := newRightSizingPoliciesClient(newRightSizingHTTP(client.BaseURL, client.ApiKey))
+	if rows, err := rspClient.GetAll(context.Background()); err == nil {
+		for _, row := range rows {
+			if strings.HasPrefix(row.Name, accTestPrefix) {
+				log.Printf("[CLEANUP] deleting orphaned right-sizing policy: %s (%s)", row.Name, row.Id)
+				if err := rspClient.Delete(context.Background(), row.Id, true); err != nil {
+					log.Printf("[CLEANUP] failed to delete right-sizing policy %s: %s", row.Id, err)
+				}
+			}
+		}
+	} else {
+		log.Printf("[CLEANUP] could not list right-sizing policies: %s", err)
 	}
 }
 

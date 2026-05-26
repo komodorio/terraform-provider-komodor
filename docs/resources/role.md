@@ -25,7 +25,7 @@ resource "komodor_role" "my-role" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the role.
 
 ### Optional
 
@@ -33,6 +33,6 @@ resource "komodor_role" "my-role" {
 
 ### Read-Only
 
-- `created_at` (String)
-- `id` (String) The ID of this resource.
-- `updated_at` (String)
+- `created_at` (String) The date and time when the role was created.
+- `id` (String) The unique identifier of the role.
+- `updated_at` (String) The date and time when the role was last updated.

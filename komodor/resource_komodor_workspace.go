@@ -26,26 +26,31 @@ func resourceKomodorWorkspace() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.NoZeroValues,
+				Description:  "The name of the workspace.",
 			},
 			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A human-readable description of the workspace.",
 			},
 			"scopes": {
-				Type:     schema.TypeList,
-				Required: true,
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "One or more scopes defining the Kubernetes resources visible in this workspace.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"clusters": {
-							Type:     schema.TypeList,
-							Optional: true,
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "List of cluster names to include in the scope.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
 						},
 						"namespaces": {
-							Type:     schema.TypeList,
-							Optional: true,
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "List of namespace names to include in the scope.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -66,24 +71,29 @@ func resourceKomodorWorkspace() *schema.Resource {
 				},
 			},
 			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The unique identifier of the workspace.",
 			},
 			"created_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The date and time when the workspace was created.",
 			},
 			"updated_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The date and time when the workspace was last updated.",
 			},
 			"author_email": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The email of the user who created the workspace.",
 			},
 			"last_updated_by_email": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The email of the user who last updated the workspace.",
 			},
 		},
 	}
