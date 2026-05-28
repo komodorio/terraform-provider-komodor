@@ -80,7 +80,7 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				ValidateDiagFunc: validateUnsupportedString("apply_protocol", applyProtocols),
-				Description:      `When to apply right-sizing changes. One of: "immediate", "onCreation".`,
+				Description:      "When to apply right-sizing changes. One of: `immediate`, `onCreation`. **Note:** `immediate` materializes workload override records for every matching workload as soon as the policy is created, independent of `allow_restart`. Destroying such a policy without `force_delete = true` will return `POLICY_HAS_OVERRIDES` (HTTP 409); see `force_delete` for guidance on when to enable it.",
 			},
 			"allow_restart": {
 				Type:        schema.TypeBool,
@@ -129,7 +129,7 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "When true, cascade-deletes any active workload overrides on destroy. Has no effect on create/update.",
+				Description: "When `true`, cascade-deletes any active workload override records on destroy. Has no effect on create/update. **Recommended for any policy intended for `terraform destroy`**, especially when `apply_protocol = \"immediate\"` or the scope is broad — without it, destroy returns `POLICY_HAS_OVERRIDES` (HTTP 409) whenever override records exist for the policy.",
 			},
 
 			"id": {
@@ -164,9 +164,12 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 func costRSPScopeResource() *schema.Resource {
 	stringList := func(desc string) *schema.Schema {
 		return &schema.Schema{
-			Type:        schema.TypeList,
-			Optional:    true,
-			Elem:        &schema.Schema{Type: schema.TypeString},
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Schema{
+				Type:             schema.TypeString,
+				ValidateDiagFunc: warnLiteralStarInExactList,
+			},
 			Description: desc,
 		}
 	}
@@ -181,14 +184,14 @@ func costRSPScopeResource() *schema.Resource {
 	}
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"clusters":                stringList("Exact cluster names. The string `\"*\"` is treated literally — to match all clusters, use `clusters_patterns { include = \"*\" }` instead. Mutually exclusive with clusters_patterns."),
-			"clusters_patterns":       patternBlock("Glob pattern for cluster names (`include = \"*\"` matches all). Mutually exclusive with clusters."),
-			"namespaces":              stringList("Exact namespace names. The string `\"*\"` is treated literally — to match all namespaces, use `namespaces_patterns { include = \"*\" }` instead. Mutually exclusive with namespaces_patterns."),
-			"namespaces_patterns":     patternBlock("Glob pattern for namespace names (`include = \"*\"` matches all). Mutually exclusive with namespaces."),
+			"clusters":                stringList("Required — provide via this field or `clusters_patterns`. Exact cluster names. The string `\"*\"` is treated literally — to match all clusters, use `clusters_patterns { include = \"*\" }` instead. Mutually exclusive with clusters_patterns."),
+			"clusters_patterns":       patternBlock("Required — provide via this block or the exact `clusters` list. Glob pattern for cluster names (`include = \"*\"` matches all). Mutually exclusive with clusters."),
+			"namespaces":              stringList("Required — provide via this field or `namespaces_patterns`. Exact namespace names. The string `\"*\"` is treated literally — to match all namespaces, use `namespaces_patterns { include = \"*\" }` instead. Mutually exclusive with namespaces_patterns."),
+			"namespaces_patterns":     patternBlock("Required — provide via this block or the exact `namespaces` list. Glob pattern for namespace names (`include = \"*\"` matches all). Mutually exclusive with namespaces."),
 			"resource_types":          stringList("Workload kinds (e.g., Deployment, StatefulSet). The string `\"*\"` is treated literally — to match all kinds, use `resource_types_patterns { include = \"*\" }` instead. Mutually exclusive with resource_types_patterns."),
 			"resource_types_patterns": patternBlock("Glob pattern for workload kinds (`include = \"*\"` matches all). Mutually exclusive with resource_types."),
-			"workload_names":          stringList("Exact workload names. The string `\"*\"` is treated literally — to match all workloads, use `workload_names_patterns { include = \"*\" }` instead. Mutually exclusive with workload_names_patterns."),
-			"workload_names_patterns": patternBlock("Glob pattern for workload names (`include = \"*\"` matches all). Mutually exclusive with workload_names."),
+			"workload_names":          stringList("Required — provide via this field or `workload_names_patterns`. Exact workload names. The string `\"*\"` is treated literally — to match all workloads, use `workload_names_patterns { include = \"*\" }` instead. Mutually exclusive with workload_names_patterns."),
+			"workload_names_patterns": patternBlock("Required — provide via this block or the exact `workload_names` list. Glob pattern for workload names (`include = \"*\"` matches all). Mutually exclusive with workload_names."),
 		},
 	}
 }
