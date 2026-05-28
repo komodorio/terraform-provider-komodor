@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,6 +32,36 @@ func TestWarnLiteralStarInExactList(t *testing.T) {
 				assert.Equal(t, path, diags[0].AttributePath, "diagnostic must be anchored to the attribute path")
 				assert.Contains(t, diags[0].Detail, `*_patterns`, "detail should suggest the *_patterns alternative")
 			}
+		})
+	}
+}
+
+func TestScopeStringFields_WireLiteralStarWarning(t *testing.T) {
+	scopeRes := costRSPScopeResource()
+	fields := []string{"clusters", "namespaces", "resource_types", "workload_names"}
+
+	for _, field := range fields {
+		t.Run(field, func(t *testing.T) {
+			fieldSchema, ok := scopeRes.Schema[field]
+			if !assert.True(t, ok, "scope schema must define %q", field) {
+				return
+			}
+			elem, ok := fieldSchema.Elem.(*schema.Schema)
+			if !assert.True(t, ok, "field %q must use *schema.Schema as Elem", field) {
+				return
+			}
+			if !assert.NotNil(t, elem.ValidateDiagFunc, "field %q must wire ValidateDiagFunc on its element", field) {
+				return
+			}
+			path := cty.GetAttrPath(field).IndexInt(0)
+
+			warn := elem.ValidateDiagFunc("*", path)
+			if assert.Len(t, warn, 1, "field %q must warn on literal *", field) {
+				assert.Equal(t, diag.Warning, warn[0].Severity)
+			}
+
+			none := elem.ValidateDiagFunc("real-name", path)
+			assert.Empty(t, none, "field %q must not warn on a normal value", field)
 		})
 	}
 }
