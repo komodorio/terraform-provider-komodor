@@ -177,6 +177,19 @@ func userProvidedGuardRails(d *schema.ResourceDiff) bool {
 	return gr.LengthInt() > 0
 }
 
+func warnLiteralStarInExactList(v interface{}, p cty.Path) diag.Diagnostics {
+	s, ok := v.(string)
+	if !ok || s != "*" {
+		return nil
+	}
+	return diag.Diagnostics{{
+		Severity:      diag.Warning,
+		Summary:       `"*" in an exact-match scope list is literal, not a wildcard`,
+		Detail:        `To match all items, use the corresponding *_patterns block with include = "*" instead. The literal "*" matches only an entity whose name is the single character "*", which is almost never intended.`,
+		AttributePath: p,
+	}}
+}
+
 func validateUnsupportedString(field string, allowed []string) schema.SchemaValidateDiagFunc {
 	return func(v interface{}, _ cty.Path) diag.Diagnostics {
 		val, ok := v.(string)
