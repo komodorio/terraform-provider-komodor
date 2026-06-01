@@ -133,14 +133,16 @@ resource "komodor_cost_right_sizing_policy" "production" {
   # in-scope if it matches ANY block. This lets a single policy cover a broad
   # set AND carve in specific extras that wouldn't be matched by the first.
 
-  # Primary scope — Deployments and StatefulSets in the four service
-  # namespaces across all three prod clusters.
   scope {
-    clusters       = ["prod-us-east-1", "prod-eu-west-1", "prod-ap-southeast-2"]
-    namespaces     = ["payments", "checkout", "auth", "api"]
+    clusters = ["prod-us-east-1", "prod-eu-west-1", "prod-ap-southeast-2"]
+    namespaces_patterns {
+      include = "prod-*"
+      exclude = "prod-experimental-*"
+    }
     resource_types = ["Deployment", "StatefulSet"]
     workload_names_patterns {
       include = "*"
+      exclude = "*-canary"
     }
   }
 
