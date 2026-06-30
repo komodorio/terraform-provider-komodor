@@ -15,7 +15,7 @@ func init() {
 }
 
 func TestAcc_komodor_cost_right_sizing_policy_named_preset(t *testing.T) {
-	name := testResourceName("cost-rsp-named")
+	name := testResourceName(t, "cost-rsp-named")
 	resourceAddr := "komodor_cost_right_sizing_policy.test"
 
 	resource.Test(t, resource.TestCase{
@@ -63,7 +63,7 @@ func TestAcc_komodor_cost_right_sizing_policy_named_preset(t *testing.T) {
 }
 
 func TestAcc_komodor_cost_right_sizing_policy_custom_preset(t *testing.T) {
-	name := testResourceName("cost-rsp-custom")
+	name := testResourceName(t, "cost-rsp-custom")
 	resourceAddr := "komodor_cost_right_sizing_policy.test"
 
 	resource.Test(t, resource.TestCase{

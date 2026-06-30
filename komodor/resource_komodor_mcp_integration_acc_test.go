@@ -17,8 +17,8 @@ var accTestMCPIntegrationID, accTestMCPSkillID string
 
 func TestAcc_komodor_mcp_integration_basic(t *testing.T) {
 	t.SkipNow()
-	skillName := testResourceName("mcp-skill")
-	intName := testResourceName("mcp")
+	skillName := testResourceName(t, "mcp-skill")
+	intName := testResourceName(t, "mcp")
 	updatedName := intName + "-updated"
 	intAddr := "komodor_mcp_integration.test"
 	skillAddr := "komodor_klaudia_skill.for_mcp"
@@ -89,8 +89,8 @@ func testAccCheckMCPIntegrationAndSkillDestroyed(s *terraform.State) error {
 
 func TestAcc_komodor_mcp_integration_token_exchange(t *testing.T) {
 	t.SkipNow()
-	skillName := testResourceName("te-skill")
-	intName := testResourceName("te-mcp")
+	skillName := testResourceName(t, "te-skill")
+	intName := testResourceName(t, "te-mcp")
 	updatedName := intName + "-updated"
 	intAddr := "komodor_mcp_integration.te_test"
 	skillAddr := "komodor_klaudia_skill.te_skill"

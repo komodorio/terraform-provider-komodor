@@ -41,6 +41,15 @@ func cleanupOrphanedAccResources() {
 	// Roles
 	if roles, err := client.GetRoles(); err == nil {
 		for _, role := range roles {
+			if role.Name == "viewer" {
+				log.Printf("[CLEANUP] Resetting default role: %s (%s)", role.Name, role.Id)
+				if _, err := client.UpdateRole(role.Id, &NewRole{
+					Name:      role.Name,
+					IsDefault: true,
+				}); err != nil {
+					log.Printf("[CLEANUP] failed to reset default role %s: %s", role.Id, err)
+				}
+			}
 			if strings.HasPrefix(role.Name, accTestPrefix) {
 				log.Printf("[CLEANUP] deleting orphaned role: %s (%s)", role.Name, role.Id)
 				if err := client.DeleteRole(role.Id); err != nil {
@@ -113,6 +122,7 @@ func testAccPreCheck(t *testing.T) {
 // given type. Using a fixed (non-random) name combined with concurrency: 1 in
 // the Buildkite pipeline ensures that any resource left from a previous crashed
 // run is overwritten or cleaned up predictably.
-func testResourceName(resourceType string) string {
-	return fmt.Sprintf("%s%s-test", accTestPrefix, resourceType)
+func testResourceName(t *testing.T, resourceType string) string {
+	t.Helper()
+	return fmt.Sprintf("%s-%s-%s", accTestPrefix, t.Name(), resourceType)
 }
