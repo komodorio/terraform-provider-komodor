@@ -93,6 +93,11 @@ func (c *Client) GetKlaudiaMCPIntegrationsUrl() string {
 	return c.GetKlaudiaV2Endpoint() + "/integrations/mcp"
 }
 
+// GetKlaudiaFilesUrl returns the Klaudia files endpoint for a file type.
+func (c *Client) GetKlaudiaFilesUrl(fileType string) string {
+	return c.GetKlaudiaV2Endpoint() + "/files/" + fileType
+}
+
 // prepareRequest creates a new HTTP request with the necessary headers
 func (c *Client) prepareRequest(method, url string, body *[]byte) (*http.Request, error) {
 	var reader io.Reader
