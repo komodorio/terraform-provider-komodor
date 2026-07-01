@@ -1,0 +1,55 @@
+# ── Nightly validation pipeline — terraform-provider-komodor ────────────────
+# Purpose: run the Terraform acceptance tests every day against the LIVE Komodor
+# API to catch upstream API changes that silently break the provider ("API
+# drift") even when no provider code changed. This is a scheduled, non-commit
+# pipeline — wire it to a daily Buildkite *Build Schedule* (see the PR body /
+# repo docs), pointing this pipeline's upload step at this file:
+#     buildkite-agent pipeline upload .buildkite/pipeline.nightly.yml
+#
+# It reuses the SAME acceptance-test credential path (AWS SSM) and — crucially —
+# the SAME concurrency group as .buildkite/pipeline.yml, so a nightly run can
+# never run concurrently with a PR-triggered acceptance-test run (both create
+# real `tf-acc-`-prefixed resources against the live API).
+
+# ── YAML Anchors ──────────────────────────────────────────────────────────
+x-config:
+  agents: &dind
+    builder: "dind"
+
+  go_env: &go_env
+    GO111MODULE: "on"
+    GOFLAGS: "-buildvcs=false"
+
+steps:
+  # ── Coverage gate: every resource/data source has an acceptance test ──────
+  - label: ":white_check_mark: Acc Test Coverage"
+    command: go test -v -run TestAccCoverage ./komodor/...
+    agents: *dind
+    env: *go_env
+
+  - wait
+
+  # ── Live API validation: the actual daily drift check ─────────────────────
+  - label: ":terraform: Acceptance Tests (nightly API validation)"
+    command: |
+      go mod download
+      TF_ACC=1 go test -v -run TestAcc ./komodor/... -timeout 60m
+    concurrency: 1
+    concurrency_group: "komodor/terraform-provider/e2e"
+    agents: *dind
+    plugins:
+      - zacharymctague/aws-ssm#v1.0.0:
+          parameters:
+            KOMODOR_API_KEY: /app/ci/terraform-provider/KOMODOR-API-KEY
+    env:
+      GO111MODULE: "on"
+      KOMODOR_API_KEY: "$KOMODOR_API_KEY"
+      KOMODOR_API_URL: "$KOMODOR_API_URL"
+
+# ── Alerting: a slipped API change should page us, not sit silently ─────────
+# Fires only on a failed nightly build. Uses the org's Buildkite → Slack
+# notification integration; if the workspace/channel isn't connected it is a
+# safe no-op (see PR body / test plan).
+notify:
+  - slack: "#devops-agent"
+    if: build.state == "failed"
