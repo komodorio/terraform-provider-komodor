@@ -94,6 +94,10 @@ func resourceKomodorCostRightSizingWorkloadOverride() *schema.Resource {
 }
 
 func resourceKomodorCostRightSizingWorkloadOverrideCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	// skip when policy_id is unknown at plan time (e.g. a reference to a policy created in the same apply)
+	if !d.NewValueKnown("policy_id") {
+		return nil
+	}
 	return validateWorkloadOverridePolicyID(d.Get("action").(string), d.Get("policy_id").(string))
 }
 
