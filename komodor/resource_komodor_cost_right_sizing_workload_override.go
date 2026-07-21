@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -32,36 +33,33 @@ func resourceKomodorCostRightSizingWorkloadOverride() *schema.Resource {
 			"cluster_name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				ValidateFunc: validation.NoZeroValues,
-				Description:  "Cluster of the target workload. Part of the workload's immutable identity — changing it forces a new resource.",
+				Description:  "Cluster of the target workload. Together with `namespace`, `kind`, and `name` it must be unique per account.",
 			},
 			"namespace": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				ValidateFunc: validation.NoZeroValues,
-				Description:  "Namespace of the target workload. Part of the workload's immutable identity — changing it forces a new resource.",
+				Description:  "Namespace of the target workload.",
 			},
 			"kind": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				ValidateFunc: validation.NoZeroValues,
-				Description:  "Workload kind (e.g., `Deployment`, `StatefulSet`, `DaemonSet`). Part of the workload's immutable identity — changing it forces a new resource.",
+				Description:  "Workload kind (e.g., `Deployment`, `StatefulSet`, `DaemonSet`).",
 			},
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				ValidateFunc: validation.NoZeroValues,
-				Description:  "Workload name. Part of the workload's immutable identity — changing it forces a new resource.",
+				Description:  "Workload name.",
 			},
 			"policy_id": {
 				Type:             schema.TypeString,
 				Optional:         true,
+				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsUUID),
-				Description:      "Right-sizing policy to pin the workload to. Required when `action = \"include\"`; optional (and typically omitted) when `action = \"exclude\"`.",
+				Description:      "Right-sizing policy to pin the workload to. Required when `action = \"include\"`. For `action = \"exclude\"` it is optional; if omitted the API retains any previously assigned policy, which is reflected as a computed value.",
 			},
 
 			"id": {
@@ -94,11 +92,25 @@ func resourceKomodorCostRightSizingWorkloadOverride() *schema.Resource {
 }
 
 func resourceKomodorCostRightSizingWorkloadOverrideCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
-	// skip when policy_id is unknown at plan time (e.g. a reference to a policy created in the same apply)
-	if !d.NewValueKnown("policy_id") {
+	// Inspect the raw config, not d.Get: policy_id is Computed, so d.Get can
+	// return a retained server value the user never set. Skip while unknown
+	// (e.g. a reference to a policy created in the same apply).
+	raw := d.GetRawConfig()
+	if raw.IsNull() || !raw.IsKnown() {
 		return nil
 	}
-	return validateWorkloadOverridePolicyID(d.Get("action").(string), d.Get("policy_id").(string))
+	action, policyID := raw.GetAttr("action"), raw.GetAttr("policy_id")
+	if !action.IsKnown() || !policyID.IsKnown() {
+		return nil
+	}
+	return validateWorkloadOverridePolicyID(ctyString(action), ctyString(policyID))
+}
+
+func ctyString(v cty.Value) string {
+	if v.IsNull() {
+		return ""
+	}
+	return v.AsString()
 }
 
 func validateWorkloadOverridePolicyID(action, policyID string) error {

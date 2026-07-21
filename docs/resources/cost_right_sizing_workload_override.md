@@ -58,14 +58,14 @@ resource "komodor_cost_right_sizing_workload_override" "exclude_legacy_db" {
 ### Required
 
 - `action` (String) Override action. One of: `include` (pin the workload to `policy_id`) or `exclude` (remove the workload from right-sizing automation).
-- `cluster_name` (String) Cluster of the target workload. Part of the workload's immutable identity — changing it forces a new resource.
-- `kind` (String) Workload kind (e.g., `Deployment`, `StatefulSet`, `DaemonSet`). Part of the workload's immutable identity — changing it forces a new resource.
-- `name` (String) Workload name. Part of the workload's immutable identity — changing it forces a new resource.
-- `namespace` (String) Namespace of the target workload. Part of the workload's immutable identity — changing it forces a new resource.
+- `cluster_name` (String) Cluster of the target workload. Together with `namespace`, `kind`, and `name` it must be unique per account.
+- `kind` (String) Workload kind (e.g., `Deployment`, `StatefulSet`, `DaemonSet`).
+- `name` (String) Workload name.
+- `namespace` (String) Namespace of the target workload.
 
 ### Optional
 
-- `policy_id` (String) Right-sizing policy to pin the workload to. Required when `action = "include"`; optional (and typically omitted) when `action = "exclude"`.
+- `policy_id` (String) Right-sizing policy to pin the workload to. Required when `action = "include"`. For `action = "exclude"` it is optional; if omitted the API retains any previously assigned policy, which is reflected as a computed value.
 
 ### Read-Only
 

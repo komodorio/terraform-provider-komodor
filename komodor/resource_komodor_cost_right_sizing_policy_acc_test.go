@@ -24,12 +24,12 @@ func TestAcc_komodor_cost_right_sizing_policy_named_preset(t *testing.T) {
 		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCostRSPConfigNamedPreset(name, "initial description", 100, []string{"team:cost"}),
+				Config: testAccCostRSPConfigNamedPreset(name, "initial description", 99, []string{"team:cost"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "name", name),
 					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
 					resource.TestCheckResourceAttr(resourceAddr, "optimization_preset", presetSandbox),
-					resource.TestCheckResourceAttr(resourceAddr, "priority", "100"),
+					resource.TestCheckResourceAttr(resourceAddr, "priority", "99"),
 					resource.TestCheckResourceAttr(resourceAddr, "description", "initial description"),
 					resource.TestCheckResourceAttrSet(resourceAddr, "created_at"),
 					resource.TestCheckResourceAttrSet(resourceAddr, "created_by"),
@@ -202,7 +202,7 @@ func testAccCostRSPConfigCustomPreset(name string, percentile int, cpuRequestsEn
 	return fmt.Sprintf(`
 resource "komodor_cost_right_sizing_policy" "test" {
   name                = %q
-  priority            = 100
+  priority            = 99
   optimization_preset = %q
   apply_protocol      = %q
   force_delete        = true
@@ -256,7 +256,7 @@ func testAccCostRSPConfigMultiScope(name string) string {
 	return fmt.Sprintf(`
 resource "komodor_cost_right_sizing_policy" "test" {
   name                = %q
-  priority            = 100
+  priority            = 99
   optimization_preset = %q
   apply_protocol      = %q
   force_delete        = true
