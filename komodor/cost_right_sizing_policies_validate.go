@@ -127,11 +127,17 @@ func validateGuardRailsPercentiles(d *schema.ResourceDiff) error {
 		return nil
 	}
 	gr := raw.AsValueSlice()[0]
+	return checkPercentileConfig(
+		rawConfigInt(gr, "percentile"),
+		rawConfigInt(gr, "cpu_percentile"),
+		rawConfigInt(gr, "memory_percentile"),
+	)
+}
 
-	shared := rawConfigInt(gr, "percentile")
-	cpu := rawConfigInt(gr, "cpu_percentile")
-	memory := rawConfigInt(gr, "memory_percentile")
-
+func checkPercentileConfig(shared, cpu, memory int) error {
+	if shared != 0 && (cpu != 0 || memory != 0) {
+		return fmt.Errorf(`"percentile" is mutually exclusive with "cpu_percentile"/"memory_percentile" — set the shared "percentile" or the two resource-specific fields, not both`)
+	}
 	if (cpu == 0 && shared == 0) || (memory == 0 && shared == 0) {
 		return fmt.Errorf(`guardrails requires a percentile for both CPU and memory: set "percentile" (applies to both) or set both "cpu_percentile" and "memory_percentile"`)
 	}

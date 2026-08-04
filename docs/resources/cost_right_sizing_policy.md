@@ -281,9 +281,9 @@ Optional:
 - `allow_qos_downgrade` (Boolean) Allow to Decrease QoS (Support savings). e.g. Guarantee → Burstable.
 - `allow_qos_upgrade` (Boolean) Allow to Increase QoS (Support reliability). e.g. BestEffort → Burstable → Guarantee.
 - `allow_right_sizing_up` (Boolean) Whether right-sizing may scale resources up.
-- `cpu_percentile` (Number) Usage percentile for CPU right-sizing. Falls back to `percentile` when unset. One of: 70, 80, 90, 95, 99.
-- `memory_percentile` (Number) Usage percentile for memory right-sizing. Falls back to `percentile` when unset. One of: 70, 80, 90, 95, 99.
-- `percentile` (Number, Deprecated) Deprecated: prefer `cpu_percentile` and `memory_percentile`. Shared usage percentile applied to both CPU and memory when the resource-specific fields are unset. One of: 70, 80, 90, 95, 99.
+- `cpu_percentile` (Number) Usage percentile for CPU right-sizing. Set together with `memory_percentile`; mutually exclusive with the deprecated `percentile`. One of: 70, 80, 90, 95, 99.
+- `memory_percentile` (Number) Usage percentile for memory right-sizing. Set together with `cpu_percentile`; mutually exclusive with the deprecated `percentile`. One of: 70, 80, 90, 95, 99.
+- `percentile` (Number, Deprecated) Deprecated: prefer `cpu_percentile` and `memory_percentile`. Shared usage percentile applied to both CPU and memory. Mutually exclusive with `cpu_percentile`/`memory_percentile`. One of: 70, 80, 90, 95, 99.
 
 <a id="nestedblock--guardrails--buffer"></a>
 ### Nested Schema for `guardrails.buffer`
