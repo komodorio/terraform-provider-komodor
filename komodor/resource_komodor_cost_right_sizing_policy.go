@@ -226,14 +226,12 @@ func costRSPGuardRailsResource() *schema.Resource {
 			"cpu_percentile": {
 				Type:             schema.TypeInt,
 				Optional:         true,
-				Computed:         true,
 				ValidateDiagFunc: validatePercentileOrUnset("cpu_percentile"),
 				Description:      "Usage percentile for CPU right-sizing. Set together with `memory_percentile`; mutually exclusive with the deprecated `percentile`. One of: 70, 80, 90, 95, 99.",
 			},
 			"memory_percentile": {
 				Type:             schema.TypeInt,
 				Optional:         true,
-				Computed:         true,
 				ValidateDiagFunc: validatePercentileOrUnset("memory_percentile"),
 				Description:      "Usage percentile for memory right-sizing. Set together with `cpu_percentile`; mutually exclusive with the deprecated `percentile`. One of: 70, 80, 90, 95, 99.",
 			},

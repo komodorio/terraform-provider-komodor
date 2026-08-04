@@ -144,6 +144,43 @@ func TestAcc_komodor_cost_right_sizing_policy_split_percentiles(t *testing.T) {
 	})
 }
 
+func TestAcc_komodor_cost_right_sizing_policy_percentile_cycle(t *testing.T) {
+	name := testResourceName("cost-rsp-cycle")
+	resourceAddr := "komodor_cost_right_sizing_policy.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCostRSPConfigPercentileBlock(name, "cpu_percentile    = 70\n    memory_percentile = 80"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.cpu_percentile", "70"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.memory_percentile", "80"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.percentile", "0"),
+				),
+			},
+			{
+				Config: testAccCostRSPConfigPercentileBlock(name, "percentile = 70"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.percentile", "70"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.cpu_percentile", "0"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.memory_percentile", "0"),
+				),
+			},
+			{
+				Config: testAccCostRSPConfigPercentileBlock(name, "cpu_percentile    = 90\n    memory_percentile = 95"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.cpu_percentile", "90"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.memory_percentile", "95"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.percentile", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestAcc_komodor_cost_right_sizing_policy_multi_scope(t *testing.T) {
 	name := testResourceName("cost-rsp-multi-scope")
 	resourceAddr := "komodor_cost_right_sizing_policy.test"
@@ -287,6 +324,10 @@ resource "komodor_cost_right_sizing_policy" "test" {
 }
 
 func testAccCostRSPConfigSplitPercentiles(name string, cpuPercentile, memoryPercentile int) string {
+	return testAccCostRSPConfigPercentileBlock(name, fmt.Sprintf("cpu_percentile    = %d\n    memory_percentile = %d", cpuPercentile, memoryPercentile))
+}
+
+func testAccCostRSPConfigPercentileBlock(name, percentileLines string) string {
 	return fmt.Sprintf(`
 resource "komodor_cost_right_sizing_policy" "test" {
   name                = %q
@@ -296,8 +337,7 @@ resource "komodor_cost_right_sizing_policy" "test" {
   force_delete        = true
 %s
   guardrails {
-    cpu_percentile    = %d
-    memory_percentile = %d
+    %s
 
     managed_resources {
       cpu_requests    = true
@@ -335,7 +375,7 @@ resource "komodor_cost_right_sizing_policy" "test" {
     }
   }
 }
-`, name, presetCustom, applyOnCreation, testAccCostRSPScope, cpuPercentile, memoryPercentile)
+`, name, presetCustom, applyOnCreation, testAccCostRSPScope, percentileLines)
 }
 
 func testAccCostRSPConfigMultiScope(name string) string {
