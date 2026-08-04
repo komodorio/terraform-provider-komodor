@@ -26,6 +26,8 @@ type RightSizingMultiScopePolicy struct {
 	Priority            int32                        `json:"priority"`
 	OptimizationPreset  string                       `json:"optimizationPreset"`
 	Percentile          *RightSizingPolicyPercentile `json:"percentile,omitempty"`
+	CpuPercentile       *RightSizingPolicyPercentile `json:"cpuPercentile,omitempty"`
+	MemoryPercentile    *RightSizingPolicyPercentile `json:"memoryPercentile,omitempty"`
 	ApplyProtocol       string                       `json:"applyProtocol"`
 	AllowQoSUpgrade     *string                      `json:"allowQoSUpgrade,omitempty"`
 	AllowQoSUpgradeV2   *bool                        `json:"allowQoSUpgradeV2,omitempty"`
@@ -164,6 +166,8 @@ type patternTFData struct {
 
 type guardRailsTFData struct {
 	Percentile          int
+	CpuPercentile       int
+	MemoryPercentile    int
 	ManagedResources    managedResourcesTFData
 	AllowRightSizingUp  bool
 	AllowQoSUpgrade     bool

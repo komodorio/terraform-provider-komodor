@@ -110,6 +110,40 @@ func TestAcc_komodor_cost_right_sizing_policy_custom_preset(t *testing.T) {
 	})
 }
 
+func TestAcc_komodor_cost_right_sizing_policy_split_percentiles(t *testing.T) {
+	name := testResourceName("cost-rsp-split-pct")
+	resourceAddr := "komodor_cost_right_sizing_policy.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCostRSPConfigSplitPercentiles(name, 90, 99),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.cpu_percentile", "90"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.memory_percentile", "99"),
+				),
+			},
+			{
+				Config: testAccCostRSPConfigSplitPercentiles(name, 95, 80),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.cpu_percentile", "95"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.memory_percentile", "80"),
+				),
+			},
+			{
+				ResourceName:            resourceAddr,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_delete"},
+			},
+		},
+	})
+}
+
 func TestAcc_komodor_cost_right_sizing_policy_multi_scope(t *testing.T) {
 	name := testResourceName("cost-rsp-multi-scope")
 	resourceAddr := "komodor_cost_right_sizing_policy.test"
@@ -250,6 +284,58 @@ resource "komodor_cost_right_sizing_policy" "test" {
   }
 }
 `, name, presetCustom, applyOnCreation, hclStringList(tags), testAccCostRSPScope, percentile, cpuRequestsEnabled)
+}
+
+func testAccCostRSPConfigSplitPercentiles(name string, cpuPercentile, memoryPercentile int) string {
+	return fmt.Sprintf(`
+resource "komodor_cost_right_sizing_policy" "test" {
+  name                = %q
+  priority            = 99
+  optimization_preset = %q
+  apply_protocol      = %q
+  force_delete        = true
+%s
+  guardrails {
+    cpu_percentile    = %d
+    memory_percentile = %d
+
+    managed_resources {
+      cpu_requests    = true
+      memory_requests = true
+    }
+
+    constraints {
+      decrease_cpu_by {
+        enabled = true
+        value   = 25
+      }
+      decrease_memory_by {
+        enabled = true
+        value   = 25
+      }
+      increase_cpu_by {
+        enabled = false
+        value   = 0
+      }
+      increase_memory_by {
+        enabled = false
+        value   = 0
+      }
+    }
+
+    buffer {
+      cpu {
+        enabled = true
+        value   = 10
+      }
+      memory {
+        enabled = true
+        value   = 10
+      }
+    }
+  }
+}
+`, name, presetCustom, applyOnCreation, testAccCostRSPScope, cpuPercentile, memoryPercentile)
 }
 
 func testAccCostRSPConfigMultiScope(name string) string {

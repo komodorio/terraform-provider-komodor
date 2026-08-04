@@ -9,6 +9,14 @@ func intFromPercentile(p *RightSizingPolicyPercentile) int {
 	return int(*p)
 }
 
+func percentilePtr(v int) *RightSizingPolicyPercentile {
+	if v == 0 {
+		return nil
+	}
+	p := RightSizingPolicyPercentile(v)
+	return &p
+}
+
 func qosUpgradeV1FromV2(v2 bool) string {
 	if v2 {
 		return qosUpgradeBestEffortToBurstable
@@ -37,8 +45,9 @@ func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopeP
 		api.AllowQoSUpgrade = stringPtr(qosUpgradeV1FromV2(tf.GuardRails.AllowQoSUpgrade))
 		api.AllowQoSUpgradeV2 = boolPtr(tf.GuardRails.AllowQoSUpgrade)
 		api.AllowQoSDowngrade = boolPtr(tf.GuardRails.AllowQoSDowngrade)
-		p := RightSizingPolicyPercentile(tf.GuardRails.Percentile)
-		api.Percentile = &p
+		api.Percentile = percentilePtr(tf.GuardRails.Percentile)
+		api.CpuPercentile = percentilePtr(tf.GuardRails.CpuPercentile)
+		api.MemoryPercentile = percentilePtr(tf.GuardRails.MemoryPercentile)
 	}
 	if len(tf.Tags) > 0 {
 		tags := tf.Tags
@@ -66,6 +75,12 @@ func apiToTFRightSizingPolicy(api RightSizingMultiScopePolicy) rightSizingPolicy
 		gr := apiToTFGuardRails(*api.GuardRails)
 		if api.Percentile != nil {
 			gr.Percentile = int(*api.Percentile)
+		}
+		if api.CpuPercentile != nil {
+			gr.CpuPercentile = int(*api.CpuPercentile)
+		}
+		if api.MemoryPercentile != nil {
+			gr.MemoryPercentile = int(*api.MemoryPercentile)
 		}
 		gr.AllowQoSUpgrade = boolValue(api.AllowQoSUpgradeV2)
 		gr.AllowQoSDowngrade = boolValue(api.AllowQoSDowngrade)
@@ -351,6 +366,8 @@ func expandPattern(v interface{}) *patternTFData {
 func expandGuardRails(m map[string]interface{}) guardRailsTFData {
 	gr := guardRailsTFData{
 		Percentile:         m["percentile"].(int),
+		CpuPercentile:      m["cpu_percentile"].(int),
+		MemoryPercentile:   m["memory_percentile"].(int),
 		AllowRightSizingUp: m["allow_right_sizing_up"].(bool),
 		AllowQoSUpgrade:    m["allow_qos_upgrade"].(bool),
 		AllowQoSDowngrade:  m["allow_qos_downgrade"].(bool),
@@ -494,6 +511,8 @@ func flattenGuardRails(gr *guardRailsTFData) []interface{} {
 	}
 	m := map[string]interface{}{
 		"percentile":            gr.Percentile,
+		"cpu_percentile":        gr.CpuPercentile,
+		"memory_percentile":     gr.MemoryPercentile,
 		"managed_resources":     flattenManagedResources(gr.ManagedResources),
 		"allow_right_sizing_up": gr.AllowRightSizingUp,
 		"allow_qos_upgrade":     gr.AllowQoSUpgrade,

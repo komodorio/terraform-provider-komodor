@@ -60,12 +60,14 @@ resource "komodor_cost_right_sizing_policy" "production_eu" {
 - `allow_qos_upgrade` (Boolean) Allow QoS upgrade.
 - `allow_restart` (Boolean) Whether Komodor may restart pods.
 - `apply_protocol` (String) When right-sizing changes apply.
+- `cpu_percentile` (Number) Usage percentile for CPU right-sizing.
 - `created_at` (String) Creation timestamp.
 - `created_by` (String) Email of the user who created the policy.
 - `description` (String) Free-text description of the policy.
 - `id` (String) Server-generated unique identifier.
+- `memory_percentile` (Number) Usage percentile for memory right-sizing.
 - `optimization_preset` (String) Optimization preset.
-- `percentile` (Number) Usage percentile.
+- `percentile` (Number) Deprecated shared usage percentile (applies to both CPU and memory when the resource-specific fields are unset).
 - `priority` (Number) Policy evaluation priority.
 - `updated_at` (String) Last-update timestamp.
 - `updated_by` (String) Email of the user who last modified the policy.

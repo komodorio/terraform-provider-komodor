@@ -23,7 +23,10 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
   optimization_preset = "custom"
 
   guardrails {
-    percentile = 95
+    # Set CPU and memory percentiles independently. To use the same value for
+    # both, set the (deprecated) shared `percentile` instead.
+    cpu_percentile    = 95
+    memory_percentile = 99
 
     managed_resources {
       cpu_requests    = true

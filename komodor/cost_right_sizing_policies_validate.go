@@ -17,6 +17,7 @@ func resourceKomodorCostRightSizingPolicyCustomizeDiff(_ context.Context, d *sch
 		validateApplyProtocolWithRestart,
 		validateScopes,
 		validateGuardRailsBlock,
+		validateGuardRailsPercentiles,
 		addManagedByTFTagIfDoesntExist,
 	} {
 		if err := check(d); err != nil {
@@ -117,6 +118,35 @@ func validateGuardRailsBlock(d *schema.ResourceDiff) error {
 	return nil
 }
 
+func validateGuardRailsPercentiles(d *schema.ResourceDiff) error {
+	if !userProvidedGuardRails(d) {
+		return nil
+	}
+	raw := d.GetRawConfig().GetAttr("guardrails")
+	if !raw.IsKnown() || raw.IsNull() || raw.LengthInt() == 0 {
+		return nil
+	}
+	gr := raw.AsValueSlice()[0]
+
+	shared := rawConfigInt(gr, "percentile")
+	cpu := rawConfigInt(gr, "cpu_percentile")
+	memory := rawConfigInt(gr, "memory_percentile")
+
+	if (cpu == 0 && shared == 0) || (memory == 0 && shared == 0) {
+		return fmt.Errorf(`guardrails requires a percentile for both CPU and memory: set "percentile" (applies to both) or set both "cpu_percentile" and "memory_percentile"`)
+	}
+	return nil
+}
+
+func rawConfigInt(obj cty.Value, key string) int {
+	v := obj.GetAttr(key)
+	if v.IsNull() || !v.IsKnown() {
+		return 0
+	}
+	i, _ := v.AsBigFloat().Int64()
+	return int(i)
+}
+
 func validateManagedResources(gr map[string]interface{}) error {
 	mrBlocks, _ := gr["managed_resources"].([]interface{})
 	if len(mrBlocks) == 0 {
@@ -202,6 +232,16 @@ func validateUnsupportedString(field string, allowed []string) schema.SchemaVali
 			}
 		}
 		return diag.Errorf("unsupported %s %q — must be one of %s", field, val, formatQuotedStringList(allowed))
+	}
+}
+
+func validatePercentileOrUnset(field string) schema.SchemaValidateDiagFunc {
+	check := validateUnsupportedInt(field, validPercentiles)
+	return func(v interface{}, p cty.Path) diag.Diagnostics {
+		if val, ok := v.(int); ok && val == 0 {
+			return nil
+		}
+		return check(v, p)
 	}
 }
 
