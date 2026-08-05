@@ -38,7 +38,8 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
   optimization_preset = "custom"
 
   guardrails {
-    percentile = 95
+    cpu_percentile    = 95
+    memory_percentile = 99
 
     managed_resources {
       cpu_requests    = true
@@ -271,7 +272,6 @@ Required:
 - `buffer` (Block List, Min: 1, Max: 1) Headroom percentage on top of recommended request values. (see [below for nested schema](#nestedblock--guardrails--buffer))
 - `constraints` (Block List, Min: 1, Max: 1) Per-cycle scaling constraints expressed as percentages. (see [below for nested schema](#nestedblock--guardrails--constraints))
 - `managed_resources` (Block List, Min: 1, Max: 1) Which resource fields right-sizing may modify. At least one must be true. (see [below for nested schema](#nestedblock--guardrails--managed_resources))
-- `percentile` (Number) Usage percentile to base recommendations on. One of: 70, 80, 90, 95, 99.
 
 Optional:
 
@@ -279,6 +279,9 @@ Optional:
 - `allow_qos_downgrade` (Boolean) Allow to Decrease QoS (Support savings). e.g. Guarantee → Burstable.
 - `allow_qos_upgrade` (Boolean) Allow to Increase QoS (Support reliability). e.g. BestEffort → Burstable → Guarantee.
 - `allow_right_sizing_up` (Boolean) Whether right-sizing may scale resources up.
+- `cpu_percentile` (Number) Usage percentile for CPU right-sizing. Set together with `memory_percentile`; mutually exclusive with the deprecated `percentile`. One of: 70, 80, 90, 95, 99.
+- `memory_percentile` (Number) Usage percentile for memory right-sizing. Set together with `cpu_percentile`; mutually exclusive with the deprecated `percentile`. One of: 70, 80, 90, 95, 99.
+- `percentile` (Number, Deprecated) Deprecated: prefer `cpu_percentile` and `memory_percentile`. Shared usage percentile applied to both CPU and memory. Mutually exclusive with `cpu_percentile`/`memory_percentile`. One of: 70, 80, 90, 95, 99.
 
 <a id="nestedblock--guardrails--buffer"></a>
 ### Nested Schema for `guardrails.buffer`

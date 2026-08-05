@@ -66,6 +66,37 @@ func TestScopeStringFields_WireLiteralStarWarning(t *testing.T) {
 	}
 }
 
+func TestCheckPercentileConfig(t *testing.T) {
+	tests := []struct {
+		name                string
+		shared, cpu, memory int
+		wantErr             string
+	}{
+		{name: "shared only", shared: 95},
+		{name: "split only", cpu: 95, memory: 99},
+		{name: "split equal values", cpu: 90, memory: 90},
+		{name: "shared and cpu", shared: 95, cpu: 90, wantErr: "mutually exclusive"},
+		{name: "shared and memory", shared: 95, memory: 90, wantErr: "mutually exclusive"},
+		{name: "shared and both split", shared: 95, cpu: 90, memory: 99, wantErr: "mutually exclusive"},
+		{name: "nothing set", wantErr: "requires a percentile for both"},
+		{name: "cpu only", cpu: 95, wantErr: "requires a percentile for both"},
+		{name: "memory only", memory: 95, wantErr: "requires a percentile for both"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := checkPercentileConfig(tc.shared, tc.cpu, tc.memory)
+			if tc.wantErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+			if assert.Error(t, err) {
+				assert.Contains(t, err.Error(), tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestValidateScopeDimension_MutualExclusion(t *testing.T) {
 	itemsList := []interface{}{"foo", "bar"}
 	patternsList := []interface{}{map[string]interface{}{"include": "foo-*"}}

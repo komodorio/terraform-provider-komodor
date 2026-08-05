@@ -218,9 +218,22 @@ func costRSPGuardRailsResource() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"percentile": {
 				Type:             schema.TypeInt,
-				Required:         true,
-				ValidateDiagFunc: validateUnsupportedInt("percentile", validPercentiles),
-				Description:      "Usage percentile to base recommendations on. One of: 70, 80, 90, 95, 99.",
+				Optional:         true,
+				ValidateDiagFunc: validatePercentileOrUnset("percentile"),
+				Deprecated:       "Use cpu_percentile and memory_percentile instead. percentile applies to both CPU and memory, and is mutually exclusive with them.",
+				Description:      "Deprecated: prefer `cpu_percentile` and `memory_percentile`. Shared usage percentile applied to both CPU and memory. Mutually exclusive with `cpu_percentile`/`memory_percentile`. One of: 70, 80, 90, 95, 99.",
+			},
+			"cpu_percentile": {
+				Type:             schema.TypeInt,
+				Optional:         true,
+				ValidateDiagFunc: validatePercentileOrUnset("cpu_percentile"),
+				Description:      "Usage percentile for CPU right-sizing. Set together with `memory_percentile`; mutually exclusive with the deprecated `percentile`. One of: 70, 80, 90, 95, 99.",
+			},
+			"memory_percentile": {
+				Type:             schema.TypeInt,
+				Optional:         true,
+				ValidateDiagFunc: validatePercentileOrUnset("memory_percentile"),
+				Description:      "Usage percentile for memory right-sizing. Set together with `cpu_percentile`; mutually exclusive with the deprecated `percentile`. One of: 70, 80, 90, 95, 99.",
 			},
 			"managed_resources": {
 				Type:        schema.TypeList,

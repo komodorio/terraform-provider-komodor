@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/go-cty/cty/gocty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -17,6 +18,7 @@ func resourceKomodorCostRightSizingPolicyCustomizeDiff(_ context.Context, d *sch
 		validateApplyProtocolWithRestart,
 		validateScopes,
 		validateGuardRailsBlock,
+		validateGuardRailsPercentiles,
 		addManagedByTFTagIfDoesntExist,
 	} {
 		if err := check(d); err != nil {
@@ -117,6 +119,51 @@ func validateGuardRailsBlock(d *schema.ResourceDiff) error {
 	return nil
 }
 
+func validateGuardRailsPercentiles(d *schema.ResourceDiff) error {
+	if !userProvidedGuardRails(d) {
+		return nil
+	}
+	gr := d.GetRawConfig().GetAttr("guardrails").AsValueSlice()[0]
+	shared, cpu, memory := gr.GetAttr("percentile"), gr.GetAttr("cpu_percentile"), gr.GetAttr("memory_percentile")
+	if !shared.IsKnown() || !cpu.IsKnown() || !memory.IsKnown() {
+		return nil
+	}
+	sharedVal, err := ctyInt(shared)
+	if err != nil {
+		return err
+	}
+	cpuVal, err := ctyInt(cpu)
+	if err != nil {
+		return err
+	}
+	memoryVal, err := ctyInt(memory)
+	if err != nil {
+		return err
+	}
+	return checkPercentileConfig(sharedVal, cpuVal, memoryVal)
+}
+
+func checkPercentileConfig(shared, cpu, memory int) error {
+	if shared != 0 && (cpu != 0 || memory != 0) {
+		return fmt.Errorf(`"percentile" is mutually exclusive with "cpu_percentile"/"memory_percentile" — set the shared "percentile" or the two resource-specific fields, not both`)
+	}
+	if (cpu == 0 && shared == 0) || (memory == 0 && shared == 0) {
+		return fmt.Errorf(`guardrails requires a percentile for both CPU and memory: set "percentile" (applies to both) or set both "cpu_percentile" and "memory_percentile"`)
+	}
+	return nil
+}
+
+func ctyInt(v cty.Value) (int, error) {
+	if v.IsNull() {
+		return 0, nil
+	}
+	var i int
+	if err := gocty.FromCtyValue(v, &i); err != nil {
+		return 0, err
+	}
+	return i, nil
+}
+
 func validateManagedResources(gr map[string]interface{}) error {
 	mrBlocks, _ := gr["managed_resources"].([]interface{})
 	if len(mrBlocks) == 0 {
@@ -202,6 +249,16 @@ func validateUnsupportedString(field string, allowed []string) schema.SchemaVali
 			}
 		}
 		return diag.Errorf("unsupported %s %q — must be one of %s", field, val, formatQuotedStringList(allowed))
+	}
+}
+
+func validatePercentileOrUnset(field string) schema.SchemaValidateDiagFunc {
+	check := validateUnsupportedInt(field, validPercentiles)
+	return func(v interface{}, p cty.Path) diag.Diagnostics {
+		if val, ok := v.(int); ok && val == 0 {
+			return nil
+		}
+		return check(v, p)
 	}
 }
 
