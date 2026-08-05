@@ -67,7 +67,7 @@ resource "komodor_cost_right_sizing_policy" "production_eu" {
 - `id` (String) Server-generated unique identifier.
 - `memory_percentile` (Number) Usage percentile for memory right-sizing.
 - `optimization_preset` (String) Optimization preset.
-- `percentile` (Number) Deprecated shared usage percentile (applies to both CPU and memory when the resource-specific fields are unset).
+- `percentile` (Number, Deprecated) Deprecated shared usage percentile (applies to both CPU and memory when the resource-specific fields are unset).
 - `priority` (Number) Policy evaluation priority.
 - `updated_at` (String) Last-update timestamp.
 - `updated_by` (String) Email of the user who last modified the policy.

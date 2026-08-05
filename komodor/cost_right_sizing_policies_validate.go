@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/go-cty/cty/gocty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -122,16 +123,24 @@ func validateGuardRailsPercentiles(d *schema.ResourceDiff) error {
 	if !userProvidedGuardRails(d) {
 		return nil
 	}
-	raw := d.GetRawConfig().GetAttr("guardrails")
-	if !raw.IsKnown() || raw.IsNull() || raw.LengthInt() == 0 {
+	gr := d.GetRawConfig().GetAttr("guardrails").AsValueSlice()[0]
+	shared, cpu, memory := gr.GetAttr("percentile"), gr.GetAttr("cpu_percentile"), gr.GetAttr("memory_percentile")
+	if !shared.IsKnown() || !cpu.IsKnown() || !memory.IsKnown() {
 		return nil
 	}
-	gr := raw.AsValueSlice()[0]
-	return checkPercentileConfig(
-		rawConfigInt(gr, "percentile"),
-		rawConfigInt(gr, "cpu_percentile"),
-		rawConfigInt(gr, "memory_percentile"),
-	)
+	sharedVal, err := ctyInt(shared)
+	if err != nil {
+		return err
+	}
+	cpuVal, err := ctyInt(cpu)
+	if err != nil {
+		return err
+	}
+	memoryVal, err := ctyInt(memory)
+	if err != nil {
+		return err
+	}
+	return checkPercentileConfig(sharedVal, cpuVal, memoryVal)
 }
 
 func checkPercentileConfig(shared, cpu, memory int) error {
@@ -144,13 +153,15 @@ func checkPercentileConfig(shared, cpu, memory int) error {
 	return nil
 }
 
-func rawConfigInt(obj cty.Value, key string) int {
-	v := obj.GetAttr(key)
-	if v.IsNull() || !v.IsKnown() {
-		return 0
+func ctyInt(v cty.Value) (int, error) {
+	if v.IsNull() {
+		return 0, nil
 	}
-	i, _ := v.AsBigFloat().Int64()
-	return int(i)
+	var i int
+	if err := gocty.FromCtyValue(v, &i); err != nil {
+		return 0, err
+	}
+	return i, nil
 }
 
 func validateManagedResources(gr map[string]interface{}) error {

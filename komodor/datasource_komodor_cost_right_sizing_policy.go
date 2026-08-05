@@ -22,7 +22,7 @@ func dataSourceKomodorCostRightSizingPolicy() *schema.Resource {
 			"description":            {Type: schema.TypeString, Computed: true, Description: "Free-text description of the policy."},
 			"priority":               {Type: schema.TypeInt, Computed: true, Description: "Policy evaluation priority."},
 			"optimization_preset":    {Type: schema.TypeString, Computed: true, Description: "Optimization preset."},
-			"percentile":             {Type: schema.TypeInt, Computed: true, Description: "Deprecated shared usage percentile (applies to both CPU and memory when the resource-specific fields are unset)."},
+			"percentile":             {Type: schema.TypeInt, Computed: true, Deprecated: "Use cpu_percentile and memory_percentile instead.", Description: "Deprecated shared usage percentile (applies to both CPU and memory when the resource-specific fields are unset)."},
 			"cpu_percentile":         {Type: schema.TypeInt, Computed: true, Description: "Usage percentile for CPU right-sizing."},
 			"memory_percentile":      {Type: schema.TypeInt, Computed: true, Description: "Usage percentile for memory right-sizing."},
 			"apply_protocol":         {Type: schema.TypeString, Computed: true, Description: "When right-sizing changes apply."},
