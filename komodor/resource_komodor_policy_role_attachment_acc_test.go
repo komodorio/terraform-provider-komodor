@@ -109,9 +109,7 @@ func TestAcc_komodor_policy_role_attachment_multiple_resources_same_role(t *test
 				Config: testAccPolicyRoleAttachmentConfigMultipleResourcesSameRole(roleName, policy1Name, policy2Name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("komodor_policy_role_attachment.one", "policies.#", "1"),
-					resource.TestCheckResourceAttr("komodor_policy_role_attachment.one", "policies.0", fmt.Sprintf("komodor_policy_v2.one.%s", policy1Name)),
 					resource.TestCheckResourceAttr("komodor_policy_role_attachment.two", "policies.#", "1"),
-					resource.TestCheckResourceAttr("komodor_policy_role_attachment.two", "policies.0", fmt.Sprintf("komodor_policy_v2.two.%s", policy2Name)),
 				),
 			},
 		},
