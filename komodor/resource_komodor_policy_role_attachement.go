@@ -73,7 +73,7 @@ func resourcePolicyRoleAttachment() *schema.Resource {
 				Version: 0,
 			},
 		},
-		Schema: legacySchema,
+		Schema:        legacySchema,
 		CreateContext: resourcePolicyRoleAttachmentCreate,
 		ReadContext:   resourcePolicyRoleAttachmentRead,
 		UpdateContext: resourcePolicyRoleAttachmentUpdate,
