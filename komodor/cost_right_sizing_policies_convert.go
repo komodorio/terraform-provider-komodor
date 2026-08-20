@@ -186,20 +186,39 @@ func apiToTFScope(s PolicyResourceScope) scopeTFData {
 
 func tfToAPIPattern(p patternTFData) PolicyPattern {
 	out := PolicyPattern{}
-	if p.Include != "" {
+	if len(p.Includes) > 0 {
+		v := p.Includes
+		out.Includes = &v
+	} else if p.Include != "" {
 		out.Include = stringPtr(p.Include)
 	}
-	if p.Exclude != "" {
+	if len(p.Excludes) > 0 {
+		v := p.Excludes
+		out.Excludes = &v
+	} else if p.Exclude != "" {
 		out.Exclude = stringPtr(p.Exclude)
 	}
 	return out
 }
 
+// apiToTFPattern applies precedence, not union, on read: the plural field wins whenever the
+// API returns it, and the singular field is populated only as a fallback. The API keeps the
+// two mutually exclusive on write, but a policy written by another client (or from before
+// that validation existed) could in principle return both — precedence keeps that case from
+// flattening into a self-conflicting state.
 func apiToTFPattern(p PolicyPattern) patternTFData {
-	return patternTFData{
-		Include: stringValue(p.Include),
-		Exclude: stringValue(p.Exclude),
+	tf := patternTFData{}
+	if p.Includes != nil {
+		tf.Includes = *p.Includes
+	} else {
+		tf.Include = stringValue(p.Include)
 	}
+	if p.Excludes != nil {
+		tf.Excludes = *p.Excludes
+	} else {
+		tf.Exclude = stringValue(p.Exclude)
+	}
+	return tf
 }
 
 func tfToAPIGuardRails(tf guardRailsTFData) PolicyGuardRails {
@@ -358,8 +377,10 @@ func expandPattern(v interface{}) *patternTFData {
 	}
 	m := raw[0].(map[string]interface{})
 	return &patternTFData{
-		Include: m["include"].(string),
-		Exclude: stringFromMap(m, "exclude"),
+		Include:  stringFromMap(m, "include"),
+		Includes: toStringList(m["includes"].([]interface{})),
+		Exclude:  stringFromMap(m, "exclude"),
+		Excludes: toStringList(m["excludes"].([]interface{})),
 	}
 }
 
@@ -499,8 +520,10 @@ func flattenPattern(p *patternTFData) []interface{} {
 	}
 	return []interface{}{
 		map[string]interface{}{
-			"include": p.Include,
-			"exclude": p.Exclude,
+			"include":  p.Include,
+			"includes": p.Includes,
+			"exclude":  p.Exclude,
+			"excludes": p.Excludes,
 		},
 	}
 }

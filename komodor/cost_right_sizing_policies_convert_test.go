@@ -12,6 +12,70 @@ func TestQosUpgradeV1FromV2(t *testing.T) {
 	assert.Equal(t, qosUpgradeNotAllowed, qosUpgradeV1FromV2(false))
 }
 
+func TestTfToAPIPattern(t *testing.T) {
+	t.Run("legacy singular include/exclude", func(t *testing.T) {
+		api := tfToAPIPattern(patternTFData{Include: "prod-*", Exclude: "prod-canary"})
+		require.NotNil(t, api.Include)
+		assert.Equal(t, "prod-*", *api.Include)
+		require.NotNil(t, api.Exclude)
+		assert.Equal(t, "prod-canary", *api.Exclude)
+		assert.Nil(t, api.Includes)
+		assert.Nil(t, api.Excludes)
+	})
+
+	t.Run("multi-value includes/excludes", func(t *testing.T) {
+		api := tfToAPIPattern(patternTFData{
+			Includes: []string{"prod-*", "staging-*"},
+			Excludes: []string{"prod-canary"},
+		})
+		require.NotNil(t, api.Includes)
+		assert.Equal(t, []string{"prod-*", "staging-*"}, *api.Includes)
+		require.NotNil(t, api.Excludes)
+		assert.Equal(t, []string{"prod-canary"}, *api.Excludes)
+		assert.Nil(t, api.Include)
+		assert.Nil(t, api.Exclude)
+	})
+
+	t.Run("empty excludes list is never sent, not sent as an empty slice", func(t *testing.T) {
+		api := tfToAPIPattern(patternTFData{Include: "prod-*"})
+		assert.Nil(t, api.Excludes, "an unset excludes list must not become a wire value")
+	})
+}
+
+func TestApiToTFPattern_RoundTrip(t *testing.T) {
+	t.Run("legacy singular round-trips", func(t *testing.T) {
+		tf := apiToTFPattern(tfToAPIPattern(patternTFData{Include: "prod-*", Exclude: "prod-canary"}))
+		assert.Equal(t, "prod-*", tf.Include)
+		assert.Equal(t, "prod-canary", tf.Exclude)
+		assert.Empty(t, tf.Includes)
+		assert.Empty(t, tf.Excludes)
+	})
+
+	t.Run("multi-value round-trips", func(t *testing.T) {
+		tf := apiToTFPattern(tfToAPIPattern(patternTFData{
+			Includes: []string{"prod-*", "staging-*"},
+			Excludes: []string{"prod-canary"},
+		}))
+		assert.Equal(t, []string{"prod-*", "staging-*"}, tf.Includes)
+		assert.Equal(t, []string{"prod-canary"}, tf.Excludes)
+		assert.Empty(t, tf.Include)
+		assert.Empty(t, tf.Exclude)
+	})
+
+	t.Run("plural wins if the API ever returns both (validation normally prevents this on write)", func(t *testing.T) {
+		tf := apiToTFPattern(PolicyPattern{
+			Include:  stringPtr("prod-*"),
+			Includes: &[]string{"prod-*", "staging-*"},
+			Exclude:  stringPtr("prod-canary"),
+			Excludes: &[]string{"prod-canary"},
+		})
+		assert.Equal(t, []string{"prod-*", "staging-*"}, tf.Includes)
+		assert.Equal(t, []string{"prod-canary"}, tf.Excludes)
+		assert.Empty(t, tf.Include, "singular must not also flatten into state when plural is present")
+		assert.Empty(t, tf.Exclude, "singular must not also flatten into state when plural is present")
+	})
+}
+
 func TestTfToAPIRightSizingPolicy_Percentiles(t *testing.T) {
 	base := func(gr guardRailsTFData) rightSizingPolicyTFData {
 		gr.ManagedResources = managedResourcesTFData{CpuRequests: true}

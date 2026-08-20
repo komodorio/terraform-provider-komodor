@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -203,10 +204,82 @@ func TestAcc_komodor_cost_right_sizing_policy_multi_scope(t *testing.T) {
 				),
 			},
 			{
+				// Regression guard for the includes/excludes addition: a policy stored with
+				// only the legacy singular include (no includes/excludes ever set) must
+				// still plan clean. flattenPattern now always sets all four keys, and
+				// apiToTFPattern must not populate includes/excludes from a nil API field —
+				// otherwise every pre-existing include/exclude-only policy would show a
+				// perpetual diff the moment a provider version with this change is applied.
+				Config:   testAccCostRSPConfigMultiScope(name),
+				PlanOnly: true,
+			},
+			{
 				ResourceName:            resourceAddr,
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"force_delete"},
+			},
+		},
+	})
+}
+
+func TestAcc_komodor_cost_right_sizing_policy_pattern_includes_excludes(t *testing.T) {
+	name := testResourceName("cost-rsp-includes")
+	resourceAddr := "komodor_cost_right_sizing_policy.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCostRSPConfigPatternIncludesExcludes(name, []string{"tf-acc-api-*", "tf-acc-web-*"}, []string{"tf-acc-web-canary"}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "name", name),
+					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.includes.#", "2"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.includes.0", "tf-acc-api-*"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.includes.1", "tf-acc-web-*"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.excludes.#", "1"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.excludes.0", "tf-acc-web-canary"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.include", ""),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.exclude", ""),
+				),
+			},
+			{
+				// Updating the lists — and dropping excludes to none — must not disturb the
+				// legacy include/exclude fields (both stay unset).
+				Config: testAccCostRSPConfigPatternIncludesExcludes(name, []string{"tf-acc-api-*"}, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.includes.#", "1"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.includes.0", "tf-acc-api-*"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.excludes.#", "0"),
+				),
+			},
+			{
+				ResourceName:            resourceAddr,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_delete"},
+			},
+		},
+	})
+}
+
+func TestAcc_komodor_cost_right_sizing_policy_pattern_conflicting_fields(t *testing.T) {
+	name := testResourceName("cost-rsp-conflict")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCostRSPConfigConflictingIncludeAndIncludes(name),
+				ExpectError: regexp.MustCompile(`"include" and "includes" are mutually exclusive`),
+			},
+			{
+				Config:      testAccCostRSPConfigEmptyIncludesList(name),
+				ExpectError: regexp.MustCompile(`one of "include" or "includes" is required`),
 			},
 		},
 	})
@@ -349,6 +422,71 @@ resource "komodor_cost_right_sizing_policy" "test" {
     namespaces = ["default"]
     workload_names_patterns {
       include = "tf-acc-*"
+    }
+  }
+}
+`, name, presetSandbox, applyOnCreation)
+}
+
+func testAccCostRSPConfigPatternIncludesExcludes(name string, includes, excludes []string) string {
+	excludesBlock := ""
+	if len(excludes) > 0 {
+		excludesBlock = fmt.Sprintf("\n      excludes = %s", hclStringList(excludes))
+	}
+	return fmt.Sprintf(`
+resource "komodor_cost_right_sizing_policy" "test" {
+  name                = %q
+  priority            = 99
+  optimization_preset = %q
+  apply_protocol      = %q
+  force_delete        = true
+
+  scope {
+    clusters   = ["tf-acc-cluster"]
+    namespaces = ["default"]
+    workload_names_patterns {
+      includes = %s%s
+    }
+  }
+}
+`, name, presetSandbox, applyOnCreation, hclStringList(includes), excludesBlock)
+}
+
+func testAccCostRSPConfigConflictingIncludeAndIncludes(name string) string {
+	return fmt.Sprintf(`
+resource "komodor_cost_right_sizing_policy" "test" {
+  name                = %q
+  priority            = 99
+  optimization_preset = %q
+  apply_protocol      = %q
+  force_delete        = true
+
+  scope {
+    clusters   = ["tf-acc-cluster"]
+    namespaces = ["default"]
+    workload_names_patterns {
+      include  = "tf-acc-*"
+      includes = ["tf-acc-api-*"]
+    }
+  }
+}
+`, name, presetSandbox, applyOnCreation)
+}
+
+func testAccCostRSPConfigEmptyIncludesList(name string) string {
+	return fmt.Sprintf(`
+resource "komodor_cost_right_sizing_policy" "test" {
+  name                = %q
+  priority            = 99
+  optimization_preset = %q
+  apply_protocol      = %q
+  force_delete        = true
+
+  scope {
+    clusters   = ["tf-acc-cluster"]
+    namespaces = ["default"]
+    workload_names_patterns {
+      includes = []
     }
   }
 }

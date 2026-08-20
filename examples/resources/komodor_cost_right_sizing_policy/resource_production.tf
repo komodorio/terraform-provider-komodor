@@ -13,11 +13,17 @@ resource "komodor_cost_right_sizing_policy" "production" {
   scope {
     clusters = ["prod-us-east-1", "prod-eu-west-1", "prod-ap-southeast-2"]
     namespaces_patterns {
-      include = "prod-*"
-      exclude = "prod-experimental-*"
+      # `includes`/`excludes` accept multiple glob patterns, OR'd together — a
+      # namespace is in scope if it matches any `includes` entry and none of
+      # `excludes`. Prefer these over the deprecated singular `include`/`exclude`.
+      includes = ["prod-*", "staging-shadow-*"]
+      excludes = ["prod-experimental-*", "prod-canary-*"]
     }
     resource_types = ["Deployment", "StatefulSet"]
     workload_names_patterns {
+      # The deprecated singular form still works and behaves like a one-element
+      # `includes`/`excludes` list — kept here to illustrate that existing
+      # configs using `include`/`exclude` don't need to change.
       include = "*"
       exclude = "*-canary"
     }

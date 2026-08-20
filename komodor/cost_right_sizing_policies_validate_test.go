@@ -97,6 +97,77 @@ func TestCheckPercentileConfig(t *testing.T) {
 	}
 }
 
+func TestValidatePatternValue(t *testing.T) {
+	pattern := func(m map[string]interface{}) interface{} {
+		base := map[string]interface{}{
+			"include":  "",
+			"includes": []interface{}{},
+			"exclude":  "",
+			"excludes": []interface{}{},
+		}
+		for k, v := range m {
+			base[k] = v
+		}
+		return []interface{}{base}
+	}
+
+	tests := []struct {
+		name    string
+		pattern interface{}
+		wantErr string
+	}{
+		{
+			name:    "no block set is fine (dimension-level check handles required-ness)",
+			pattern: []interface{}{},
+		},
+		{
+			name:    "include only",
+			pattern: pattern(map[string]interface{}{"include": "prod-*"}),
+		},
+		{
+			name:    "includes only",
+			pattern: pattern(map[string]interface{}{"includes": []interface{}{"prod-*", "staging-*"}}),
+		},
+		{
+			name:    "include and includes both set",
+			pattern: pattern(map[string]interface{}{"include": "prod-*", "includes": []interface{}{"staging-*"}}),
+			wantErr: `"include" and "includes" are mutually exclusive`,
+		},
+		{
+			name:    "exclude and excludes both set",
+			pattern: pattern(map[string]interface{}{"include": "prod-*", "exclude": "prod-canary", "excludes": []interface{}{"prod-canary"}}),
+			wantErr: `"exclude" and "excludes" are mutually exclusive`,
+		},
+		{
+			name:    "neither include nor includes set",
+			pattern: pattern(map[string]interface{}{"exclude": "prod-canary"}),
+			wantErr: `one of "include" or "includes" is required`,
+		},
+		{
+			name:    "empty includes list is equivalent to no positive selector",
+			pattern: pattern(map[string]interface{}{"includes": []interface{}{}}),
+			wantErr: `one of "include" or "includes" is required`,
+		},
+		{
+			name:    "empty excludes list is valid",
+			pattern: pattern(map[string]interface{}{"include": "prod-*", "excludes": []interface{}{}}),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validatePatternValue(0, "workload_names_patterns", tc.pattern)
+			if tc.wantErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+			if assert.Error(t, err) {
+				assert.Contains(t, err.Error(), tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestValidateScopeDimension_MutualExclusion(t *testing.T) {
 	itemsList := []interface{}{"foo", "bar"}
 	patternsList := []interface{}{map[string]interface{}{"include": "foo-*"}}

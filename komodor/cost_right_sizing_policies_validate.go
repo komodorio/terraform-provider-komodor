@@ -79,6 +79,9 @@ func validateScopes(d *schema.ResourceDiff) error {
 			if err := validateScopeDimension(i, s, dim.items, dim.patterns, dim.required); err != nil {
 				return err
 			}
+			if err := validatePatternValue(i, dim.patterns, s[dim.patterns]); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -96,6 +99,34 @@ func validateScopeDimension(idx int, scope map[string]interface{}, itemsKey, pat
 	}
 	if required && !hasItems && !hasPatterns {
 		return fmt.Errorf(`in scope[%d], dimension must be set — provide one of %q or %q`, idx, itemsKey, patternsKey)
+	}
+	return nil
+}
+
+// validatePatternValue mirrors the API's pattern-level validation at plan time:
+// include/includes are mutually exclusive, as are exclude/excludes, and a pattern needs at
+// least one positive selector — an empty includes list is equivalent to no include at all,
+// since both leave nothing to match. excludes: [] is deliberately not flagged here: unlike
+// includes, it validly means "exclude nothing".
+func validatePatternValue(idx int, patternsKey string, v interface{}) error {
+	raw, _ := v.([]interface{})
+	if len(raw) == 0 || raw[0] == nil {
+		return nil
+	}
+	m := raw[0].(map[string]interface{})
+	include, _ := m["include"].(string)
+	includes := toStringList(m["includes"].([]interface{}))
+	exclude, _ := m["exclude"].(string)
+	excludes := toStringList(m["excludes"].([]interface{}))
+
+	if include != "" && len(includes) > 0 {
+		return fmt.Errorf(`in scope[%d].%s, "include" and "includes" are mutually exclusive — provide exactly one`, idx, patternsKey)
+	}
+	if exclude != "" && len(excludes) > 0 {
+		return fmt.Errorf(`in scope[%d].%s, "exclude" and "excludes" are mutually exclusive — provide exactly one`, idx, patternsKey)
+	}
+	if include == "" && len(includes) == 0 {
+		return fmt.Errorf(`in scope[%d].%s, one of "include" or "includes" is required — an empty "includes" list matches nothing`, idx, patternsKey)
 	}
 	return nil
 }

@@ -34,7 +34,7 @@ resource "komodor_cost_right_sizing_policy" "production_eu" {
     namespaces     = ["payments", "checkout", "auth"]
     resource_types = ["Deployment", "StatefulSet"]
     workload_names_patterns {
-      include = "*"
+      includes = ["*"]
     }
   }
 
