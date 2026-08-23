@@ -184,22 +184,39 @@ func apiToTFScope(s PolicyResourceScope) scopeTFData {
 	return tf
 }
 
+// includes/excludes are TypeList despite order-insensitive matching: safe only because the
+// API preserves submitted order end to end (verified; see the order-preservation
+// acceptance test). If that ever changes, existing policies would show a spurious diff.
 func tfToAPIPattern(p patternTFData) PolicyPattern {
 	out := PolicyPattern{}
-	if p.Include != "" {
+	if len(p.Includes) > 0 {
+		v := p.Includes
+		out.Includes = &v
+	} else if p.Include != "" {
 		out.Include = stringPtr(p.Include)
 	}
-	if p.Exclude != "" {
+	if len(p.Excludes) > 0 {
+		v := p.Excludes
+		out.Excludes = &v
+	} else if p.Exclude != "" {
 		out.Exclude = stringPtr(p.Exclude)
 	}
 	return out
 }
 
 func apiToTFPattern(p PolicyPattern) patternTFData {
-	return patternTFData{
-		Include: stringValue(p.Include),
-		Exclude: stringValue(p.Exclude),
+	tf := patternTFData{}
+	if p.Includes != nil {
+		tf.Includes = *p.Includes
+	} else {
+		tf.Include = stringValue(p.Include)
 	}
+	if p.Excludes != nil {
+		tf.Excludes = *p.Excludes
+	} else {
+		tf.Exclude = stringValue(p.Exclude)
+	}
+	return tf
 }
 
 func tfToAPIGuardRails(tf guardRailsTFData) PolicyGuardRails {
@@ -358,9 +375,16 @@ func expandPattern(v interface{}) *patternTFData {
 	}
 	m := raw[0].(map[string]interface{})
 	return &patternTFData{
-		Include: m["include"].(string),
-		Exclude: stringFromMap(m, "exclude"),
+		Include:  stringFromMap(m, "include"),
+		Includes: toStringList(listFromMap(m, "includes")),
+		Exclude:  stringFromMap(m, "exclude"),
+		Excludes: toStringList(listFromMap(m, "excludes")),
 	}
+}
+
+func listFromMap(m map[string]interface{}, key string) []interface{} {
+	v, _ := m[key].([]interface{})
+	return v
 }
 
 func expandGuardRails(m map[string]interface{}) guardRailsTFData {
@@ -499,8 +523,10 @@ func flattenPattern(p *patternTFData) []interface{} {
 	}
 	return []interface{}{
 		map[string]interface{}{
-			"include": p.Include,
-			"exclude": p.Exclude,
+			"include":  p.Include,
+			"includes": p.Includes,
+			"exclude":  p.Exclude,
+			"excludes": p.Excludes,
 		},
 	}
 }

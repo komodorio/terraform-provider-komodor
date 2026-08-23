@@ -81,8 +81,12 @@ type PolicyResourceScope struct {
 }
 
 type PolicyPattern struct {
-	Include *string `json:"include,omitempty"`
-	Exclude *string `json:"exclude,omitempty"`
+	// Deprecated: superseded by Includes. Cannot be combined with it.
+	Include  *string   `json:"include,omitempty"`
+	Includes *[]string `json:"includes,omitempty"`
+	// Deprecated: superseded by Excludes. Cannot be combined with it.
+	Exclude  *string   `json:"exclude,omitempty"`
+	Excludes *[]string `json:"excludes,omitempty"`
 }
 
 type PolicyGuardRails struct {
@@ -160,8 +164,10 @@ type scopeTFData struct {
 }
 
 type patternTFData struct {
-	Include string
-	Exclude string
+	Include  string
+	Includes []string
+	Exclude  string
+	Excludes []string
 }
 
 type guardRailsTFData struct {

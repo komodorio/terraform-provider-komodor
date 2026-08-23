@@ -6,13 +6,13 @@ resource "komodor_cost_right_sizing_policy" "prod" {
 
   scope {
     clusters_patterns {
-      include = "prod-*"
+      includes = ["prod-*"]
     }
     namespaces_patterns {
-      include = "*"
+      includes = ["*"]
     }
     workload_names_patterns {
-      include = "*"
+      includes = ["*"]
     }
   }
 }

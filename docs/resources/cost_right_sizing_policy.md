@@ -25,7 +25,7 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
     namespaces     = ["payments", "checkout"]
     resource_types = ["Deployment", "StatefulSet"]
     workload_names_patterns {
-      include = "*"
+      includes = ["*"]
     }
   }
 
@@ -137,11 +137,18 @@ resource "komodor_cost_right_sizing_policy" "production" {
   scope {
     clusters = ["prod-us-east-1", "prod-eu-west-1", "prod-ap-southeast-2"]
     namespaces_patterns {
-      include = "prod-*"
-      exclude = "prod-experimental-*"
+      # `includes`/`excludes` accept multiple wildcard patterns ("*" matches any sequence
+      # of characters), OR'd together — a namespace is in scope if it matches any
+      # `includes` entry and none of `excludes`. Prefer these over the deprecated
+      # singular `include`/`exclude`.
+      includes = ["prod-*", "staging-shadow-*"]
+      excludes = ["prod-experimental-*", "prod-canary-*"]
     }
     resource_types = ["Deployment", "StatefulSet"]
     workload_names_patterns {
+      # The deprecated singular form still works and behaves like a one-element
+      # `includes`/`excludes` list — kept here to illustrate that existing
+      # configs using `include`/`exclude` don't need to change.
       include = "*"
       exclude = "*-canary"
     }
@@ -206,61 +213,57 @@ resource "komodor_cost_right_sizing_policy" "production" {
 
 Optional:
 
-- `clusters` (List of String) Required — provide via this field or `clusters_patterns`. Exact cluster names. The string `"*"` is treated literally — to match all clusters, use `clusters_patterns { include = "*" }` instead. Mutually exclusive with clusters_patterns.
-- `clusters_patterns` (Block List, Max: 1) Required — provide via this block or the exact `clusters` list. Glob pattern for cluster names (`include = "*"` matches all). Mutually exclusive with clusters. (see [below for nested schema](#nestedblock--scope--clusters_patterns))
-- `namespaces` (List of String) Required — provide via this field or `namespaces_patterns`. Exact namespace names. The string `"*"` is treated literally — to match all namespaces, use `namespaces_patterns { include = "*" }` instead. Mutually exclusive with namespaces_patterns.
-- `namespaces_patterns` (Block List, Max: 1) Required — provide via this block or the exact `namespaces` list. Glob pattern for namespace names (`include = "*"` matches all). Mutually exclusive with namespaces. (see [below for nested schema](#nestedblock--scope--namespaces_patterns))
-- `resource_types` (List of String) Workload kinds (e.g., Deployment, StatefulSet). The string `"*"` is treated literally — to match all kinds, use `resource_types_patterns { include = "*" }` instead. Mutually exclusive with resource_types_patterns.
-- `resource_types_patterns` (Block List, Max: 1) Glob pattern for workload kinds (`include = "*"` matches all). Mutually exclusive with resource_types. (see [below for nested schema](#nestedblock--scope--resource_types_patterns))
-- `workload_names` (List of String) Required — provide via this field or `workload_names_patterns`. Exact workload names. The string `"*"` is treated literally — to match all workloads, use `workload_names_patterns { include = "*" }` instead. Mutually exclusive with workload_names_patterns.
-- `workload_names_patterns` (Block List, Max: 1) Required — provide via this block or the exact `workload_names` list. Glob pattern for workload names (`include = "*"` matches all). Mutually exclusive with workload_names. (see [below for nested schema](#nestedblock--scope--workload_names_patterns))
+- `clusters` (List of String) Required — provide via this field or `clusters_patterns`. Exact cluster names. The string `"*"` is treated literally — to match all clusters, use `clusters_patterns { includes = ["*"] }` instead. Mutually exclusive with clusters_patterns.
+- `clusters_patterns` (Block List, Max: 1) Required — provide via this block or the exact `clusters` list. Wildcard patterns for cluster names (`includes = ["*"]` matches all). Mutually exclusive with clusters. (see [below for nested schema](#nestedblock--scope--clusters_patterns))
+- `namespaces` (List of String) Required — provide via this field or `namespaces_patterns`. Exact namespace names. The string `"*"` is treated literally — to match all namespaces, use `namespaces_patterns { includes = ["*"] }` instead. Mutually exclusive with namespaces_patterns.
+- `namespaces_patterns` (Block List, Max: 1) Required — provide via this block or the exact `namespaces` list. Wildcard patterns for namespace names (`includes = ["*"]` matches all). Mutually exclusive with namespaces. (see [below for nested schema](#nestedblock--scope--namespaces_patterns))
+- `resource_types` (List of String) Workload kinds (e.g., Deployment, StatefulSet). The string `"*"` is treated literally — to match all kinds, use `resource_types_patterns { includes = ["*"] }` instead. Mutually exclusive with resource_types_patterns.
+- `resource_types_patterns` (Block List, Max: 1) Wildcard patterns for workload kinds (`includes = ["*"]` matches all). Mutually exclusive with resource_types. (see [below for nested schema](#nestedblock--scope--resource_types_patterns))
+- `workload_names` (List of String) Required — provide via this field or `workload_names_patterns`. Exact workload names. The string `"*"` is treated literally — to match all workloads, use `workload_names_patterns { includes = ["*"] }` instead. Mutually exclusive with workload_names_patterns.
+- `workload_names_patterns` (Block List, Max: 1) Required — provide via this block or the exact `workload_names` list. Wildcard patterns for workload names (`includes = ["*"]` matches all). Mutually exclusive with workload_names. (see [below for nested schema](#nestedblock--scope--workload_names_patterns))
 
 <a id="nestedblock--scope--clusters_patterns"></a>
 ### Nested Schema for `scope.clusters_patterns`
 
-Required:
-
-- `include` (String) Glob pattern for matching (e.g., "prod-*").
-
 Optional:
 
-- `exclude` (String) Optional glob pattern to exclude within the include set.
+- `exclude` (String, Deprecated) Deprecated: prefer `excludes`. Single wildcard pattern to exclude within the include set. Cannot be combined with excludes. Provide at most one of exclude or excludes.
+- `excludes` (List of String) Wildcard patterns to exclude within the include set; a resource is excluded if it matches any of them. Cannot be combined with exclude. An empty list (the default) means no exclusions. Provide at most one of exclude or excludes.
+- `include` (String, Deprecated) Deprecated: prefer "includes". Single wildcard pattern for matching (e.g., "prod-*"); * matches any sequence of characters. Cannot be combined with includes. Provide exactly one of include or includes.
+- `includes` (List of String) Wildcard patterns for matching (e.g., ["prod-*", "staging-*"]); * matches any sequence of characters; a resource is in scope if it matches any of them. Cannot be combined with include, and cannot be empty. Provide exactly one of include or includes.
 
 
 <a id="nestedblock--scope--namespaces_patterns"></a>
 ### Nested Schema for `scope.namespaces_patterns`
 
-Required:
-
-- `include` (String) Glob pattern for matching (e.g., "prod-*").
-
 Optional:
 
-- `exclude` (String) Optional glob pattern to exclude within the include set.
+- `exclude` (String, Deprecated) Deprecated: prefer `excludes`. Single wildcard pattern to exclude within the include set. Cannot be combined with excludes. Provide at most one of exclude or excludes.
+- `excludes` (List of String) Wildcard patterns to exclude within the include set; a resource is excluded if it matches any of them. Cannot be combined with exclude. An empty list (the default) means no exclusions. Provide at most one of exclude or excludes.
+- `include` (String, Deprecated) Deprecated: prefer "includes". Single wildcard pattern for matching (e.g., "prod-*"); * matches any sequence of characters. Cannot be combined with includes. Provide exactly one of include or includes.
+- `includes` (List of String) Wildcard patterns for matching (e.g., ["prod-*", "staging-*"]); * matches any sequence of characters; a resource is in scope if it matches any of them. Cannot be combined with include, and cannot be empty. Provide exactly one of include or includes.
 
 
 <a id="nestedblock--scope--resource_types_patterns"></a>
 ### Nested Schema for `scope.resource_types_patterns`
 
-Required:
-
-- `include` (String) Glob pattern for matching (e.g., "prod-*").
-
 Optional:
 
-- `exclude` (String) Optional glob pattern to exclude within the include set.
+- `exclude` (String, Deprecated) Deprecated: prefer `excludes`. Single wildcard pattern to exclude within the include set. Cannot be combined with excludes. Provide at most one of exclude or excludes.
+- `excludes` (List of String) Wildcard patterns to exclude within the include set; a resource is excluded if it matches any of them. Cannot be combined with exclude. An empty list (the default) means no exclusions. Provide at most one of exclude or excludes.
+- `include` (String, Deprecated) Deprecated: prefer "includes". Single wildcard pattern for matching (e.g., "prod-*"); * matches any sequence of characters. Cannot be combined with includes. Provide exactly one of include or includes.
+- `includes` (List of String) Wildcard patterns for matching (e.g., ["prod-*", "staging-*"]); * matches any sequence of characters; a resource is in scope if it matches any of them. Cannot be combined with include, and cannot be empty. Provide exactly one of include or includes.
 
 
 <a id="nestedblock--scope--workload_names_patterns"></a>
 ### Nested Schema for `scope.workload_names_patterns`
 
-Required:
-
-- `include` (String) Glob pattern for matching (e.g., "prod-*").
-
 Optional:
 
-- `exclude` (String) Optional glob pattern to exclude within the include set.
+- `exclude` (String, Deprecated) Deprecated: prefer `excludes`. Single wildcard pattern to exclude within the include set. Cannot be combined with excludes. Provide at most one of exclude or excludes.
+- `excludes` (List of String) Wildcard patterns to exclude within the include set; a resource is excluded if it matches any of them. Cannot be combined with exclude. An empty list (the default) means no exclusions. Provide at most one of exclude or excludes.
+- `include` (String, Deprecated) Deprecated: prefer "includes". Single wildcard pattern for matching (e.g., "prod-*"); * matches any sequence of characters. Cannot be combined with includes. Provide exactly one of include or includes.
+- `includes` (List of String) Wildcard patterns for matching (e.g., ["prod-*", "staging-*"]); * matches any sequence of characters; a resource is in scope if it matches any of them. Cannot be combined with include, and cannot be empty. Provide exactly one of include or includes.
 
 
 

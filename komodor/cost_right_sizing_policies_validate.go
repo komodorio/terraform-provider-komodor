@@ -79,6 +79,9 @@ func validateScopes(d *schema.ResourceDiff) error {
 			if err := validateScopeDimension(i, s, dim.items, dim.patterns, dim.required); err != nil {
 				return err
 			}
+			if err := validatePatternValue(i, dim.patterns, s[dim.patterns]); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -96,6 +99,31 @@ func validateScopeDimension(idx int, scope map[string]interface{}, itemsKey, pat
 	}
 	if required && !hasItems && !hasPatterns {
 		return fmt.Errorf(`in scope[%d], dimension must be set — provide one of %q or %q`, idx, itemsKey, patternsKey)
+	}
+	return nil
+}
+
+// validatePatternValue never flags excludes: [] — unlike includes, it validly means
+// "exclude nothing".
+func validatePatternValue(idx int, patternsKey string, v interface{}) error {
+	raw, _ := v.([]interface{})
+	if len(raw) == 0 || raw[0] == nil {
+		return nil
+	}
+	m := raw[0].(map[string]interface{})
+	include, _ := m["include"].(string)
+	exclude, _ := m["exclude"].(string)
+	includes := toStringList(listFromMap(m, "includes"))
+	excludes := toStringList(listFromMap(m, "excludes"))
+
+	if include != "" && len(includes) > 0 {
+		return fmt.Errorf(`in scope[%d].%s, "include" and "includes" are mutually exclusive — provide exactly one`, idx, patternsKey)
+	}
+	if exclude != "" && len(excludes) > 0 {
+		return fmt.Errorf(`in scope[%d].%s, "exclude" and "excludes" are mutually exclusive — provide exactly one`, idx, patternsKey)
+	}
+	if include == "" && len(includes) == 0 {
+		return fmt.Errorf(`in scope[%d].%s, one of "include" or "includes" is required — an empty "includes" list matches nothing`, idx, patternsKey)
 	}
 	return nil
 }
