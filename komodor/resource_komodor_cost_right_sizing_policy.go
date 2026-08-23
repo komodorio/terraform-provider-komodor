@@ -185,13 +185,13 @@ func costRSPScopeResource() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"clusters":                stringList("Required — provide via this field or `clusters_patterns`. Exact cluster names. The string `\"*\"` is treated literally — to match all clusters, use `clusters_patterns { includes = [\"*\"] }` instead. Mutually exclusive with clusters_patterns."),
-			"clusters_patterns":       patternBlock("Required — provide via this block or the exact `clusters` list. Glob patterns for cluster names (`includes = [\"*\"]` matches all). Mutually exclusive with clusters."),
+			"clusters_patterns":       patternBlock("Required — provide via this block or the exact `clusters` list. Wildcard patterns for cluster names (`includes = [\"*\"]` matches all). Mutually exclusive with clusters."),
 			"namespaces":              stringList("Required — provide via this field or `namespaces_patterns`. Exact namespace names. The string `\"*\"` is treated literally — to match all namespaces, use `namespaces_patterns { includes = [\"*\"] }` instead. Mutually exclusive with namespaces_patterns."),
-			"namespaces_patterns":     patternBlock("Required — provide via this block or the exact `namespaces` list. Glob patterns for namespace names (`includes = [\"*\"]` matches all). Mutually exclusive with namespaces."),
+			"namespaces_patterns":     patternBlock("Required — provide via this block or the exact `namespaces` list. Wildcard patterns for namespace names (`includes = [\"*\"]` matches all). Mutually exclusive with namespaces."),
 			"resource_types":          stringList("Workload kinds (e.g., Deployment, StatefulSet). The string `\"*\"` is treated literally — to match all kinds, use `resource_types_patterns { includes = [\"*\"] }` instead. Mutually exclusive with resource_types_patterns."),
-			"resource_types_patterns": patternBlock("Glob patterns for workload kinds (`includes = [\"*\"]` matches all). Mutually exclusive with resource_types."),
+			"resource_types_patterns": patternBlock("Wildcard patterns for workload kinds (`includes = [\"*\"]` matches all). Mutually exclusive with resource_types."),
 			"workload_names":          stringList("Required — provide via this field or `workload_names_patterns`. Exact workload names. The string `\"*\"` is treated literally — to match all workloads, use `workload_names_patterns { includes = [\"*\"] }` instead. Mutually exclusive with workload_names_patterns."),
-			"workload_names_patterns": patternBlock("Required — provide via this block or the exact `workload_names` list. Glob patterns for workload names (`includes = [\"*\"]` matches all). Mutually exclusive with workload_names."),
+			"workload_names_patterns": patternBlock("Required — provide via this block or the exact `workload_names` list. Wildcard patterns for workload names (`includes = [\"*\"]` matches all). Mutually exclusive with workload_names."),
 		},
 	}
 }
@@ -210,26 +210,26 @@ func costRSPPatternResource() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
 				Deprecated:   "Use `includes` instead. Cannot be combined with `includes`.",
-				Description:  `Deprecated: prefer "includes". Single glob pattern for matching (e.g., "prod-*"). Cannot be combined with includes. Provide exactly one of include or includes.`,
+				Description:  `Deprecated: prefer "includes". Single wildcard pattern for matching (e.g., "prod-*"); * matches any sequence of characters. Cannot be combined with includes. Provide exactly one of include or includes.`,
 			},
 			"includes": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Elem:        nonEmptyElem(),
-				Description: `Glob patterns for matching (e.g., ["prod-*", "staging-*"]); a resource is in scope if it matches any of them. Cannot be combined with include, and cannot be empty. Provide exactly one of include or includes.`,
+				Description: `Wildcard patterns for matching (e.g., ["prod-*", "staging-*"]); * matches any sequence of characters; a resource is in scope if it matches any of them. Cannot be combined with include, and cannot be empty. Provide exactly one of include or includes.`,
 			},
 			"exclude": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
 				Deprecated:   "Use `excludes` instead. Cannot be combined with `excludes`.",
-				Description:  "Deprecated: prefer `excludes`. Single glob pattern to exclude within the include set. Cannot be combined with excludes. Provide at most one of exclude or excludes.",
+				Description:  "Deprecated: prefer `excludes`. Single wildcard pattern to exclude within the include set. Cannot be combined with excludes. Provide at most one of exclude or excludes.",
 			},
 			"excludes": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Elem:        nonEmptyElem(),
-				Description: "Glob patterns to exclude within the include set; a resource is excluded if it matches any of them. Cannot be combined with exclude. An empty list (the default) means no exclusions. Provide at most one of exclude or excludes.",
+				Description: "Wildcard patterns to exclude within the include set; a resource is excluded if it matches any of them. Cannot be combined with exclude. An empty list (the default) means no exclusions. Provide at most one of exclude or excludes.",
 			},
 		},
 	}

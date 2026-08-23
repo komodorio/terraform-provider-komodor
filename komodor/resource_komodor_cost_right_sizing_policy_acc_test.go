@@ -204,12 +204,7 @@ func TestAcc_komodor_cost_right_sizing_policy_multi_scope(t *testing.T) {
 				),
 			},
 			{
-				// Regression guard for the includes/excludes addition: a policy stored with
-				// only the legacy singular include (no includes/excludes ever set) must
-				// still plan clean. flattenPattern now always sets all four keys, and
-				// apiToTFPattern must not populate includes/excludes from a nil API field —
-				// otherwise every pre-existing include/exclude-only policy would show a
-				// perpetual diff the moment a provider version with this change is applied.
+				// Legacy singular include must still plan clean after this change.
 				Config:   testAccCostRSPConfigMultiScope(name),
 				PlanOnly: true,
 			},
@@ -247,8 +242,6 @@ func TestAcc_komodor_cost_right_sizing_policy_pattern_includes_excludes(t *testi
 				),
 			},
 			{
-				// Updating the lists — and dropping excludes to none — must not disturb the
-				// legacy include/exclude fields (both stay unset).
 				Config: testAccCostRSPConfigPatternIncludesExcludes(name, []string{"tf-acc-api-*"}, nil),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.includes.#", "1"),

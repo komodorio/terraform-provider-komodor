@@ -201,11 +201,6 @@ func tfToAPIPattern(p patternTFData) PolicyPattern {
 	return out
 }
 
-// apiToTFPattern applies precedence, not union, on read: the plural field wins whenever the
-// API returns it, and the singular field is populated only as a fallback. The API keeps the
-// two mutually exclusive on write, but a policy written by another client (or from before
-// that validation existed) could in principle return both — precedence keeps that case from
-// flattening into a self-conflicting state.
 func apiToTFPattern(p PolicyPattern) patternTFData {
 	tf := patternTFData{}
 	if p.Includes != nil {
@@ -378,10 +373,17 @@ func expandPattern(v interface{}) *patternTFData {
 	m := raw[0].(map[string]interface{})
 	return &patternTFData{
 		Include:  stringFromMap(m, "include"),
-		Includes: toStringList(m["includes"].([]interface{})),
+		Includes: toStringList(listFromMap(m, "includes")),
 		Exclude:  stringFromMap(m, "exclude"),
-		Excludes: toStringList(m["excludes"].([]interface{})),
+		Excludes: toStringList(listFromMap(m, "excludes")),
 	}
+}
+
+// listFromMap reads a list-typed field defensively, mirroring stringFromMap's style: a
+// missing or unexpectedly-typed value returns nil rather than panicking.
+func listFromMap(m map[string]interface{}, key string) []interface{} {
+	v, _ := m[key].([]interface{})
+	return v
 }
 
 func expandGuardRails(m map[string]interface{}) guardRailsTFData {

@@ -13,9 +13,10 @@ resource "komodor_cost_right_sizing_policy" "production" {
   scope {
     clusters = ["prod-us-east-1", "prod-eu-west-1", "prod-ap-southeast-2"]
     namespaces_patterns {
-      # `includes`/`excludes` accept multiple glob patterns, OR'd together — a
-      # namespace is in scope if it matches any `includes` entry and none of
-      # `excludes`. Prefer these over the deprecated singular `include`/`exclude`.
+      # `includes`/`excludes` accept multiple wildcard patterns ("*" matches any sequence
+      # of characters), OR'd together — a namespace is in scope if it matches any
+      # `includes` entry and none of `excludes`. Prefer these over the deprecated
+      # singular `include`/`exclude`.
       includes = ["prod-*", "staging-shadow-*"]
       excludes = ["prod-experimental-*", "prod-canary-*"]
     }
