@@ -228,11 +228,8 @@ func TestAcc_komodor_cost_right_sizing_policy_pattern_includes_excludes(t *testi
 		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
 		Steps: []resource.TestStep{
 			{
-				// Submitted deliberately out of alphabetical order (web before api) — this is
-				// the order-preservation guard for the TypeList choice on includes/excludes
-				// (see the comment on tfToAPIPattern). Do not "tidy" these back into
-				// alphabetical order: an API that silently started sorting or deduping the
-				// list would still pass an alphabetically-ordered assertion.
+				// Order is deliberately non-alphabetical (web before api) — don't "tidy" this;
+				// see the comment on tfToAPIPattern.
 				Config: testAccCostRSPConfigPatternIncludesExcludes(name, []string{"tf-acc-web-*", "tf-acc-api-*"}, []string{"tf-acc-web-canary", "tf-acc-api-canary"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "name", name),

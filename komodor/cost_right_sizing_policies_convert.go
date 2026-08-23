@@ -184,12 +184,9 @@ func apiToTFScope(s PolicyResourceScope) scopeTFData {
 	return tf
 }
 
-// includes/excludes are TypeList, not TypeSet, even though matching itself is order-
-// insensitive (a resource matches if it hits ANY entry). That's safe only because the API
-// preserves submitted array order end to end (confirmed: no sort/dedupe anywhere in the
-// write/read path, and the value round-trips through a single JSON blob column). If that
-// ever changes, every existing policy would show a spurious reorder diff on next plan —
-// see the order-preservation acceptance test guarding this assumption.
+// includes/excludes are TypeList despite order-insensitive matching: safe only because the
+// API preserves submitted order end to end (verified; see the order-preservation
+// acceptance test). If that ever changes, existing policies would show a spurious diff.
 func tfToAPIPattern(p patternTFData) PolicyPattern {
 	out := PolicyPattern{}
 	if len(p.Includes) > 0 {
@@ -385,8 +382,6 @@ func expandPattern(v interface{}) *patternTFData {
 	}
 }
 
-// listFromMap reads a list-typed field defensively, mirroring stringFromMap's style: a
-// missing or unexpectedly-typed value returns nil rather than panicking.
 func listFromMap(m map[string]interface{}, key string) []interface{} {
 	v, _ := m[key].([]interface{})
 	return v

@@ -103,8 +103,8 @@ func validateScopeDimension(idx int, scope map[string]interface{}, itemsKey, pat
 	return nil
 }
 
-// validatePatternValue does not flag an empty excludes list: unlike includes, it validly
-// means "exclude nothing".
+// validatePatternValue never flags excludes: [] — unlike includes, it validly means
+// "exclude nothing".
 func validatePatternValue(idx int, patternsKey string, v interface{}) error {
 	raw, _ := v.([]interface{})
 	if len(raw) == 0 || raw[0] == nil {

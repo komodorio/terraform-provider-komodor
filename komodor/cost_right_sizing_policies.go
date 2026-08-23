@@ -81,12 +81,10 @@ type PolicyResourceScope struct {
 }
 
 type PolicyPattern struct {
-	// Include is deprecated in favor of Includes; still read by the API for policies
-	// stored before multi-inclusion support. Cannot be combined with Includes.
+	// Deprecated: superseded by Includes. Cannot be combined with it.
 	Include  *string   `json:"include,omitempty"`
 	Includes *[]string `json:"includes,omitempty"`
-	// Exclude is deprecated in favor of Excludes; still read by the API for policies
-	// stored before multi-exclusion support. Cannot be combined with Excludes.
+	// Deprecated: superseded by Excludes. Cannot be combined with it.
 	Exclude  *string   `json:"exclude,omitempty"`
 	Excludes *[]string `json:"excludes,omitempty"`
 }
