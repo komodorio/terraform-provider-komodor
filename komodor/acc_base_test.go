@@ -98,6 +98,20 @@ func cleanupOrphanedAccResources() {
 	} else {
 		log.Printf("[CLEANUP] could not list right-sizing policies: %s", err)
 	}
+
+	// Right-sizing workload overrides (identified by the tf-acc- prefixed workload name)
+	if overrides, err := client.GetOverrides(); err == nil {
+		for _, o := range overrides {
+			if strings.HasPrefix(o.Name, accTestPrefix) {
+				log.Printf("[CLEANUP] deleting orphaned workload override: %s (%s)", o.Name, o.Id)
+				if err = client.DeleteOverride(o.Id); err != nil {
+					log.Printf("[CLEANUP] failed to delete workload override %s: %s", o.Id, err)
+				}
+			}
+		}
+	} else {
+		log.Printf("[CLEANUP] could not list workload overrides: %s", err)
+	}
 }
 
 // testAccPreCheck validates that the required environment variables are set

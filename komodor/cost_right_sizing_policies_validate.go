@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/go-cty/cty/gocty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -17,6 +18,7 @@ func resourceKomodorCostRightSizingPolicyCustomizeDiff(_ context.Context, d *sch
 		validateApplyProtocolWithRestart,
 		validateScopes,
 		validateGuardRailsBlock,
+		validateGuardRailsPercentiles,
 		addManagedByTFTagIfDoesntExist,
 	} {
 		if err := check(d); err != nil {
@@ -77,6 +79,9 @@ func validateScopes(d *schema.ResourceDiff) error {
 			if err := validateScopeDimension(i, s, dim.items, dim.patterns, dim.required); err != nil {
 				return err
 			}
+			if err := validatePatternValue(i, dim.patterns, s[dim.patterns]); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -98,6 +103,31 @@ func validateScopeDimension(idx int, scope map[string]interface{}, itemsKey, pat
 	return nil
 }
 
+// validatePatternValue never flags excludes: [] — unlike includes, it validly means
+// "exclude nothing".
+func validatePatternValue(idx int, patternsKey string, v interface{}) error {
+	raw, _ := v.([]interface{})
+	if len(raw) == 0 || raw[0] == nil {
+		return nil
+	}
+	m := raw[0].(map[string]interface{})
+	include, _ := m["include"].(string)
+	exclude, _ := m["exclude"].(string)
+	includes := toStringList(listFromMap(m, "includes"))
+	excludes := toStringList(listFromMap(m, "excludes"))
+
+	if include != "" && len(includes) > 0 {
+		return fmt.Errorf(`in scope[%d].%s, "include" and "includes" are mutually exclusive — provide exactly one`, idx, patternsKey)
+	}
+	if exclude != "" && len(excludes) > 0 {
+		return fmt.Errorf(`in scope[%d].%s, "exclude" and "excludes" are mutually exclusive — provide exactly one`, idx, patternsKey)
+	}
+	if include == "" && len(includes) == 0 {
+		return fmt.Errorf(`in scope[%d].%s, one of "include" or "includes" is required — an empty "includes" list matches nothing`, idx, patternsKey)
+	}
+	return nil
+}
+
 func validateGuardRailsBlock(d *schema.ResourceDiff) error {
 	if !userProvidedGuardRails(d) {
 		return nil
@@ -115,6 +145,51 @@ func validateGuardRailsBlock(d *schema.ResourceDiff) error {
 		return err
 	}
 	return nil
+}
+
+func validateGuardRailsPercentiles(d *schema.ResourceDiff) error {
+	if !userProvidedGuardRails(d) {
+		return nil
+	}
+	gr := d.GetRawConfig().GetAttr("guardrails").AsValueSlice()[0]
+	shared, cpu, memory := gr.GetAttr("percentile"), gr.GetAttr("cpu_percentile"), gr.GetAttr("memory_percentile")
+	if !shared.IsKnown() || !cpu.IsKnown() || !memory.IsKnown() {
+		return nil
+	}
+	sharedVal, err := ctyInt(shared)
+	if err != nil {
+		return err
+	}
+	cpuVal, err := ctyInt(cpu)
+	if err != nil {
+		return err
+	}
+	memoryVal, err := ctyInt(memory)
+	if err != nil {
+		return err
+	}
+	return checkPercentileConfig(sharedVal, cpuVal, memoryVal)
+}
+
+func checkPercentileConfig(shared, cpu, memory int) error {
+	if shared != 0 && (cpu != 0 || memory != 0) {
+		return fmt.Errorf(`"percentile" is mutually exclusive with "cpu_percentile"/"memory_percentile" — set the shared "percentile" or the two resource-specific fields, not both`)
+	}
+	if (cpu == 0 && shared == 0) || (memory == 0 && shared == 0) {
+		return fmt.Errorf(`guardrails requires a percentile for both CPU and memory: set "percentile" (applies to both) or set both "cpu_percentile" and "memory_percentile"`)
+	}
+	return nil
+}
+
+func ctyInt(v cty.Value) (int, error) {
+	if v.IsNull() {
+		return 0, nil
+	}
+	var i int
+	if err := gocty.FromCtyValue(v, &i); err != nil {
+		return 0, err
+	}
+	return i, nil
 }
 
 func validateManagedResources(gr map[string]interface{}) error {
@@ -177,6 +252,19 @@ func userProvidedGuardRails(d *schema.ResourceDiff) bool {
 	return gr.LengthInt() > 0
 }
 
+func warnLiteralStarInExactList(v interface{}, p cty.Path) diag.Diagnostics {
+	s, ok := v.(string)
+	if !ok || s != "*" {
+		return nil
+	}
+	return diag.Diagnostics{{
+		Severity:      diag.Warning,
+		Summary:       `"*" in an exact-match scope list is literal, not a wildcard`,
+		Detail:        `To match all items, use the corresponding *_patterns block with include = "*" instead. The literal "*" matches only an entity whose name is the single character "*", which is almost never intended.`,
+		AttributePath: p,
+	}}
+}
+
 func validateUnsupportedString(field string, allowed []string) schema.SchemaValidateDiagFunc {
 	return func(v interface{}, _ cty.Path) diag.Diagnostics {
 		val, ok := v.(string)
@@ -189,6 +277,16 @@ func validateUnsupportedString(field string, allowed []string) schema.SchemaVali
 			}
 		}
 		return diag.Errorf("unsupported %s %q — must be one of %s", field, val, formatQuotedStringList(allowed))
+	}
+}
+
+func validatePercentileOrUnset(field string) schema.SchemaValidateDiagFunc {
+	check := validateUnsupportedInt(field, validPercentiles)
+	return func(v interface{}, p cty.Path) diag.Diagnostics {
+		if val, ok := v.(int); ok && val == 0 {
+			return nil
+		}
+		return check(v, p)
 	}
 }
 

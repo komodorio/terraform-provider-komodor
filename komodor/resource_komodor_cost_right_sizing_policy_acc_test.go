@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -23,28 +24,24 @@ func TestAcc_komodor_cost_right_sizing_policy_named_preset(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
 		Steps: []resource.TestStep{
-			// Step 1: Create with a named preset (sandbox), minimal scope, one user tag.
 			{
-				Config: testAccCostRSPConfigNamedPreset(name, "initial description", 100, []string{"team:cost"}),
+				Config: testAccCostRSPConfigNamedPreset(name, "initial description", 99, []string{"team:cost"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "name", name),
 					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
 					resource.TestCheckResourceAttr(resourceAddr, "optimization_preset", presetSandbox),
-					resource.TestCheckResourceAttr(resourceAddr, "priority", "100"),
+					resource.TestCheckResourceAttr(resourceAddr, "priority", "99"),
 					resource.TestCheckResourceAttr(resourceAddr, "description", "initial description"),
 					resource.TestCheckResourceAttrSet(resourceAddr, "created_at"),
 					resource.TestCheckResourceAttrSet(resourceAddr, "created_by"),
 					resource.TestCheckResourceAttrSet(resourceAddr, "updated_by"),
-					// Named preset → BE fills guardrails server-side.
 					resource.TestCheckResourceAttrSet(resourceAddr, "guardrails.0.percentile"),
 					resource.TestCheckResourceAttrSet(resourceAddr, "guardrails.0.managed_resources.0.cpu_requests"),
-					// Provider auto-appends managed-by:tf.
 					resource.TestCheckResourceAttr(resourceAddr, "tags.#", "2"),
 					resource.TestCheckResourceAttr(resourceAddr, "tags.0", "team:cost"),
 					resource.TestCheckResourceAttr(resourceAddr, "tags.1", managedByTag),
 				),
 			},
-			// Step 2: In-place update — change description, priority, and extend tags.
 			{
 				Config: testAccCostRSPConfigNamedPreset(name, "updated description", 200, []string{"team:cost", "owner:platform"}),
 				Check: resource.ComposeTestCheckFunc(
@@ -56,7 +53,6 @@ func TestAcc_komodor_cost_right_sizing_policy_named_preset(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceAddr, "tags.2", managedByTag),
 				),
 			},
-			// Step 3: Import round-trip.
 			{
 				ResourceName:            resourceAddr,
 				ImportState:             true,
@@ -76,9 +72,8 @@ func TestAcc_komodor_cost_right_sizing_policy_custom_preset(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
 		Steps: []resource.TestStep{
-			// Step 1: Create with optimization_preset = "custom" and explicit guardrails.
 			{
-				Config: testAccCostRSPConfigCustomPreset(name, 95, true /* cpuRequests */, []string{"team:cost"}),
+				Config: testAccCostRSPConfigCustomPreset(name, "percentile = 95", true, []string{"team:cost"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "name", name),
 					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
@@ -91,32 +86,196 @@ func TestAcc_komodor_cost_right_sizing_policy_custom_preset(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceAddr, "tags.1", managedByTag),
 				),
 			},
-			// Step 2: In-place update — flip a managed-resource flag, bump percentile, and
-			// include managed-by:tf in the user-supplied list to verify dedup.
 			{
-				Config: testAccCostRSPConfigCustomPreset(name, 90, false /* cpuRequests */, []string{managedByTag, "team:cost"}),
+				Config: testAccCostRSPConfigCustomPreset(name, "percentile = 90", false, []string{managedByTag, "team:cost"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.percentile", "90"),
 					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.managed_resources.0.cpu_requests", "false"),
-					// managed-by:tf appears exactly once; no duplicate.
 					resource.TestCheckResourceAttr(resourceAddr, "tags.#", "2"),
 				),
 			},
-			// Step 3: Import round-trip.
 			{
 				ResourceName:            resourceAddr,
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"force_delete"},
 			},
-			// Step 4: Disappears — delete the policy out-of-band and verify the next plan
-			// proposes a recreate.
 			{
-				Config: testAccCostRSPConfigCustomPreset(name, 90, false, []string{managedByTag, "team:cost"}),
+				Config: testAccCostRSPConfigCustomPreset(name, "percentile = 90", false, []string{managedByTag, "team:cost"}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRightSizingPolicyDisappears(resourceAddr),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAcc_komodor_cost_right_sizing_policy_split_percentiles(t *testing.T) {
+	name := testResourceName("cost-rsp-split-pct")
+	resourceAddr := "komodor_cost_right_sizing_policy.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCostRSPConfigSplitPercentiles(name, 90, 99),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.cpu_percentile", "90"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.memory_percentile", "99"),
+				),
+			},
+			{
+				Config: testAccCostRSPConfigSplitPercentiles(name, 95, 80),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.cpu_percentile", "95"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.memory_percentile", "80"),
+				),
+			},
+			{
+				ResourceName:            resourceAddr,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_delete"},
+			},
+		},
+	})
+}
+
+func TestAcc_komodor_cost_right_sizing_policy_percentile_cycle(t *testing.T) {
+	name := testResourceName("cost-rsp-cycle")
+	resourceAddr := "komodor_cost_right_sizing_policy.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCostRSPConfigCustomPreset(name, "cpu_percentile    = 70\n    memory_percentile = 80", true, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.cpu_percentile", "70"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.memory_percentile", "80"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.percentile", "0"),
+				),
+			},
+			{
+				Config: testAccCostRSPConfigCustomPreset(name, "percentile = 70", true, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.percentile", "70"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.cpu_percentile", "0"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.memory_percentile", "0"),
+				),
+			},
+			{
+				Config: testAccCostRSPConfigCustomPreset(name, "cpu_percentile    = 90\n    memory_percentile = 95", true, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.cpu_percentile", "90"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.memory_percentile", "95"),
+					resource.TestCheckResourceAttr(resourceAddr, "guardrails.0.percentile", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAcc_komodor_cost_right_sizing_policy_multi_scope(t *testing.T) {
+	name := testResourceName("cost-rsp-multi-scope")
+	resourceAddr := "komodor_cost_right_sizing_policy.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCostRSPConfigMultiScope(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "name", name),
+					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.#", "2"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.clusters.0", "cost-tests"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.namespaces.0", "noam"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.1.clusters.0", "cost-tests"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.1.namespaces.0", "default"),
+				),
+			},
+			{
+				// Legacy singular include must still plan clean after this change.
+				Config:   testAccCostRSPConfigMultiScope(name),
+				PlanOnly: true,
+			},
+			{
+				ResourceName:            resourceAddr,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_delete"},
+			},
+		},
+	})
+}
+
+func TestAcc_komodor_cost_right_sizing_policy_pattern_includes_excludes(t *testing.T) {
+	name := testResourceName("cost-rsp-includes")
+	resourceAddr := "komodor_cost_right_sizing_policy.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
+		Steps: []resource.TestStep{
+			{
+				// Order is deliberately non-alphabetical (web before api) — don't "tidy" this;
+				// see the comment on tfToAPIPattern.
+				Config: testAccCostRSPConfigPatternIncludesExcludes(name, []string{"tf-acc-web-*", "tf-acc-api-*"}, []string{"tf-acc-web-canary", "tf-acc-api-canary"}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "name", name),
+					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.includes.#", "2"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.includes.0", "tf-acc-web-*"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.includes.1", "tf-acc-api-*"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.excludes.#", "2"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.excludes.0", "tf-acc-web-canary"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.excludes.1", "tf-acc-api-canary"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.include", ""),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.exclude", ""),
+				),
+			},
+			{
+				Config: testAccCostRSPConfigPatternIncludesExcludes(name, []string{"tf-acc-api-*"}, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.includes.#", "1"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.includes.0", "tf-acc-api-*"),
+					resource.TestCheckResourceAttr(resourceAddr, "scope.0.workload_names_patterns.0.excludes.#", "0"),
+				),
+			},
+			{
+				ResourceName:            resourceAddr,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_delete"},
+			},
+		},
+	})
+}
+
+func TestAcc_komodor_cost_right_sizing_policy_pattern_conflicting_fields(t *testing.T) {
+	name := testResourceName("cost-rsp-conflict")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCostRSPConfigConflictingIncludeAndIncludes(name),
+				ExpectError: regexp.MustCompile(`"include" and "includes" are mutually exclusive`),
+			},
+			{
+				Config:      testAccCostRSPConfigEmptyIncludesList(name),
+				ExpectError: regexp.MustCompile(`one of "include" or "includes" is required`),
 			},
 		},
 	})
@@ -147,16 +306,13 @@ func testAccCheckRightSizingPolicyDisappears(resourceAddr string) resource.TestC
 			return fmt.Errorf("resource %q has empty ID", resourceAddr)
 		}
 		client := newRightSizingClientFromMeta(testAccProvider.Meta())
-		if err := client.Delete(context.Background(), id, true /* force */); err != nil {
+		if err := client.Delete(context.Background(), id, true); err != nil {
 			return fmt.Errorf("deleting right-sizing policy %q out-of-band: %s", id, err)
 		}
 		return nil
 	}
 }
 
-// Scope used by all cost-right-sizing-policy acc tests. Matches the
-// `tf-acc-cluster` / `default` namespace pair other acc tests use,
-// so all test artifacts live in the same account/cluster context.
 const testAccCostRSPScope = `
   scope {
     clusters   = ["tf-acc-cluster"]
@@ -182,18 +338,18 @@ resource "komodor_cost_right_sizing_policy" "test" {
 `, name, description, priority, presetSandbox, applyOnCreation, hclStringList(tags), testAccCostRSPScope)
 }
 
-func testAccCostRSPConfigCustomPreset(name string, percentile int, cpuRequestsEnabled bool, tags []string) string {
+func testAccCostRSPConfigCustomPreset(name, percentileLines string, cpuRequestsEnabled bool, tags []string) string {
 	return fmt.Sprintf(`
 resource "komodor_cost_right_sizing_policy" "test" {
   name                = %q
-  priority            = 100
+  priority            = 99
   optimization_preset = %q
   apply_protocol      = %q
   force_delete        = true
   tags                = %s
 %s
   guardrails {
-    percentile          = %d
+    %s
     allow_qos_upgrade   = false
     allow_qos_downgrade = false
 
@@ -233,7 +389,104 @@ resource "komodor_cost_right_sizing_policy" "test" {
     }
   }
 }
-`, name, presetCustom, applyOnCreation, hclStringList(tags), testAccCostRSPScope, percentile, cpuRequestsEnabled)
+`, name, presetCustom, applyOnCreation, hclStringList(tags), testAccCostRSPScope, percentileLines, cpuRequestsEnabled)
+}
+
+func testAccCostRSPConfigSplitPercentiles(name string, cpuPercentile, memoryPercentile int) string {
+	return testAccCostRSPConfigCustomPreset(name, fmt.Sprintf("cpu_percentile    = %d\n    memory_percentile = %d", cpuPercentile, memoryPercentile), true, nil)
+}
+
+func testAccCostRSPConfigMultiScope(name string) string {
+	return fmt.Sprintf(`
+resource "komodor_cost_right_sizing_policy" "test" {
+  name                = %q
+  priority            = 99
+  optimization_preset = %q
+  apply_protocol      = %q
+  force_delete        = true
+
+  scope {
+    clusters   = ["cost-tests"]
+    namespaces = ["noam"]
+    workload_names_patterns {
+      include = "tf-acc-*"
+    }
+  }
+
+  scope {
+    clusters   = ["cost-tests"]
+    namespaces = ["default"]
+    workload_names_patterns {
+      include = "tf-acc-*"
+    }
+  }
+}
+`, name, presetSandbox, applyOnCreation)
+}
+
+func testAccCostRSPConfigPatternIncludesExcludes(name string, includes, excludes []string) string {
+	excludesBlock := ""
+	if len(excludes) > 0 {
+		excludesBlock = fmt.Sprintf("\n      excludes = %s", hclStringList(excludes))
+	}
+	return fmt.Sprintf(`
+resource "komodor_cost_right_sizing_policy" "test" {
+  name                = %q
+  priority            = 99
+  optimization_preset = %q
+  apply_protocol      = %q
+  force_delete        = true
+
+  scope {
+    clusters   = ["tf-acc-cluster"]
+    namespaces = ["default"]
+    workload_names_patterns {
+      includes = %s%s
+    }
+  }
+}
+`, name, presetSandbox, applyOnCreation, hclStringList(includes), excludesBlock)
+}
+
+func testAccCostRSPConfigConflictingIncludeAndIncludes(name string) string {
+	return fmt.Sprintf(`
+resource "komodor_cost_right_sizing_policy" "test" {
+  name                = %q
+  priority            = 99
+  optimization_preset = %q
+  apply_protocol      = %q
+  force_delete        = true
+
+  scope {
+    clusters   = ["tf-acc-cluster"]
+    namespaces = ["default"]
+    workload_names_patterns {
+      include  = "tf-acc-*"
+      includes = ["tf-acc-api-*"]
+    }
+  }
+}
+`, name, presetSandbox, applyOnCreation)
+}
+
+func testAccCostRSPConfigEmptyIncludesList(name string) string {
+	return fmt.Sprintf(`
+resource "komodor_cost_right_sizing_policy" "test" {
+  name                = %q
+  priority            = 99
+  optimization_preset = %q
+  apply_protocol      = %q
+  force_delete        = true
+
+  scope {
+    clusters   = ["tf-acc-cluster"]
+    namespaces = ["default"]
+    workload_names_patterns {
+      includes = []
+    }
+  }
+}
+`, name, presetSandbox, applyOnCreation)
 }
 
 func hclStringList(items []string) string {

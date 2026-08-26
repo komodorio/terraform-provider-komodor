@@ -98,6 +98,11 @@ func (c *Client) GetKlaudiaFilesUrl(fileType string) string {
 	return c.GetKlaudiaV2Endpoint() + "/files/" + fileType
 }
 
+// GetCostRightSizingWorkloadOverridesUrl returns the cost right-sizing workload overrides endpoint
+func (c *Client) GetCostRightSizingWorkloadOverridesUrl() string {
+	return c.GetV2Endpoint() + "/cost/right-sizing/workload-overrides"
+}
+
 // prepareRequest creates a new HTTP request with the necessary headers
 func (c *Client) prepareRequest(method, url string, body *[]byte) (*http.Request, error) {
 	var reader io.Reader

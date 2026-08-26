@@ -9,6 +9,14 @@ func intFromPercentile(p *RightSizingPolicyPercentile) int {
 	return int(*p)
 }
 
+func percentilePtr(v int) *RightSizingPolicyPercentile {
+	if v == 0 {
+		return nil
+	}
+	p := RightSizingPolicyPercentile(v)
+	return &p
+}
+
 func qosUpgradeV1FromV2(v2 bool) string {
 	if v2 {
 		return qosUpgradeBestEffortToBurstable
@@ -37,8 +45,9 @@ func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopeP
 		api.AllowQoSUpgrade = stringPtr(qosUpgradeV1FromV2(tf.GuardRails.AllowQoSUpgrade))
 		api.AllowQoSUpgradeV2 = boolPtr(tf.GuardRails.AllowQoSUpgrade)
 		api.AllowQoSDowngrade = boolPtr(tf.GuardRails.AllowQoSDowngrade)
-		p := RightSizingPolicyPercentile(tf.GuardRails.Percentile)
-		api.Percentile = &p
+		api.Percentile = percentilePtr(tf.GuardRails.Percentile)
+		api.CpuPercentile = percentilePtr(tf.GuardRails.CpuPercentile)
+		api.MemoryPercentile = percentilePtr(tf.GuardRails.MemoryPercentile)
 	}
 	if len(tf.Tags) > 0 {
 		tags := tf.Tags
@@ -66,6 +75,12 @@ func apiToTFRightSizingPolicy(api RightSizingMultiScopePolicy) rightSizingPolicy
 		gr := apiToTFGuardRails(*api.GuardRails)
 		if api.Percentile != nil {
 			gr.Percentile = int(*api.Percentile)
+		}
+		if api.CpuPercentile != nil {
+			gr.CpuPercentile = int(*api.CpuPercentile)
+		}
+		if api.MemoryPercentile != nil {
+			gr.MemoryPercentile = int(*api.MemoryPercentile)
 		}
 		gr.AllowQoSUpgrade = boolValue(api.AllowQoSUpgradeV2)
 		gr.AllowQoSDowngrade = boolValue(api.AllowQoSDowngrade)
@@ -169,22 +184,39 @@ func apiToTFScope(s PolicyResourceScope) scopeTFData {
 	return tf
 }
 
+// includes/excludes are TypeList despite order-insensitive matching: safe only because the
+// API preserves submitted order end to end (verified; see the order-preservation
+// acceptance test). If that ever changes, existing policies would show a spurious diff.
 func tfToAPIPattern(p patternTFData) PolicyPattern {
 	out := PolicyPattern{}
-	if p.Include != "" {
+	if len(p.Includes) > 0 {
+		v := p.Includes
+		out.Includes = &v
+	} else if p.Include != "" {
 		out.Include = stringPtr(p.Include)
 	}
-	if p.Exclude != "" {
+	if len(p.Excludes) > 0 {
+		v := p.Excludes
+		out.Excludes = &v
+	} else if p.Exclude != "" {
 		out.Exclude = stringPtr(p.Exclude)
 	}
 	return out
 }
 
 func apiToTFPattern(p PolicyPattern) patternTFData {
-	return patternTFData{
-		Include: stringValue(p.Include),
-		Exclude: stringValue(p.Exclude),
+	tf := patternTFData{}
+	if p.Includes != nil {
+		tf.Includes = *p.Includes
+	} else {
+		tf.Include = stringValue(p.Include)
 	}
+	if p.Excludes != nil {
+		tf.Excludes = *p.Excludes
+	} else {
+		tf.Exclude = stringValue(p.Exclude)
+	}
+	return tf
 }
 
 func tfToAPIGuardRails(tf guardRailsTFData) PolicyGuardRails {
@@ -343,14 +375,23 @@ func expandPattern(v interface{}) *patternTFData {
 	}
 	m := raw[0].(map[string]interface{})
 	return &patternTFData{
-		Include: m["include"].(string),
-		Exclude: stringFromMap(m, "exclude"),
+		Include:  stringFromMap(m, "include"),
+		Includes: toStringList(listFromMap(m, "includes")),
+		Exclude:  stringFromMap(m, "exclude"),
+		Excludes: toStringList(listFromMap(m, "excludes")),
 	}
+}
+
+func listFromMap(m map[string]interface{}, key string) []interface{} {
+	v, _ := m[key].([]interface{})
+	return v
 }
 
 func expandGuardRails(m map[string]interface{}) guardRailsTFData {
 	gr := guardRailsTFData{
 		Percentile:         m["percentile"].(int),
+		CpuPercentile:      m["cpu_percentile"].(int),
+		MemoryPercentile:   m["memory_percentile"].(int),
 		AllowRightSizingUp: m["allow_right_sizing_up"].(bool),
 		AllowQoSUpgrade:    m["allow_qos_upgrade"].(bool),
 		AllowQoSDowngrade:  m["allow_qos_downgrade"].(bool),
@@ -482,8 +523,10 @@ func flattenPattern(p *patternTFData) []interface{} {
 	}
 	return []interface{}{
 		map[string]interface{}{
-			"include": p.Include,
-			"exclude": p.Exclude,
+			"include":  p.Include,
+			"includes": p.Includes,
+			"exclude":  p.Exclude,
+			"excludes": p.Excludes,
 		},
 	}
 }
@@ -494,6 +537,8 @@ func flattenGuardRails(gr *guardRailsTFData) []interface{} {
 	}
 	m := map[string]interface{}{
 		"percentile":            gr.Percentile,
+		"cpu_percentile":        gr.CpuPercentile,
+		"memory_percentile":     gr.MemoryPercentile,
 		"managed_resources":     flattenManagedResources(gr.ManagedResources),
 		"allow_right_sizing_up": gr.AllowRightSizingUp,
 		"allow_qos_upgrade":     gr.AllowQoSUpgrade,

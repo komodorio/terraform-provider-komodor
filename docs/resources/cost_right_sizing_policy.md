@@ -25,7 +25,7 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
     namespaces     = ["payments", "checkout"]
     resource_types = ["Deployment", "StatefulSet"]
     workload_names_patterns {
-      include = "*"
+      includes = ["*"]
     }
   }
 
@@ -38,7 +38,8 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
   optimization_preset = "custom"
 
   guardrails {
-    percentile = 95
+    cpu_percentile    = 95
+    memory_percentile = 99
 
     managed_resources {
       cpu_requests    = true
@@ -128,13 +129,39 @@ resource "komodor_cost_right_sizing_policy" "production" {
   priority    = 300
 
   # step 2 - scope
+  #
+  # Multiple `scope` blocks are evaluated with OR semantics: a workload is
+  # in-scope if it matches ANY block. This lets a single policy cover a broad
+  # set AND carve in specific extras that wouldn't be matched by the first.
+
   scope {
-    clusters       = ["prod-us-east-1", "prod-eu-west-1", "prod-ap-southeast-2"]
-    namespaces     = ["payments", "checkout", "auth", "api"]
+    clusters = ["prod-us-east-1", "prod-eu-west-1", "prod-ap-southeast-2"]
+    namespaces_patterns {
+      # `includes`/`excludes` accept multiple wildcard patterns ("*" matches any sequence
+      # of characters), OR'd together — a namespace is in scope if it matches any
+      # `includes` entry and none of `excludes`. Prefer these over the deprecated
+      # singular `include`/`exclude`.
+      includes = ["prod-*", "staging-shadow-*"]
+      excludes = ["prod-experimental-*", "prod-canary-*"]
+    }
     resource_types = ["Deployment", "StatefulSet"]
     workload_names_patterns {
+      # The deprecated singular form still works and behaves like a one-element
+      # `includes`/`excludes` list — kept here to illustrate that existing
+      # configs using `include`/`exclude` don't need to change.
       include = "*"
+      exclude = "*-canary"
     }
+  }
+
+  # Carve-in — the `metrics-collector` DaemonSet in `monitoring-prod`,
+  # which is outside the namespace list above but should be governed by
+  # the same policy.
+  scope {
+    clusters       = ["prod-us-east-1", "prod-eu-west-1", "prod-ap-southeast-2"]
+    namespaces     = ["monitoring-prod"]
+    resource_types = ["DaemonSet"]
+    workload_names = ["metrics-collector"]
   }
 
   # step 3 - when to apply
@@ -144,6 +171,12 @@ resource "komodor_cost_right_sizing_policy" "production" {
 
   # step 4 - guardrails
   optimization_preset = "production"
+
+  # `force_delete = true` lets `terraform destroy` cascade-delete the
+  # workload override records this policy produces. Recommended for any
+  # policy with broad scope or `apply_protocol = "immediate"` — without it,
+  # destroy can return `POLICY_HAS_OVERRIDES` (HTTP 409).
+  force_delete = true
 }
 ```
 
@@ -152,7 +185,7 @@ resource "komodor_cost_right_sizing_policy" "production" {
 
 ### Required
 
-- `apply_protocol` (String) When to apply right-sizing changes. One of: "immediate", "onCreation".
+- `apply_protocol` (String) When to apply right-sizing changes. One of: `immediate`, `onCreation`. **Note:** `immediate` materializes workload override records for every matching workload as soon as the policy is created, independent of `allow_restart`. Destroying such a policy without `force_delete = true` will return `POLICY_HAS_OVERRIDES` (HTTP 409); see `force_delete` for guidance on when to enable it.
 - `name` (String) Unique policy name within the account.
 - `optimization_preset` (String) Optimization preset. "custom" requires an explicit guardrails block; named presets (sandbox/development/staging/production) are resolved to guardrail values server-side and exposed as Computed read-only attributes. Updates to a preset's definition do not affect existing policies.
 - `priority` (Number) Policy evaluation priority. Higher value wins when multiple policies match the same workload.
@@ -163,7 +196,7 @@ resource "komodor_cost_right_sizing_policy" "production" {
 - `allow_hpa_right_sizing` (Boolean) Whether HPA-managed workloads are subject to right-sizing.
 - `allow_restart` (Boolean) Whether Komodor may restart pods to apply right-sizing. Effective only when apply_protocol = "onCreation".
 - `description` (String) Free-text description of the policy.
-- `force_delete` (Boolean) When true, cascade-deletes any active workload overrides on destroy. Has no effect on create/update.
+- `force_delete` (Boolean) When `true`, cascade-deletes any active workload override records on destroy. Has no effect on create/update. **Recommended for any policy intended for `terraform destroy`**, especially when `apply_protocol = "immediate"` or the scope is broad — without it, destroy returns `POLICY_HAS_OVERRIDES` (HTTP 409) whenever override records exist for the policy.
 - `guardrails` (Block List, Max: 1) Right-sizing guardrails. Required when optimization_preset = "custom"; must be omitted otherwise (resolved server-side from the named preset and exposed as Computed). (see [below for nested schema](#nestedblock--guardrails))
 - `tags` (List of String) Optional client-managed tags for categorization. Each tag must be lowercase, start with a letter or digit, and contain only letters, digits, and the characters `_ - : . /`. Max 200 characters per tag; max 19 tags per policy.
 
@@ -180,61 +213,57 @@ resource "komodor_cost_right_sizing_policy" "production" {
 
 Optional:
 
-- `clusters` (List of String) Exact cluster names. The string `"*"` is treated literally — to match all clusters, use `clusters_patterns { include = "*" }` instead. Mutually exclusive with clusters_patterns.
-- `clusters_patterns` (Block List, Max: 1) Glob pattern for cluster names (`include = "*"` matches all). Mutually exclusive with clusters. (see [below for nested schema](#nestedblock--scope--clusters_patterns))
-- `namespaces` (List of String) Exact namespace names. The string `"*"` is treated literally — to match all namespaces, use `namespaces_patterns { include = "*" }` instead. Mutually exclusive with namespaces_patterns.
-- `namespaces_patterns` (Block List, Max: 1) Glob pattern for namespace names (`include = "*"` matches all). Mutually exclusive with namespaces. (see [below for nested schema](#nestedblock--scope--namespaces_patterns))
-- `resource_types` (List of String) Workload kinds (e.g., Deployment, StatefulSet). The string `"*"` is treated literally — to match all kinds, use `resource_types_patterns { include = "*" }` instead. Mutually exclusive with resource_types_patterns.
-- `resource_types_patterns` (Block List, Max: 1) Glob pattern for workload kinds (`include = "*"` matches all). Mutually exclusive with resource_types. (see [below for nested schema](#nestedblock--scope--resource_types_patterns))
-- `workload_names` (List of String) Exact workload names. The string `"*"` is treated literally — to match all workloads, use `workload_names_patterns { include = "*" }` instead. Mutually exclusive with workload_names_patterns.
-- `workload_names_patterns` (Block List, Max: 1) Glob pattern for workload names (`include = "*"` matches all). Mutually exclusive with workload_names. (see [below for nested schema](#nestedblock--scope--workload_names_patterns))
+- `clusters` (List of String) Required — provide via this field or `clusters_patterns`. Exact cluster names. The string `"*"` is treated literally — to match all clusters, use `clusters_patterns { includes = ["*"] }` instead. Mutually exclusive with clusters_patterns.
+- `clusters_patterns` (Block List, Max: 1) Required — provide via this block or the exact `clusters` list. Wildcard patterns for cluster names (`includes = ["*"]` matches all). Mutually exclusive with clusters. (see [below for nested schema](#nestedblock--scope--clusters_patterns))
+- `namespaces` (List of String) Required — provide via this field or `namespaces_patterns`. Exact namespace names. The string `"*"` is treated literally — to match all namespaces, use `namespaces_patterns { includes = ["*"] }` instead. Mutually exclusive with namespaces_patterns.
+- `namespaces_patterns` (Block List, Max: 1) Required — provide via this block or the exact `namespaces` list. Wildcard patterns for namespace names (`includes = ["*"]` matches all). Mutually exclusive with namespaces. (see [below for nested schema](#nestedblock--scope--namespaces_patterns))
+- `resource_types` (List of String) Workload kinds (e.g., Deployment, StatefulSet). The string `"*"` is treated literally — to match all kinds, use `resource_types_patterns { includes = ["*"] }` instead. Mutually exclusive with resource_types_patterns.
+- `resource_types_patterns` (Block List, Max: 1) Wildcard patterns for workload kinds (`includes = ["*"]` matches all). Mutually exclusive with resource_types. (see [below for nested schema](#nestedblock--scope--resource_types_patterns))
+- `workload_names` (List of String) Required — provide via this field or `workload_names_patterns`. Exact workload names. The string `"*"` is treated literally — to match all workloads, use `workload_names_patterns { includes = ["*"] }` instead. Mutually exclusive with workload_names_patterns.
+- `workload_names_patterns` (Block List, Max: 1) Required — provide via this block or the exact `workload_names` list. Wildcard patterns for workload names (`includes = ["*"]` matches all). Mutually exclusive with workload_names. (see [below for nested schema](#nestedblock--scope--workload_names_patterns))
 
 <a id="nestedblock--scope--clusters_patterns"></a>
 ### Nested Schema for `scope.clusters_patterns`
 
-Required:
-
-- `include` (String) Glob pattern for matching (e.g., "prod-*").
-
 Optional:
 
-- `exclude` (String) Optional glob pattern to exclude within the include set.
+- `exclude` (String, Deprecated) Deprecated: prefer `excludes`. Single wildcard pattern to exclude within the include set. Cannot be combined with excludes. Provide at most one of exclude or excludes.
+- `excludes` (List of String) Wildcard patterns to exclude within the include set; a resource is excluded if it matches any of them. Cannot be combined with exclude. An empty list (the default) means no exclusions. Provide at most one of exclude or excludes.
+- `include` (String, Deprecated) Deprecated: prefer "includes". Single wildcard pattern for matching (e.g., "prod-*"); * matches any sequence of characters. Cannot be combined with includes. Provide exactly one of include or includes.
+- `includes` (List of String) Wildcard patterns for matching (e.g., ["prod-*", "staging-*"]); * matches any sequence of characters; a resource is in scope if it matches any of them. Cannot be combined with include, and cannot be empty. Provide exactly one of include or includes.
 
 
 <a id="nestedblock--scope--namespaces_patterns"></a>
 ### Nested Schema for `scope.namespaces_patterns`
 
-Required:
-
-- `include` (String) Glob pattern for matching (e.g., "prod-*").
-
 Optional:
 
-- `exclude` (String) Optional glob pattern to exclude within the include set.
+- `exclude` (String, Deprecated) Deprecated: prefer `excludes`. Single wildcard pattern to exclude within the include set. Cannot be combined with excludes. Provide at most one of exclude or excludes.
+- `excludes` (List of String) Wildcard patterns to exclude within the include set; a resource is excluded if it matches any of them. Cannot be combined with exclude. An empty list (the default) means no exclusions. Provide at most one of exclude or excludes.
+- `include` (String, Deprecated) Deprecated: prefer "includes". Single wildcard pattern for matching (e.g., "prod-*"); * matches any sequence of characters. Cannot be combined with includes. Provide exactly one of include or includes.
+- `includes` (List of String) Wildcard patterns for matching (e.g., ["prod-*", "staging-*"]); * matches any sequence of characters; a resource is in scope if it matches any of them. Cannot be combined with include, and cannot be empty. Provide exactly one of include or includes.
 
 
 <a id="nestedblock--scope--resource_types_patterns"></a>
 ### Nested Schema for `scope.resource_types_patterns`
 
-Required:
-
-- `include` (String) Glob pattern for matching (e.g., "prod-*").
-
 Optional:
 
-- `exclude` (String) Optional glob pattern to exclude within the include set.
+- `exclude` (String, Deprecated) Deprecated: prefer `excludes`. Single wildcard pattern to exclude within the include set. Cannot be combined with excludes. Provide at most one of exclude or excludes.
+- `excludes` (List of String) Wildcard patterns to exclude within the include set; a resource is excluded if it matches any of them. Cannot be combined with exclude. An empty list (the default) means no exclusions. Provide at most one of exclude or excludes.
+- `include` (String, Deprecated) Deprecated: prefer "includes". Single wildcard pattern for matching (e.g., "prod-*"); * matches any sequence of characters. Cannot be combined with includes. Provide exactly one of include or includes.
+- `includes` (List of String) Wildcard patterns for matching (e.g., ["prod-*", "staging-*"]); * matches any sequence of characters; a resource is in scope if it matches any of them. Cannot be combined with include, and cannot be empty. Provide exactly one of include or includes.
 
 
 <a id="nestedblock--scope--workload_names_patterns"></a>
 ### Nested Schema for `scope.workload_names_patterns`
 
-Required:
-
-- `include` (String) Glob pattern for matching (e.g., "prod-*").
-
 Optional:
 
-- `exclude` (String) Optional glob pattern to exclude within the include set.
+- `exclude` (String, Deprecated) Deprecated: prefer `excludes`. Single wildcard pattern to exclude within the include set. Cannot be combined with excludes. Provide at most one of exclude or excludes.
+- `excludes` (List of String) Wildcard patterns to exclude within the include set; a resource is excluded if it matches any of them. Cannot be combined with exclude. An empty list (the default) means no exclusions. Provide at most one of exclude or excludes.
+- `include` (String, Deprecated) Deprecated: prefer "includes". Single wildcard pattern for matching (e.g., "prod-*"); * matches any sequence of characters. Cannot be combined with includes. Provide exactly one of include or includes.
+- `includes` (List of String) Wildcard patterns for matching (e.g., ["prod-*", "staging-*"]); * matches any sequence of characters; a resource is in scope if it matches any of them. Cannot be combined with include, and cannot be empty. Provide exactly one of include or includes.
 
 
 
@@ -246,7 +275,6 @@ Required:
 - `buffer` (Block List, Min: 1, Max: 1) Headroom percentage on top of recommended request values. (see [below for nested schema](#nestedblock--guardrails--buffer))
 - `constraints` (Block List, Min: 1, Max: 1) Per-cycle scaling constraints expressed as percentages. (see [below for nested schema](#nestedblock--guardrails--constraints))
 - `managed_resources` (Block List, Min: 1, Max: 1) Which resource fields right-sizing may modify. At least one must be true. (see [below for nested schema](#nestedblock--guardrails--managed_resources))
-- `percentile` (Number) Usage percentile to base recommendations on. One of: 70, 80, 90, 95, 99.
 
 Optional:
 
@@ -254,6 +282,9 @@ Optional:
 - `allow_qos_downgrade` (Boolean) Allow to Decrease QoS (Support savings). e.g. Guarantee → Burstable.
 - `allow_qos_upgrade` (Boolean) Allow to Increase QoS (Support reliability). e.g. BestEffort → Burstable → Guarantee.
 - `allow_right_sizing_up` (Boolean) Whether right-sizing may scale resources up.
+- `cpu_percentile` (Number) Usage percentile for CPU right-sizing. Set together with `memory_percentile`; mutually exclusive with the deprecated `percentile`. One of: 70, 80, 90, 95, 99.
+- `memory_percentile` (Number) Usage percentile for memory right-sizing. Set together with `cpu_percentile`; mutually exclusive with the deprecated `percentile`. One of: 70, 80, 90, 95, 99.
+- `percentile` (Number, Deprecated) Deprecated: prefer `cpu_percentile` and `memory_percentile`. Shared usage percentile applied to both CPU and memory. Mutually exclusive with `cpu_percentile`/`memory_percentile`. One of: 70, 80, 90, 95, 99.
 
 <a id="nestedblock--guardrails--buffer"></a>
 ### Nested Schema for `guardrails.buffer`

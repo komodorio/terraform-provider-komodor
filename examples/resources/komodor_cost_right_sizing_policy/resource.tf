@@ -10,7 +10,7 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
     namespaces     = ["payments", "checkout"]
     resource_types = ["Deployment", "StatefulSet"]
     workload_names_patterns {
-      include = "*"
+      includes = ["*"]
     }
   }
 
@@ -23,7 +23,8 @@ resource "komodor_cost_right_sizing_policy" "production_conservative" {
   optimization_preset = "custom"
 
   guardrails {
-    percentile = 95
+    cpu_percentile    = 95
+    memory_percentile = 99
 
     managed_resources {
       cpu_requests    = true

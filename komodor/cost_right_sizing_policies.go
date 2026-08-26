@@ -26,6 +26,8 @@ type RightSizingMultiScopePolicy struct {
 	Priority            int32                        `json:"priority"`
 	OptimizationPreset  string                       `json:"optimizationPreset"`
 	Percentile          *RightSizingPolicyPercentile `json:"percentile,omitempty"`
+	CpuPercentile       *RightSizingPolicyPercentile `json:"cpuPercentile,omitempty"`
+	MemoryPercentile    *RightSizingPolicyPercentile `json:"memoryPercentile,omitempty"`
 	ApplyProtocol       string                       `json:"applyProtocol"`
 	AllowQoSUpgrade     *string                      `json:"allowQoSUpgrade,omitempty"`
 	AllowQoSUpgradeV2   *bool                        `json:"allowQoSUpgradeV2,omitempty"`
@@ -79,8 +81,12 @@ type PolicyResourceScope struct {
 }
 
 type PolicyPattern struct {
-	Include *string `json:"include,omitempty"`
-	Exclude *string `json:"exclude,omitempty"`
+	// Deprecated: superseded by Includes. Cannot be combined with it.
+	Include  *string   `json:"include,omitempty"`
+	Includes *[]string `json:"includes,omitempty"`
+	// Deprecated: superseded by Excludes. Cannot be combined with it.
+	Exclude  *string   `json:"exclude,omitempty"`
+	Excludes *[]string `json:"excludes,omitempty"`
 }
 
 type PolicyGuardRails struct {
@@ -158,12 +164,16 @@ type scopeTFData struct {
 }
 
 type patternTFData struct {
-	Include string
-	Exclude string
+	Include  string
+	Includes []string
+	Exclude  string
+	Excludes []string
 }
 
 type guardRailsTFData struct {
 	Percentile          int
+	CpuPercentile       int
+	MemoryPercentile    int
 	ManagedResources    managedResourcesTFData
 	AllowRightSizingUp  bool
 	AllowQoSUpgrade     bool
