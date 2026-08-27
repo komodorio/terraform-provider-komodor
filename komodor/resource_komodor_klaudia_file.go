@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -21,6 +23,9 @@ func resourceKomodorKlaudiaFile() *schema.Resource {
 		UpdateContext: resourceKlaudiaFileUpdate,
 		DeleteContext: resourceKlaudiaFileDelete,
 		CustomizeDiff: resourceKlaudiaFileCustomizeDiff,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceKlaudiaFileImport,
+		},
 		Schema: map[string]*schema.Schema{
 			"type": {
 				Type:         schema.TypeString,
@@ -98,19 +103,55 @@ func resourceKomodorKlaudiaFile() *schema.Resource {
 }
 
 func resourceKlaudiaFileCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
-	if pathRaw, ok := d.GetOk("source_path"); ok {
-		content, err := os.ReadFile(pathRaw.(string))
-		if err != nil {
-			return fmt.Errorf("error reading source_path %q: %w", pathRaw.(string), err)
+	raw := d.GetRawConfig()
+	if !raw.IsNull() && raw.IsKnown() {
+		if pathRaw, ok := extractKlaudiaFileConfigString(raw, "source_path"); ok {
+			content, err := os.ReadFile(pathRaw)
+			if err != nil {
+				return fmt.Errorf("error reading source_path %q: %w", pathRaw, err)
+			}
+			return d.SetNew("checksum", sha256Hex(content))
 		}
-		return d.SetNew("checksum", sha256Hex(content))
-	}
-
-	if contentRaw, ok := d.GetOk("content"); ok {
-		return d.SetNew("checksum", sha256Hex([]byte(contentRaw.(string))))
+		if contentRaw, ok := extractKlaudiaFileConfigString(raw, "content"); ok {
+			return d.SetNew("checksum", sha256Hex([]byte(contentRaw)))
+		}
 	}
 
 	return fmt.Errorf("one of `source_path` or `content` must be configured")
+}
+
+func resourceKlaudiaFileImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	fileType, fileID, err := parseKlaudiaFileImportID(d.Id())
+	if err != nil {
+		return nil, err
+	}
+	if err := d.Set("type", fileType); err != nil {
+		return nil, err
+	}
+	d.SetId(fileID)
+	return []*schema.ResourceData{d}, nil
+}
+
+func parseKlaudiaFileImportID(value string) (string, string, error) {
+	parts := strings.SplitN(value, ":", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", fmt.Errorf("expected import ID in the form <type>:<file-id>, got %q", value)
+	}
+	return parts[0], parts[1], nil
+}
+
+func extractKlaudiaFileConfigString(raw cty.Value, attr string) (string, bool) {
+	if raw.IsNull() || !raw.IsKnown() {
+		return "", false
+	}
+	if !raw.Type().IsObjectType() {
+		return "", false
+	}
+	value := raw.GetAttr(attr)
+	if !value.IsKnown() || value.IsNull() || value.Type() != cty.String {
+		return "", false
+	}
+	return value.AsString(), true
 }
 
 func resourceKlaudiaFileCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -123,27 +164,31 @@ func resourceKlaudiaFileCreate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	existing, _, err := c.ListKlaudiaFiles(fileType)
-	if err != nil {
+	existing, statusCode, err := c.ListKlaudiaFiles(fileType)
+	if err != nil && statusCode != http.StatusNotFound {
 		return diag.Errorf("error listing Klaudia %s files: %s", fileType, err)
+	}
+	if existing == nil {
+		existing = &KlaudiaFileListResponse{}
 	}
 	for _, file := range existing.Files {
 		if file.Name == filename {
-			d.SetId(file.ID)
-			if _, _, err := c.UpdateKlaudiaFile(fileType, file.ID, &payload, expandKlaudiaFileClusters(d)); err != nil {
-				return diag.Errorf("error updating existing Klaudia file %s: %s", file.ID, err)
-			}
-			_ = d.Set("checksum", checksum)
-			return resourceKlaudiaFileRead(ctx, d, meta)
+			return diag.Errorf("Klaudia %s file %q already exists (id %s); import it instead: terraform import <address> %s:%s", fileType, filename, file.ID, fileType, file.ID)
 		}
 	}
 
-	uploaded, err := c.UploadKlaudiaFile(fileType, payload, expandKlaudiaFileClusters(d))
+	uploaded, statusCode, err := c.UploadKlaudiaFile(fileType, payload, expandKlaudiaFileClusters(d))
 	if err != nil {
+		if statusCode == http.StatusNotFound {
+			return diag.Errorf("error uploading Klaudia %s file %q: %s (the %s endpoint was not found)", fileType, filename, err, fileType)
+		}
 		return diag.Errorf("error uploading Klaudia %s file %q: %s", fileType, filename, err)
 	}
 	for _, file := range uploaded.Files {
 		if file.Name == filename {
+			if _, _, err := c.UpdateKlaudiaFile(fileType, file.ID, &payload, expandKlaudiaFileClusters(d)); err != nil {
+				return diag.Errorf("error updating uploaded Klaudia file %s: %s", file.ID, err)
+			}
 			d.SetId(file.ID)
 			_ = d.Set("checksum", checksum)
 			return resourceKlaudiaFileRead(ctx, d, meta)
@@ -207,13 +252,20 @@ func resourceKlaudiaFileUpdate(ctx context.Context, d *schema.ResourceData, meta
 func resourceKlaudiaFileDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*Client)
 
-	deleted, err := c.DeleteKlaudiaFile(d.Get("type").(string), d.Id())
+	deleted, statusCode, err := c.DeleteKlaudiaFile(d.Get("type").(string), d.Id())
 	if err != nil {
+		if statusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return diag.Errorf("error deleting Klaudia file %s: %s", d.Id(), err)
 	}
-	for _, failedID := range deleted.FailedFiles {
-		if failedID == d.Id() {
-			return diag.Errorf("Klaudia file %s failed to delete", d.Id())
+	if deleted != nil {
+		for _, failedID := range deleted.FailedFiles {
+			if failedID == d.Id() {
+				d.SetId("")
+				return nil
+			}
 		}
 	}
 	return nil
@@ -222,17 +274,19 @@ func resourceKlaudiaFileDelete(ctx context.Context, d *schema.ResourceData, meta
 func buildKlaudiaFilePayload(d *schema.ResourceData) (klaudiaFilePayload, string, error) {
 	filename := d.Get("filename").(string)
 
-	if pathRaw, ok := d.GetOk("source_path"); ok {
-		content, err := os.ReadFile(pathRaw.(string))
-		if err != nil {
-			return klaudiaFilePayload{}, "", fmt.Errorf("error reading source_path %q: %w", pathRaw.(string), err)
+	raw := d.GetRawConfig()
+	if !raw.IsNull() && raw.IsKnown() {
+		if pathRaw, ok := extractKlaudiaFileConfigString(raw, "source_path"); ok {
+			content, err := os.ReadFile(pathRaw)
+			if err != nil {
+				return klaudiaFilePayload{}, "", fmt.Errorf("error reading source_path %q: %w", pathRaw, err)
+			}
+			return klaudiaFilePayload{Filename: filename, Content: content}, sha256Hex(content), nil
 		}
-		return klaudiaFilePayload{Filename: filename, Content: content}, sha256Hex(content), nil
-	}
-
-	if contentRaw, ok := d.GetOk("content"); ok {
-		content := []byte(contentRaw.(string))
-		return klaudiaFilePayload{Filename: filename, Content: content}, sha256Hex(content), nil
+		if contentRaw, ok := extractKlaudiaFileConfigString(raw, "content"); ok {
+			content := []byte(contentRaw)
+			return klaudiaFilePayload{Filename: filename, Content: content}, sha256Hex(content), nil
+		}
 	}
 
 	return klaudiaFilePayload{}, "", fmt.Errorf("one of `source_path` or `content` must be configured")

@@ -50,22 +50,22 @@ func (c *Client) ListKlaudiaFiles(fileType string) (*KlaudiaFileListResponse, in
 	return &files, statusCode, nil
 }
 
-func (c *Client) UploadKlaudiaFile(fileType string, file klaudiaFilePayload, clusters *KlaudiaFileClusters) (*KlaudiaFileListResponse, error) {
+func (c *Client) UploadKlaudiaFile(fileType string, file klaudiaFilePayload, clusters *KlaudiaFileClusters) (*KlaudiaFileListResponse, int, error) {
 	body, contentType, err := buildKlaudiaFileMultipartBody([]klaudiaFilePayload{file}, "files", clusters, true)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	res, _, err := c.executeMultipartRequest(http.MethodPost, c.GetKlaudiaFilesUrl(fileType), body, contentType)
+	res, statusCode, err := c.executeMultipartRequest(http.MethodPost, c.GetKlaudiaFilesUrl(fileType), body, contentType)
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
 	var files KlaudiaFileListResponse
 	if err := json.Unmarshal(res, &files); err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
-	return &files, nil
+	return &files, statusCode, nil
 }
 
 func (c *Client) UpdateKlaudiaFile(fileType string, fileID string, file *klaudiaFilePayload, clusters *KlaudiaFileClusters) (*KlaudiaFile, int, error) {
@@ -91,23 +91,23 @@ func (c *Client) UpdateKlaudiaFile(fileType string, fileID string, file *klaudia
 	return &updated, statusCode, nil
 }
 
-func (c *Client) DeleteKlaudiaFile(fileType string, fileID string) (*KlaudiaFileDeleteResponse, error) {
+func (c *Client) DeleteKlaudiaFile(fileType string, fileID string) (*KlaudiaFileDeleteResponse, int, error) {
 	req := klaudiaFileDeleteRequest{FileIDs: []string{fileID}}
 	body, err := json.Marshal(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	res, _, err := c.executeHttpRequest(http.MethodDelete, c.GetKlaudiaFilesUrl(fileType), &body)
+	res, statusCode, err := c.executeHttpRequest(http.MethodDelete, c.GetKlaudiaFilesUrl(fileType), &body)
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
 	var deleted KlaudiaFileDeleteResponse
 	if err := json.Unmarshal(res, &deleted); err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
-	return &deleted, nil
+	return &deleted, statusCode, nil
 }
 
 type klaudiaFilePayload struct {
