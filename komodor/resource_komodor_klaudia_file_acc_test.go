@@ -55,8 +55,15 @@ func TestAcc_komodor_klaudia_file_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:            resourceAddr,
-				ImportState:             true,
+				ResourceName: resourceAddr,
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rs, ok := s.RootModule().Resources[resourceAddr]
+					if !ok {
+						return "", fmt.Errorf("not found: %s", resourceAddr)
+					}
+					return fmt.Sprintf("knowledge-base:%s", rs.Primary.ID), nil
+				},
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"content", "source_path", "checksum"},
 			},
