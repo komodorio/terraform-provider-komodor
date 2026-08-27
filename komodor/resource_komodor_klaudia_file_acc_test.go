@@ -54,6 +54,12 @@ func TestAcc_komodor_klaudia_file_basic(t *testing.T) {
 					testAccCaptureKlaudiaFileID(resourceAddr),
 				),
 			},
+			{
+				ResourceName:            resourceAddr,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"content", "source_path", "checksum"},
+			},
 		},
 	})
 }
