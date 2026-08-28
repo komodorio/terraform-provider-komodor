@@ -11,11 +11,25 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
+// statePoliciesForRead returns the subset of apiPolicies that are still configured, so that a
+// policy detached out-of-band (e.g. deleted, or removed by another tool) drops out of state and
+// shows up as drift on the next plan. When currentPolicies is empty (e.g. on import) it returns
+// the full apiPolicies list.
 func statePoliciesForRead(currentPolicies []string, apiPolicies []string) []string {
-	if len(currentPolicies) > 0 {
-		return currentPolicies
+	if len(currentPolicies) == 0 {
+		return apiPolicies
 	}
-	return apiPolicies
+	attached := make(map[string]bool, len(apiPolicies))
+	for _, p := range apiPolicies {
+		attached[p] = true
+	}
+	result := make([]string, 0, len(currentPolicies))
+	for _, p := range currentPolicies {
+		if attached[p] {
+			result = append(result, p)
+		}
+	}
+	return result
 }
 
 func resourcePolicyRoleAttachmentSchema() map[string]*schema.Schema {

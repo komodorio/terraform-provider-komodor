@@ -43,6 +43,10 @@ func TestPolicyRoleAttachmentStatePolicies(t *testing.T) {
 	if got := statePoliciesForRead(nil, apiPolicies); !equalStringSlice(got, apiPolicies) {
 		t.Fatalf("expected API policies to be used when no configured policies are present, got %#v", got)
 	}
+
+	if got := statePoliciesForRead([]string{"policy-b"}, []string{"policy-a"}); len(got) != 0 {
+		t.Fatalf("expected policy detached out-of-band to be dropped from state so drift is detected, got %#v", got)
+	}
 }
 
 func TestPolicyRoleAttachmentLegacyStateUpgrade(t *testing.T) {
@@ -110,6 +114,29 @@ func TestAcc_komodor_policy_role_attachment_multiple_resources_same_role(t *test
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("komodor_policy_role_attachment.one", "policies.#", "1"),
 					resource.TestCheckResourceAttr("komodor_policy_role_attachment.two", "policies.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAcc_komodor_policy_role_attachment_multiple_roles_independent(t *testing.T) {
+	role1Name := testResourceName("role-one")
+	role2Name := testResourceName("role-two")
+	policy1Name := testResourceName("policy-one")
+	policy2Name := testResourceName("policy-two")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccPolicyRoleAttachmentConfigMultipleRolesIndependent(role1Name, role2Name, policy1Name, policy2Name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("komodor_policy_role_attachment.one", "policies.#", "1"),
+					resource.TestCheckResourceAttr("komodor_policy_role_attachment.two", "policies.#", "1"),
+					resource.TestCheckResourceAttrPair("komodor_policy_role_attachment.one", "role", "komodor_role.one", "id"),
+					resource.TestCheckResourceAttrPair("komodor_policy_role_attachment.two", "role", "komodor_role.two", "id"),
 				),
 			},
 		},
@@ -235,6 +262,60 @@ resource "komodor_policy_role_attachment" "two" {
   policies = [komodor_policy_v2.two.id]
 }
 `, roleName, policy1Name, policy2Name)
+}
+
+func testAccPolicyRoleAttachmentConfigMultipleRolesIndependent(role1Name, role2Name, policy1Name, policy2Name string) string {
+	return fmt.Sprintf(`
+resource "komodor_role" "one" {
+  name = %q
+}
+
+resource "komodor_role" "two" {
+  name = %q
+}
+
+resource "komodor_policy_v2" "one" {
+  name = %q
+
+  statements {
+    actions = ["view:all"]
+
+    resources_scope {
+      clusters   = ["tf-acc-cluster"]
+      namespaces = ["default"]
+    }
+  }
+}
+
+resource "komodor_policy_v2" "two" {
+  name = %q
+
+  statements {
+    actions = ["manage:users"]
+
+    resources_scope {
+      clusters_patterns {
+        include = "*"
+        exclude = ""
+      }
+      namespaces_patterns {
+        include = "*"
+        exclude = ""
+      }
+    }
+  }
+}
+
+resource "komodor_policy_role_attachment" "one" {
+  role     = komodor_role.one.id
+  policies = [komodor_policy_v2.one.id]
+}
+
+resource "komodor_policy_role_attachment" "two" {
+  role     = komodor_role.two.id
+  policies = [komodor_policy_v2.two.id]
+}
+`, role1Name, role2Name, policy1Name, policy2Name)
 }
 
 func equalStringSlice(a, b []string) bool {
