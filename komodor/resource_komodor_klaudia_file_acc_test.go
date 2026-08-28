@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -69,6 +70,50 @@ func TestAcc_komodor_klaudia_file_basic(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAcc_komodor_klaudia_file_duplicate(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "dup.md")
+	if err := os.WriteFile(path, []byte("# Duplicate\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	filename := testResourceName("klaudia-file-dup") + ".md"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKlaudiaFileDestroyed("knowledge-base"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccKlaudiaFileConfig("knowledge-base", filename, path),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCaptureKlaudiaFileID("komodor_klaudia_file.test"),
+				),
+			},
+			{
+				Config:      testAccKlaudiaFileDuplicateConfig(filename, path),
+				ExpectError: regexp.MustCompile(`already exists`),
+			},
+		},
+	})
+}
+
+func testAccKlaudiaFileDuplicateConfig(filename, sourcePath string) string {
+	return fmt.Sprintf(`
+resource "komodor_klaudia_file" "test" {
+  type        = "knowledge-base"
+  filename    = %q
+  source_path = %q
+}
+
+resource "komodor_klaudia_file" "dup" {
+  type        = "knowledge-base"
+  filename    = %q
+  source_path = %q
+}
+`, filename, sourcePath, filename, sourcePath)
 }
 
 func testAccCaptureKlaudiaFileID(addr string) resource.TestCheckFunc {

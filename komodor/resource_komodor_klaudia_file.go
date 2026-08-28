@@ -186,11 +186,13 @@ func resourceKlaudiaFileCreate(ctx context.Context, d *schema.ResourceData, meta
 	}
 	for _, file := range uploaded.Files {
 		if file.Name == filename {
+			// The file now exists remotely, so record the ID before any follow-up
+			// call that can fail — otherwise a failure here orphans the file.
+			d.SetId(file.ID)
+			_ = d.Set("checksum", checksum)
 			if _, _, err := c.UpdateKlaudiaFile(fileType, file.ID, &payload, expandKlaudiaFileClusters(d)); err != nil {
 				return diag.Errorf("error updating uploaded Klaudia file %s: %s", file.ID, err)
 			}
-			d.SetId(file.ID)
-			_ = d.Set("checksum", checksum)
 			return resourceKlaudiaFileRead(ctx, d, meta)
 		}
 	}
@@ -262,13 +264,42 @@ func resourceKlaudiaFileDelete(ctx context.Context, d *schema.ResourceData, meta
 	}
 	if deleted != nil {
 		for _, failedID := range deleted.FailedFiles {
-			if failedID == d.Id() {
-				d.SetId("")
-				return nil
+			if failedID != d.Id() {
+				continue
 			}
+			// The API reports failures without a reason, so confirm whether the file
+			// is actually gone before deciding this is a real error.
+			gone, err := klaudiaFileIsAbsent(c, d.Get("type").(string), d.Id())
+			if err != nil {
+				return diag.Errorf("Klaudia file %s was reported as failed to delete, and confirming its state failed: %s", d.Id(), err)
+			}
+			if !gone {
+				return diag.Errorf("Klaudia file %s failed to delete and is still present", d.Id())
+			}
+			d.SetId("")
+			return nil
 		}
 	}
 	return nil
+}
+
+func klaudiaFileIsAbsent(c *Client, fileType string, fileID string) (bool, error) {
+	files, statusCode, err := c.ListKlaudiaFiles(fileType)
+	if err != nil {
+		if statusCode == http.StatusNotFound {
+			return true, nil
+		}
+		return false, err
+	}
+	if files == nil {
+		return true, nil
+	}
+	for _, file := range files.Files {
+		if file.ID == fileID {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func buildKlaudiaFilePayload(d *schema.ResourceData) (klaudiaFilePayload, string, error) {
