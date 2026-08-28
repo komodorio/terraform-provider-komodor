@@ -72,6 +72,47 @@ func TestAcc_komodor_klaudia_file_basic(t *testing.T) {
 	})
 }
 
+func TestAcc_komodor_klaudia_file_content(t *testing.T) {
+	filename := testResourceName("klaudia-file-content") + ".md"
+	resourceAddr := "komodor_klaudia_file.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKlaudiaFileDestroyed("knowledge-base"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccKlaudiaFileContentConfig("knowledge-base", filename, "# Initial content\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "type", "knowledge-base"),
+					resource.TestCheckResourceAttr(resourceAddr, "filename", filename),
+					resource.TestCheckResourceAttrSet(resourceAddr, "checksum"),
+					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
+					testAccCaptureKlaudiaFileID(resourceAddr),
+				),
+			},
+			{
+				Config: testAccKlaudiaFileContentConfig("knowledge-base", filename, "# Updated content\n"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "filename", filename),
+					resource.TestCheckResourceAttrSet(resourceAddr, "checksum"),
+					testAccCaptureKlaudiaFileID(resourceAddr),
+				),
+			},
+		},
+	})
+}
+
+func testAccKlaudiaFileContentConfig(fileType, filename, content string) string {
+	return fmt.Sprintf(`
+resource "komodor_klaudia_file" "test" {
+  type     = %q
+  filename = %q
+  content  = %q
+}
+`, fileType, filename, content)
+}
+
 func TestAcc_komodor_klaudia_file_duplicate(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "dup.md")
