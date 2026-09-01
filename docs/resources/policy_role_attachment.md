@@ -2,12 +2,12 @@
 page_title: "komodor_policy_role_attachment Resource - komodor"
 subcategory: ""
 description: |-
-  Creates a logical binding between a Komodor Role and a Komodor Policy
+  Creates a non-authoritative logical binding between a Komodor Role and a selected list of Komodor Policies. The canonical state identity is the role ID.
 ---
 
 # komodor_policy_role_attachment (Resource)
 
-Creates a logical binding between a Komodor Role and a Komodor Policy
+Creates a non-authoritative logical binding between a Komodor Role and a selected list of Komodor Policies. The canonical state identity is the role ID.
 
 ## Example Usage
 
@@ -30,7 +30,6 @@ resource "komodor_role" "my-role" {
 }
 
 resource "komodor_policy_role_attachment" "my-attachement" {
-  name     = "test-attachement"
   policies = [komodor_policy_v2.my-policy.id]
   role     = komodor_role.my-role.id
 }
@@ -41,9 +40,12 @@ resource "komodor_policy_role_attachment" "my-attachement" {
 
 ### Required
 
-- `name` (String) A unique name for this policy-role attachment (used for Terraform state management).
-- `policies` (Set of String) Set of policy IDs to attach to the role.
-- `role` (String) The ID of the role to attach policies to.
+- `policies` (Set of String) List of policy IDs to attach to the role. This resource is non-authoritative and preserves the configured subset when importing or diffing.
+- `role` (String) The ID of the role to attach policies to. This is the canonical resource identity for imports and state.
+
+### Optional
+
+- `name` (String, Deprecated) Deprecated: ignored for state management. The role ID is the canonical resource identity.
 
 ### Read-Only
 
