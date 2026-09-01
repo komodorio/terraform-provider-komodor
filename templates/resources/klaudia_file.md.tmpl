@@ -1,0 +1,19 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+This resource uploads either a Klaudia knowledge-base file or blueprint file. The file content is read from `source_path` or from the write-only `content` argument and is not persisted in Terraform state.
+Terraform stores metadata and a SHA-256 checksum used to detect when the file should be updated.
+
+## Example Usage
+
+{{ tffile "examples/resources/komodor_klaudia_file/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}

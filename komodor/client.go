@@ -93,6 +93,11 @@ func (c *Client) GetKlaudiaMCPIntegrationsUrl() string {
 	return c.GetKlaudiaV2Endpoint() + "/integrations/mcp"
 }
 
+// GetKlaudiaFilesUrl returns the Klaudia files endpoint for a file type.
+func (c *Client) GetKlaudiaFilesUrl(fileType string) string {
+	return c.GetKlaudiaV2Endpoint() + "/files/" + fileType
+}
+
 // GetCostRightSizingWorkloadOverridesUrl returns the cost right-sizing workload overrides endpoint
 func (c *Client) GetCostRightSizingWorkloadOverridesUrl() string {
 	return c.GetV2Endpoint() + "/cost/right-sizing/workload-overrides"
