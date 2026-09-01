@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -12,12 +11,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var allowedUpstreamHeaderPlaceholders = map[string]struct{}{
-	"{access_token}": {},
-	"{token_type}":   {},
+var methodSpecificAuthBlocks = []string{
+	"static_token",
+	"token_exchange",
+	"oauth2_client_credentials",
 }
 
-var upstreamHeaderPlaceholderRE = regexp.MustCompile(`\{[^{}]+\}`)
+const redactedSecretPlaceholder = "••••••••"
+
+func isRedactedAPIValue(v string) bool {
+	return v == redactedSecretPlaceholder
+}
 
 func resourceKomodorMCPIntegration() *schema.Resource {
 	return &schema.Resource{
@@ -34,16 +38,6 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 				Required:    true,
 				Description: "Stable machine-safe name for the integration.",
 			},
-			"display_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Human-readable name shown in the UI.",
-			},
-			"description": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Longer description. Markdown supported.",
-			},
 
 			// ── Connectivity ──
 			"connectivity": {
@@ -58,10 +52,21 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 							Description:  "How Klaudia reaches the MCP server. `public` — control plane calls directly. `agent-tunnel` — hub agent proxies all traffic.",
 							ValidateFunc: validation.StringInSlice([]string{"public", "agent-tunnel"}, false),
 						},
-						"provider_cluster": {
-							Type:        schema.TypeString,
+						"agent_tunnel": {
+							Type:        schema.TypeList,
 							Optional:    true,
-							Description: "Hub cluster that holds credentials and opens the tunnel. Required when mode is `agent-tunnel`.",
+							MaxItems:    1,
+							Description: "Agent-tunnel options. Required when `mode` is `agent-tunnel`.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"provider_cluster": {
+										Type:         schema.TypeString,
+										Required:     true,
+										Description:  "Hub cluster that holds credentials and opens the tunnel.",
+										ValidateFunc: validation.StringIsNotEmpty,
+									},
+								},
+							},
 						},
 					},
 				},
@@ -77,8 +82,8 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 						"url": {
 							Type:         schema.TypeString,
 							Required:     true,
-							Description:  "MCP server URL. May reference an agent env var with ${VAR_NAME}.",
-							ValidateFunc: validation.StringIsNotEmpty,
+							Description:  "MCP server URL. Must start with `http://` or `https://`.",
+							ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 						},
 						"transport": {
 							Type:         schema.TypeString,
@@ -91,26 +96,48 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 							Type:     schema.TypeMap,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Description: "Static HTTP header name → value on every MCP request (Klaudia `configuration.headers`). " +
-								"Merged with `auth.static_token` (same header name is overwritten by the bearer value). " +
-								"For dynamic auth, use with non-auth metadata only; use `auth.upstream_header` for token-backed headers.",
+							Description: "Static HTTP headers sent on every MCP request. " +
+								"For static-token auth, do not put the bearer header here — use `auth.static_token` instead.",
 						},
 					},
 				},
 			},
 
-			// ── Authentication ──
+			// ── Authentication (optional — absence means no auth) ──
 			"auth": {
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"method": {
 							Type:         schema.TypeString,
 							Required:     true,
-							Description:  "Authentication method: `none` | `static_token` | `oauth2_client_credentials` | `token_exchange` | `custom`.",
-							ValidateFunc: validation.StringInSlice([]string{"none", "static_token", "oauth2_client_credentials", "token_exchange", "custom"}, false),
+							Description:  "Authentication method: `static_token` | `oauth2_client_credentials` | `token_exchange`.",
+							ValidateFunc: validation.StringInSlice([]string{"static_token", "oauth2_client_credentials", "token_exchange"}, false),
+						},
+
+						// --- Static token ---
+						"static_token": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"value": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Sensitive:   true,
+										Description: "Static token value (raw — the server applies the prefix).",
+									},
+									"header_name": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Default:     "Authorization",
+										Description: "HTTP header name. The server emits `Bearer <token>` when this is `Authorization`, raw `<token>` otherwise.",
+									},
+								},
+							},
 						},
 
 						// --- RFC 8693 token exchange ---
@@ -128,8 +155,7 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 									"grant_type": {
 										Type:        schema.TypeString,
 										Optional:    true,
-										Default:     "urn:ietf:params:oauth:grant-type:token-exchange",
-										Description: "OAuth2 grant type.",
+										Description: "OAuth2 grant type. Defaults server-side to `urn:ietf:params:oauth:grant-type:token-exchange`.",
 									},
 									"subject_token": {
 										Type:     schema.TypeList,
@@ -146,7 +172,7 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 												"file_path": {
 													Type:        schema.TypeString,
 													Optional:    true,
-													Description: "Path to the token file on the agent pod. Mutually exclusive with `value`.",
+													Description: "Path to the token file on the agent pod. Mutually exclusive with `value`. Requires `connectivity.mode = \"agent-tunnel\"`.",
 												},
 												"type": {
 													Type:        schema.TypeString,
@@ -171,10 +197,31 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 										Optional:    true,
 										Description: "OAuth2 scope.",
 									},
-									"actor_token_type": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Actor token type URI, if actor token is required.",
+									"actor_token": {
+										Type:     schema.TypeList,
+										Optional: true,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"type": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "Actor token type URI (RFC 8693 `actor_token_type`); optional when not using an actor token.",
+												},
+												"value": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Sensitive:   true,
+													Description: "Direct actor token value. Mutually exclusive with `file_path`.",
+												},
+												"file_path": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "Path to the actor token file on the agent pod. Mutually exclusive with `value`. Requires `connectivity.mode = \"agent-tunnel\"`.",
+												},
+											},
+										},
+										Description: "Optional RFC 8693 actor token. When set, exactly one of `value` or `file_path` must be provided.",
 									},
 									"client_id": {
 										Type:        schema.TypeString,
@@ -192,34 +239,6 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 										Optional:    true,
 										Description: "Additional form parameters to include in the token exchange request.",
 										Elem:        &schema.Schema{Type: schema.TypeString},
-									},
-								},
-							},
-						},
-
-						// --- Static token ---
-						"static_token": {
-							Type:     schema.TypeList,
-							Optional: true,
-							MaxItems: 1,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"value": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Sensitive:   true,
-										Description: "Static token value.",
-									},
-									"env_var": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Agent environment variable containing the token.",
-									},
-									"header_name": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Default:     "Authorization",
-										Description: "HTTP header name to send the token in.",
 									},
 								},
 							},
@@ -262,60 +281,7 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 							},
 						},
 
-						"custom": {
-							Type:     schema.TypeList,
-							Optional: true,
-							MaxItems: 1,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"token_url": {
-										Type:         schema.TypeString,
-										Required:     true,
-										Description:  "Custom token endpoint (POST, form-encoded). Required when `auth.method` is `custom`.",
-										ValidateFunc: validation.StringIsNotEmpty,
-									},
-									"body": {
-										Type:        schema.TypeMap,
-										Optional:    true,
-										Elem:        &schema.Schema{Type: schema.TypeString},
-										Sensitive:   true,
-										Description: "Form fields merged into Klaudia `auth_params` and sent to `token_url` (same as `CustomTokenProvider` in ai-investigator).",
-									},
-								},
-							},
-						},
-
-						// --- Upstream headers ---
-						// Repeatable. Each entry is either templated (`format` with
-						// `{token_type}`/`{access_token}` placeholders, expanded per
-						// request) or static (`value`).
-						"upstream_header": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "Headers sent to the upstream MCP server. Each entry must set exactly one of `format` (templated) or `value` (literal). Repeat the block for additional headers.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"name": {
-										Type:         schema.TypeString,
-										Required:     true,
-										Description:  "HTTP header name (e.g., `Authorization`).",
-										ValidateFunc: validation.StringIsNotEmpty,
-									},
-									"format": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Header value template. Allowed placeholders: `{token_type}`, `{access_token}`. Mutually exclusive with `value`.",
-									},
-									"value": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Literal header value. Mutually exclusive with `format`.",
-									},
-								},
-							},
-						},
-
-						// --- Response parsing ---
+						// --- Response field mapping ---
 						"response": {
 							Type:     schema.TypeList,
 							Optional: true,
@@ -326,7 +292,7 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 										Type:        schema.TypeString,
 										Optional:    true,
 										Default:     "access_token",
-										Description: "JSON field containing the access token in the exchange response.",
+										Description: "JSON field containing the access token.",
 									},
 									"token_type_field": {
 										Type:        schema.TypeString,
@@ -351,7 +317,7 @@ func resourceKomodorMCPIntegration() *schema.Resource {
 			"skill_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "ID of the Klaudia skill to attach. The skill defines instructions, and clusters.",
+				Description: "ID of the Klaudia skill to attach. The skill defines instructions and clusters.",
 			},
 		},
 	}
@@ -385,17 +351,11 @@ func resourceMCPIntegrationRead(ctx context.Context, d *schema.ResourceData, met
 		skillID = *integration.SkillID
 	}
 	_ = d.Set("skill_id", skillID)
+
 	cfg := integration.Configuration
-	mcp := map[string]interface{}{
-		"url":       cfg["url"],
-		"transport": cfg["transport"],
-	}
-	if h, ok := cfg["headers"]; ok && h != nil {
-		if hm, ok := h.(map[string]interface{}); ok && len(hm) > 0 {
-			mcp["headers"] = hm
-		}
-	}
-	_ = d.Set("mcp_server", []map[string]interface{}{mcp})
+	_ = d.Set("connectivity", flattenConnectivity(cfg.Connectivity))
+	_ = d.Set("mcp_server", flattenMCPServer(cfg.MCPServer))
+	_ = d.Set("auth", flattenAuth(cfg.Auth, d))
 
 	return nil
 }
@@ -417,180 +377,269 @@ func resourceMCPIntegrationDelete(ctx context.Context, d *schema.ResourceData, m
 	return nil
 }
 
-// buildMCPRequest maps the CRD-style Terraform hierarchy into the backend's
-// flat MCPConfiguration format.
+// ─────────────────────────────────────────────────────────────────────────────
+// buildMCPRequest — straight 1:1 marshal from the schema blocks. No flattening.
+// ─────────────────────────────────────────────────────────────────────────────
+
 func buildMCPRequest(d *schema.ResourceData) *MCPIntegrationRequest {
-	// MCP Server
-	mcpServer := d.Get("mcp_server").([]interface{})[0].(map[string]interface{})
-	configuration := map[string]interface{}{
-		"url":       mcpServer["url"],
-		"transport": mcpServer["transport"],
-	}
-	baseHeaders := mcpServerStringHeaders(mcpServer)
+	mcpServerBlock := d.Get("mcp_server").([]interface{})[0].(map[string]interface{})
+	connectivityBlock := d.Get("connectivity").([]interface{})[0].(map[string]interface{})
 
-	// Connectivity
-	connectivity := d.Get("connectivity").([]interface{})[0].(map[string]interface{})
-	if connectivity["mode"].(string) == "agent-tunnel" {
-		configuration["use_tunnel"] = true
-		if v := connectivity["provider_cluster"].(string); v != "" {
-			configuration["tunnel_cluster"] = v
+	cfg := MCPConfiguration{
+		MCPServer:    buildMCPServer(mcpServerBlock),
+		Connectivity: buildConnectivity(connectivityBlock),
+	}
+
+	if authList, ok := d.Get("auth").([]interface{}); ok && len(authList) > 0 {
+		if authBlock, ok := authList[0].(map[string]interface{}); ok {
+			cfg.Auth = buildAuth(authBlock)
 		}
 	}
 
-	// Auth
-	auth := d.Get("auth").([]interface{})[0].(map[string]interface{})
-	method := auth["method"].(string)
-
-	authParams := map[string]interface{}{}
-
-	switch method {
-	case "token_exchange":
-		configuration["auth_method"] = "rfc8693_token_exchange"
-		if te, ok := getSingleBlock(auth, "token_exchange"); ok {
-			authParams["token_url"] = te["token_url"].(string)
-			setOptionalParam(authParams, te, "grant_type")
-			setOptionalParam(authParams, te, "audience")
-			setOptionalParam(authParams, te, "requested_token_type")
-			setOptionalParam(authParams, te, "scope")
-			setOptionalParam(authParams, te, "actor_token_type")
-			setOptionalParam(authParams, te, "client_id")
-			setOptionalParam(authParams, te, "client_secret")
-
-			if st, ok := getSingleBlock(te, "subject_token"); ok {
-				authParams["subject_token_type"] = st["type"].(string)
-				if v := st["value"].(string); v != "" {
-					authParams["subject_token"] = v
-				}
-				if v := st["file_path"].(string); v != "" {
-					authParams["subject_token_path"] = v
-				}
-			}
-
-			if extra, ok := te["extra_params"].(map[string]interface{}); ok {
-				for k, v := range extra {
-					authParams[k] = fmt.Sprintf("%v", v)
-				}
-			}
-		}
-
-	case "oauth2_client_credentials":
-		configuration["auth_method"] = "oauth2_client_credentials"
-		if cc, ok := getSingleBlock(auth, "oauth2_client_credentials"); ok {
-			authParams["token_url"] = cc["token_url"].(string)
-			authParams["client_id"] = cc["client_id"].(string)
-			authParams["client_secret"] = cc["client_secret"].(string)
-			setOptionalParam(authParams, cc, "scope")
-			setOptionalParam(authParams, cc, "audience")
-		}
-
-	case "static_token":
-		configuration["auth_method"] = "static_token"
-		headers := map[string]string{}
-		for k, v := range baseHeaders {
-			headers[k] = v
-		}
-		if st, ok := getSingleBlock(auth, "static_token"); ok {
-			headerName := st["header_name"].(string)
-			if headerName == "" {
-				headerName = "Authorization"
-			}
-			if v := st["value"].(string); v != "" {
-				headers[headerName] = "Bearer " + v
-			}
-		}
-		if len(headers) > 0 {
-			configuration["headers"] = headers
-		}
-
-	case "custom":
-		configuration["auth_method"] = "custom"
-		if cu, ok := getSingleBlock(auth, "custom"); ok {
-			if body, ok := cu["body"].(map[string]interface{}); ok {
-				for k, v := range body {
-					if k == "token_url" {
-						continue
-					}
-					authParams[k] = fmt.Sprintf("%v", v)
-				}
-			}
-			if tu, ok := cu["token_url"].(string); ok {
-				authParams["token_url"] = strings.TrimSpace(tu)
-			}
-		}
-
-	case "none":
-		configuration["auth_method"] = "static_token"
-	}
-
-	if headers := buildUpstreamHeaders(auth); len(headers) > 0 {
-		authParams["upstream_headers"] = headers
-	}
-
-	// Response field mapping — nested object in auth_params
-	if resp, ok := getSingleBlock(auth, "response"); ok {
-		responseMap := map[string]string{}
-		if v, _ := resp["token_field"].(string); v != "" {
-			responseMap["token_field"] = v
-		}
-		if v, _ := resp["token_type_field"].(string); v != "" {
-			responseMap["token_type_field"] = v
-		}
-		if v, _ := resp["expires_in_field"].(string); v != "" {
-			responseMap["expires_in_field"] = v
-		}
-		if len(responseMap) > 0 {
-			authParams["response"] = responseMap
-		}
-	}
-
-	if len(authParams) > 0 {
-		configuration["auth_params"] = authParams
-	}
-
-	// `configuration.headers` (static) for dynamic auth: not merged into static_token branch above
-	if method != "static_token" && len(baseHeaders) > 0 {
-		if _, has := configuration["headers"]; !has {
-			configuration["headers"] = baseHeaders
-		}
-	}
-
-	// Skill
 	var skillID *string
 	if v := d.Get("skill_id").(string); v != "" {
 		skillID = &v
 	}
 
-	// Use cases + clusters come from the skill, but the API still needs them
-	// as fallback fields. Set sensible defaults.
 	return &MCPIntegrationRequest{
 		Name:          d.Get("name").(string),
-		Configuration: configuration,
-		UseCases:      []string{"chat", "rca"},
+		Configuration: cfg,
 		Clusters:      []string{"*"},
 		SkillID:       skillID,
 	}
 }
 
-func mcpServerStringHeaders(mcpServer map[string]interface{}) map[string]string {
-	raw, ok := mcpServer["headers"]
-	if !ok || raw == nil {
-		return nil
+func buildMCPServer(block map[string]interface{}) MCPServer {
+	return MCPServer{
+		URL:       getString(block, "url"),
+		Transport: getString(block, "transport"),
+		Headers:   stringifyMap(block["headers"]),
 	}
-	m, ok := raw.(map[string]interface{})
-	if !ok || len(m) == 0 {
-		return nil
-	}
-	out := make(map[string]string, len(m))
-	for k, v := range m {
-		if k == "" {
-			continue
+}
+
+func buildConnectivity(block map[string]interface{}) Connectivity {
+	mode := getString(block, "mode")
+	c := Connectivity{Mode: mode}
+	if mode == "agent-tunnel" {
+		if at, ok := getSingleBlock(block, "agent_tunnel"); ok {
+			c.AgentTunnel = &AgentTunnel{
+				ProviderCluster: getString(at, "provider_cluster"),
+			}
 		}
-		out[k] = fmt.Sprint(v)
 	}
-	if len(out) == 0 {
-		return nil
+	return c
+}
+
+func buildAuth(block map[string]interface{}) *AuthConfig {
+	auth := &AuthConfig{Method: getString(block, "method")}
+
+	switch auth.Method {
+	case "static_token":
+		if st, ok := getSingleBlock(block, "static_token"); ok {
+			auth.StaticToken = &StaticTokenAuth{
+				Value:      getString(st, "value"),
+				HeaderName: getString(st, "header_name"),
+			}
+		}
+	case "token_exchange":
+		if te, ok := getSingleBlock(block, "token_exchange"); ok {
+			auth.TokenExchange = buildTokenExchange(te)
+		}
+	case "oauth2_client_credentials":
+		if cc, ok := getSingleBlock(block, "oauth2_client_credentials"); ok {
+			auth.OAuth2ClientCredentials = &OAuth2Auth{
+				TokenURL:     getString(cc, "token_url"),
+				ClientID:     getString(cc, "client_id"),
+				ClientSecret: getString(cc, "client_secret"),
+				Scope:        getString(cc, "scope"),
+				Audience:     getString(cc, "audience"),
+			}
+		}
+	}
+
+	if r, ok := getSingleBlock(block, "response"); ok {
+		auth.Response = &ResponseConfig{
+			TokenField:     getString(r, "token_field"),
+			TokenTypeField: getString(r, "token_type_field"),
+			ExpiresInField: getString(r, "expires_in_field"),
+		}
+	}
+
+	return auth
+}
+
+func buildTokenExchange(te map[string]interface{}) *TokenExchangeAuth {
+	out := &TokenExchangeAuth{
+		TokenURL:           getString(te, "token_url"),
+		GrantType:          getString(te, "grant_type"),
+		Audience:           getString(te, "audience"),
+		Scope:              getString(te, "scope"),
+		RequestedTokenType: getString(te, "requested_token_type"),
+		ClientID:           getString(te, "client_id"),
+		ClientSecret:       getString(te, "client_secret"),
+		ExtraParams:        stringifyMap(te["extra_params"]),
+	}
+	if st, ok := getSingleBlock(te, "subject_token"); ok {
+		out.SubjectToken = SubjectToken{
+			Type:     getString(st, "type"),
+			Value:    getString(st, "value"),
+			FilePath: getString(st, "file_path"),
+		}
+	}
+	if at, ok := getSingleBlock(te, "actor_token"); ok {
+		out.ActorToken = &ActorToken{
+			Type:     getString(at, "type"),
+			Value:    getString(at, "value"),
+			FilePath: getString(at, "file_path"),
+		}
 	}
 	return out
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// flatten* — convert API response back into terraform-state shape (a list of
+// maps with the same fields as the schema). Skips redacted secret placeholders
+// so they don't leak into state.
+// ─────────────────────────────────────────────────────────────────────────────
+
+func flattenConnectivity(c Connectivity) []map[string]interface{} {
+	mode := c.Mode
+	if mode == "" {
+		mode = "public"
+	}
+	out := map[string]interface{}{"mode": mode}
+	if c.AgentTunnel != nil {
+		out["agent_tunnel"] = []map[string]interface{}{
+			{"provider_cluster": c.AgentTunnel.ProviderCluster},
+		}
+	}
+	return []map[string]interface{}{out}
+}
+
+func flattenMCPServer(s MCPServer) []map[string]interface{} {
+	out := map[string]interface{}{
+		"url":       s.URL,
+		"transport": s.Transport,
+		"headers":   s.Headers,
+	}
+	return []map[string]interface{}{out}
+}
+
+func flattenAuth(a *AuthConfig, d *schema.ResourceData) []map[string]interface{} {
+	if a == nil {
+		return nil
+	}
+	out := map[string]interface{}{"method": a.Method}
+
+	if a.StaticToken != nil {
+		st := map[string]interface{}{
+			"header_name": a.StaticToken.HeaderName,
+		}
+		if v := a.StaticToken.Value; v != "" && !isRedactedAPIValue(v) {
+			st["value"] = v
+		} else if d != nil {
+			if existing := d.Get("auth.0.static_token.0.value").(string); existing != "" {
+				st["value"] = existing
+			}
+		}
+		out["static_token"] = []map[string]interface{}{st}
+	}
+	if a.TokenExchange != nil {
+		out["token_exchange"] = flattenTokenExchange(a.TokenExchange, d)
+	}
+	if a.OAuth2ClientCredentials != nil {
+		cc := map[string]interface{}{
+			"token_url": a.OAuth2ClientCredentials.TokenURL,
+			"client_id": a.OAuth2ClientCredentials.ClientID,
+			"scope":     a.OAuth2ClientCredentials.Scope,
+			"audience":  a.OAuth2ClientCredentials.Audience,
+		}
+		if v := a.OAuth2ClientCredentials.ClientSecret; v != "" && !isRedactedAPIValue(v) {
+			cc["client_secret"] = v
+		} else if d != nil {
+			if existing := d.Get("auth.0.oauth2_client_credentials.0.client_secret").(string); existing != "" {
+				cc["client_secret"] = existing
+			}
+		}
+		out["oauth2_client_credentials"] = []map[string]interface{}{cc}
+	}
+	if a.Response != nil {
+		out["response"] = []map[string]interface{}{
+			{
+				"token_field":      a.Response.TokenField,
+				"token_type_field": a.Response.TokenTypeField,
+				"expires_in_field": a.Response.ExpiresInField,
+			},
+		}
+	}
+
+	return []map[string]interface{}{out}
+}
+
+func flattenTokenExchange(te *TokenExchangeAuth, d *schema.ResourceData) []map[string]interface{} {
+	out := map[string]interface{}{
+		"token_url":            te.TokenURL,
+		"grant_type":           te.GrantType,
+		"audience":             te.Audience,
+		"scope":                te.Scope,
+		"requested_token_type": te.RequestedTokenType,
+		"client_id":            te.ClientID,
+		"extra_params":         te.ExtraParams,
+	}
+	if v := te.ClientSecret; v != "" && !isRedactedAPIValue(v) {
+		out["client_secret"] = v
+	} else if d != nil {
+		if existing := d.Get("auth.0.token_exchange.0.client_secret").(string); existing != "" {
+			out["client_secret"] = existing
+		}
+	}
+	if te.ActorToken != nil {
+		at := map[string]interface{}{}
+		if te.ActorToken.Type != "" {
+			at["type"] = te.ActorToken.Type
+		}
+		if v := te.ActorToken.Value; v != "" && !isRedactedAPIValue(v) {
+			at["value"] = v
+		} else if d != nil {
+			if existing := d.Get("auth.0.token_exchange.0.actor_token.0.value").(string); existing != "" {
+				at["value"] = existing
+			}
+		}
+		if v := te.ActorToken.FilePath; v != "" {
+			at["file_path"] = v
+		}
+		if len(at) > 0 {
+			out["actor_token"] = []map[string]interface{}{at}
+		}
+	}
+	subj := map[string]interface{}{"type": te.SubjectToken.Type}
+	if v := te.SubjectToken.Value; v != "" && !isRedactedAPIValue(v) {
+		subj["value"] = v
+	} else if d != nil {
+		if existing := d.Get("auth.0.token_exchange.0.subject_token.0.value").(string); existing != "" {
+			subj["value"] = existing
+		}
+	}
+	if v := te.SubjectToken.FilePath; v != "" {
+		subj["file_path"] = v
+	}
+	out["subject_token"] = []map[string]interface{}{subj}
+	return []map[string]interface{}{out}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Generic helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+func getString(src map[string]interface{}, key string) string {
+	raw, ok := src[key]
+	if !ok || raw == nil {
+		return ""
+	}
+	if s, ok := raw.(string); ok {
+		return s
+	}
+	return fmt.Sprint(raw)
 }
 
 func getSingleBlock(parent map[string]interface{}, key string) (map[string]interface{}, bool) {
@@ -606,101 +655,155 @@ func getSingleBlock(parent map[string]interface{}, key string) (map[string]inter
 	return block, ok
 }
 
-func setOptionalParam(params map[string]interface{}, src map[string]interface{}, key string) {
-	if v, ok := src[key].(string); ok && v != "" {
-		params[key] = v
-	}
-}
-
-// buildUpstreamHeaders converts the auth.upstream_header[] blocks into the wire
-// format expected by the backend: a list under auth_params["upstream_headers"]
-// where every entry has a name plus exactly one of format / value.
-func buildUpstreamHeaders(auth map[string]interface{}) []map[string]string {
-	raw, ok := auth["upstream_header"].([]interface{})
-	if !ok || len(raw) == 0 {
-		return nil
-	}
-	out := make([]map[string]string, 0, len(raw))
-	for _, item := range raw {
-		hdr, ok := item.(map[string]interface{})
-		if !ok {
-			continue
+func stringifyMap(raw interface{}) map[string]string {
+	switch v := raw.(type) {
+	case map[string]string:
+		out := make(map[string]string, len(v))
+		for k, val := range v {
+			out[k] = val
 		}
-		name, _ := hdr["name"].(string)
-		if name == "" {
-			continue
-		}
-		format, _ := hdr["format"].(string)
-		value, _ := hdr["value"].(string)
-		entry := map[string]string{"name": name}
-		switch {
-		case format != "":
-			entry["format"] = format
-		case value != "":
-			entry["value"] = value
-		default:
-			continue
-		}
-		out = append(out, entry)
-	}
-	return out
-}
-
-// validateMCPIntegrationDiff enforces format-xor-value per upstream_header entry
-// and rejects unknown placeholders in `format`. Surfacing these at plan time
-// gives users actionable diagnostics with the offending block index.
-func validateMCPIntegrationDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
-	auths, ok := d.Get("auth").([]interface{})
-	if !ok || len(auths) == 0 {
-		return nil
-	}
-	auth, ok := auths[0].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-	method, _ := auth["method"].(string)
-	if method == "custom" {
-		cu, ok := getSingleBlock(auth, "custom")
-		if !ok {
-			return fmt.Errorf("auth.custom block is required when auth.method is \"custom\"")
-		}
-		tu, _ := cu["token_url"].(string)
-		if strings.TrimSpace(tu) == "" {
-			return fmt.Errorf("auth.custom.token_url is required when auth.method is \"custom\"")
-		}
-	}
-	headers, ok := auth["upstream_header"].([]interface{})
-	if !ok {
-		return nil
-	}
-	for i, raw := range headers {
-		hdr, ok := raw.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		format, _ := hdr["format"].(string)
-		value, _ := hdr["value"].(string)
-		hasFormat := format != ""
-		hasValue := value != ""
-		if hasFormat == hasValue {
-			return fmt.Errorf("auth.upstream_header[%d]: must set exactly one of `format` or `value`", i)
-		}
-		if hasFormat {
-			if err := validateUpstreamHeaderFormat(format, i); err != nil {
-				return err
+		return out
+	case map[string]interface{}:
+		out := make(map[string]string, len(v))
+		for k, val := range v {
+			if val != nil {
+				out[k] = fmt.Sprint(val)
 			}
 		}
+		return out
 	}
 	return nil
 }
 
-func validateUpstreamHeaderFormat(template string, index int) error {
-	for _, placeholder := range upstreamHeaderPlaceholderRE.FindAllString(template, -1) {
-		if _, ok := allowedUpstreamHeaderPlaceholders[placeholder]; !ok {
-			return fmt.Errorf(
-				"auth.upstream_header[%d].format: unknown placeholder %q (allowed: {access_token}, {token_type})",
-				index, placeholder,
-			)
+// ─────────────────────────────────────────────────────────────────────────────
+// validateMCPIntegrationDiff — plan-time checks. The schema enforces required
+// fields structurally; this function adds cross-block constraints that the
+// schema can't express.
+// ─────────────────────────────────────────────────────────────────────────────
+
+func validateMCPIntegrationDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	connectivity := topLevelBlock(d, "connectivity")
+	if connectivity != nil {
+		if err := validateConnectivityBlock(connectivity); err != nil {
+			return err
+		}
+	}
+
+	auth := topLevelBlock(d, "auth")
+	if auth == nil {
+		return nil
+	}
+	method := getString(auth, "method")
+	if err := validateAuthMethodBlock(method, auth); err != nil {
+		return err
+	}
+
+	return validateCrossBlocks(connectivity, topLevelBlock(d, "mcp_server"), auth, method)
+}
+
+func topLevelBlock(d *schema.ResourceDiff, key string) map[string]interface{} {
+	list, ok := d.Get(key).([]interface{})
+	if !ok || len(list) == 0 {
+		return nil
+	}
+	block, _ := list[0].(map[string]interface{})
+	return block
+}
+
+func validateCrossBlocks(connectivity, mcpServer, auth map[string]interface{}, method string) error {
+	mode := ""
+	if connectivity != nil {
+		mode = getString(connectivity, "mode")
+	}
+
+	if te, ok := getSingleBlock(auth, "token_exchange"); ok {
+		if st, ok := getSingleBlock(te, "subject_token"); ok {
+			if strings.TrimSpace(getString(st, "file_path")) != "" && mode != "agent-tunnel" {
+				return fmt.Errorf("auth.token_exchange.subject_token.file_path requires connectivity.mode = \"agent-tunnel\" (the agent reads the token from the cluster filesystem)")
+			}
+		}
+		if at, ok := getSingleBlock(te, "actor_token"); ok {
+			if strings.TrimSpace(getString(at, "file_path")) != "" && mode != "agent-tunnel" {
+				return fmt.Errorf("auth.token_exchange.actor_token.file_path requires connectivity.mode = \"agent-tunnel\" (the agent reads the token from the cluster filesystem)")
+			}
+		}
+	}
+
+	if method == "static_token" && mcpServer != nil {
+		if st, ok := getSingleBlock(auth, "static_token"); ok {
+			headerName := getString(st, "header_name")
+			if headerName == "" {
+				headerName = "Authorization"
+			}
+			forbidden := strings.ToLower(headerName)
+			for name := range stringifyMap(mcpServer["headers"]) {
+				if strings.ToLower(name) == forbidden {
+					return fmt.Errorf("mcp_server.headers must not contain %q; it collides with auth.static_token.header_name — use auth.static_token to set this header", name)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func validateConnectivityBlock(connectivity map[string]interface{}) error {
+	mode := getString(connectivity, "mode")
+	at, hasTunnel := getSingleBlock(connectivity, "agent_tunnel")
+	if mode == "agent-tunnel" {
+		if !hasTunnel {
+			return fmt.Errorf("connectivity.agent_tunnel block is required when connectivity.mode is \"agent-tunnel\"")
+		}
+		if strings.TrimSpace(getString(at, "provider_cluster")) == "" {
+			return fmt.Errorf("connectivity.agent_tunnel.provider_cluster is required when connectivity.mode is \"agent-tunnel\"")
+		}
+	} else if hasTunnel {
+		return fmt.Errorf("connectivity.agent_tunnel must not be set when connectivity.mode is %q", mode)
+	}
+	return nil
+}
+
+func validateAuthMethodBlock(method string, auth map[string]interface{}) error {
+	switch method {
+	case "static_token":
+		if _, ok := getSingleBlock(auth, "static_token"); !ok {
+			return fmt.Errorf("auth.static_token block is required when auth.method is \"static_token\"")
+		}
+	case "token_exchange":
+		te, ok := getSingleBlock(auth, "token_exchange")
+		if !ok {
+			return fmt.Errorf("auth.token_exchange block is required when auth.method is \"token_exchange\"")
+		}
+		st, ok := getSingleBlock(te, "subject_token")
+		if !ok {
+			return fmt.Errorf("auth.token_exchange.subject_token block is required when auth.method is \"token_exchange\"")
+		}
+		hasValue := strings.TrimSpace(getString(st, "value")) != ""
+		hasFilePath := strings.TrimSpace(getString(st, "file_path")) != ""
+		if hasValue == hasFilePath {
+			return fmt.Errorf("auth.token_exchange.subject_token must set exactly one of `value` or `file_path`")
+		}
+		if at, ok := getSingleBlock(te, "actor_token"); ok {
+			hasActorValue := strings.TrimSpace(getString(at, "value")) != ""
+			hasActorPath := strings.TrimSpace(getString(at, "file_path")) != ""
+			if hasActorValue == hasActorPath {
+				return fmt.Errorf("auth.token_exchange.actor_token must set exactly one of `value` or `file_path`")
+			}
+		}
+	case "oauth2_client_credentials":
+		if _, ok := getSingleBlock(auth, "oauth2_client_credentials"); !ok {
+			return fmt.Errorf("auth.oauth2_client_credentials block is required when auth.method is \"oauth2_client_credentials\"")
+		}
+	default:
+		return nil
+	}
+
+	for _, name := range methodSpecificAuthBlocks {
+		if name == method {
+			continue
+		}
+		if _, ok := getSingleBlock(auth, name); ok {
+			return fmt.Errorf("auth.%s must not be set when auth.method is %q; only the %q block applies", name, method, method)
 		}
 	}
 	return nil
