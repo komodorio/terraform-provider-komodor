@@ -12,9 +12,9 @@ func init() {
 }
 
 func TestAcc_komodor_policy_role_attachment_basic(t *testing.T) {
-	roleName := testResourceName("attach-role")
-	policyName := testResourceName("attach-policy")
-	attachName := testResourceName("attachment")
+	roleName := testResourceName(t, "attach-role")
+	policyName := testResourceName(t, "attach-policy")
+	attachName := testResourceName(t, "attachment")
 	resourceAddr := "komodor_policy_role_attachment.test"
 
 	resource.Test(t, resource.TestCase{

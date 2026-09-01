@@ -3,6 +3,7 @@ package komodor
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -13,7 +14,7 @@ func init() {
 }
 
 func TestAcc_komodor_policy_v2_basic(t *testing.T) {
-	name := testResourceName("policy-v2")
+	name := testResourceName(t, "policy-v2-basic")
 	updatedName := name + "-updated"
 	resourceAddr := "komodor_policy_v2.test"
 
@@ -40,7 +41,8 @@ func TestAcc_komodor_policy_v2_basic(t *testing.T) {
 			},
 			// Step 3: Update name and add a second statement
 			{
-				Config: testAccPolicyV2ConfigUpdated(updatedName),
+				PreConfig: func() { time.Sleep(2 * time.Second) },
+				Config:    testAccPolicyV2ConfigUpdated(updatedName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "name", updatedName),
 					resource.TestCheckResourceAttr(resourceAddr, "statements.#", "2"),

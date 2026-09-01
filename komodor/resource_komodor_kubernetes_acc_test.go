@@ -18,7 +18,7 @@ func init() {
 // Note: komodor_kubernetes has ForceNew on cluster_name and no UpdateContext,
 // so this test only covers create and delete (no update step).
 func TestAcc_komodor_kubernetes_basic(t *testing.T) {
-	clusterName := testResourceName("cluster")
+	clusterName := testResourceName(t, "cluster")
 	resourceAddr := "komodor_kubernetes.test"
 
 	resource.Test(t, resource.TestCase{

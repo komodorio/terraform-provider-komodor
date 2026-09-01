@@ -169,6 +169,10 @@ resource "komodor_policy_v2" "selector_pattern_policy" {
 - `name` (String) The name of the policy.
 - `statements` (Block List, Min: 1) One or more policy statements defining the allowed actions and resource scopes. (see [below for nested schema](#nestedblock--statements))
 
+### Optional
+
+- `description` (String) A human-readable description of the policy
+
 ### Read-Only
 
 - `created_at` (String) The date and time when the policy was created.

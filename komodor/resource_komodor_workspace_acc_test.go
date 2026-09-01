@@ -13,7 +13,7 @@ func init() {
 }
 
 func TestAcc_komodor_workspace_basic(t *testing.T) {
-	name := testResourceName("workspace")
+	name := testResourceName(t, "workspace")
 	updatedName := name + "-updated"
 	resourceAddr := "komodor_workspace.test"
 

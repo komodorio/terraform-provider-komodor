@@ -10,7 +10,7 @@ import (
 func init() { registerAccTest("datasource_komodor_workspace") }
 
 func TestAcc_datasource_komodor_workspace(t *testing.T) {
-	name := testResourceName("ds-workspace")
+	name := testResourceName(t, "ds-workspace")
 	resourceAddr := "data.komodor_workspace.test"
 
 	resource.Test(t, resource.TestCase{

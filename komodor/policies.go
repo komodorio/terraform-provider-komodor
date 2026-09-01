@@ -62,20 +62,22 @@ type Statement struct {
 }
 
 type Policy struct {
-	Id         string      `json:"id"`
-	Name       string      `json:"name"`
-	Statements []Statement `json:"statements"`
-	CreatedAt  string      `json:"createdAt"`
-	UpdatedAt  string      `json:"updatedAt"`
-	Type       string      `json:"type,omitempty"`
-	Tags       interface{} `json:"tags,omitempty"`
+	Id          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description,omitempty"`
+	Statements  []Statement `json:"statements"`
+	CreatedAt   string      `json:"createdAt"`
+	UpdatedAt   string      `json:"updatedAt"`
+	Type        string      `json:"type,omitempty"`
+	Tags        interface{} `json:"tags,omitempty"`
 }
 
 type NewPolicy struct {
-	Name       string      `json:"name"`
-	Type       string      `json:"type,omitempty"`
-	Statements []Statement `json:"statements"`
-	Tags       interface{} `json:"tags,omitempty"`
+	Name        string      `json:"name"`
+	Description string      `json:"description,omitempty"`
+	Type        string      `json:"type,omitempty"`
+	Statements  []Statement `json:"statements"`
+	Tags        interface{} `json:"tags,omitempty"`
 }
 
 func (c *Client) GetPolicy(nameOrId string) (*Policy, int, error) {
