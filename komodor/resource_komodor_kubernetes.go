@@ -26,6 +26,9 @@ func resourceKomodorKubernetes() *schema.Resource {
 		CreateContext: resourceKomodorKubernetesCreate,
 		ReadContext:   resourceKomodorKubernetesRead,
 		DeleteContext: resourceKomodorKubernetesDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceKomodorKubernetesImport,
+		},
 		Description: "Creates a new Komodor integration with a Kubernetes cluster.\n\n" +
 			"This integration allows Komodor to monitor and analyze the cluster's activity.",
 	}
@@ -81,4 +84,16 @@ func resourceKomodorKubernetesRead(ctx context.Context, d *schema.ResourceData, 
 	d.SetId(kubernetes.Id)
 
 	return nil
+}
+
+// resourceKomodorKubernetesImport imports an existing cluster integration by
+// cluster name, not by resource ID. The resource ID is the integration's apiKey,
+// which resourceKomodorKubernetesRead resolves from cluster_name — so cluster_name
+// must be seeded here before Read runs.
+func resourceKomodorKubernetesImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	if err := d.Set("cluster_name", d.Id()); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
