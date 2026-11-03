@@ -6,7 +6,9 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWarnLiteralStarInExactList(t *testing.T) {
@@ -190,6 +192,95 @@ func TestValidateScopeDimension_MutualExclusion(t *testing.T) {
 			if assert.Error(t, err) {
 				assert.Contains(t, err.Error(), "mutually exclusive")
 			}
+		})
+	}
+}
+
+func TestValidateContainerNamePattern(t *testing.T) {
+	tests := []struct {
+		name    string
+		in      interface{}
+		wantErr string
+	}{
+		{name: "exact name", in: "istio-proxy"},
+		{name: "wildcard suffix", in: "sidecar-*"},
+		{name: "wildcard prefix", in: "*-logger"},
+		{name: "wildcard in the middle", in: "a*b"},
+		{name: "star mixed with text is fine", in: "*a*"},
+		{name: "empty entry", in: "", wantErr: "must not be empty"},
+		{name: "single star matches every container", in: "*", wantErr: "matches every container"},
+		{name: "repeated stars match every container", in: "***", wantErr: "matches every container"},
+		{name: "not a string", in: 1, wantErr: "expected a string"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, errs := validateContainerNamePattern(tc.in, containerNamesPatternsAttr+".0.excludes.0")
+			if tc.wantErr == "" {
+				assert.Empty(t, errs)
+				return
+			}
+			if assert.Len(t, errs, 1) {
+				assert.Contains(t, errs[0].Error(), tc.wantErr)
+			}
+		})
+	}
+}
+
+// Exercises the real resource schema (MinItems/MaxItems/Required plus the element validator)
+// without any API access.
+func TestContainerNamesPatternsBlock_SchemaValidation(t *testing.T) {
+	cfg := func(block interface{}) map[string]interface{} {
+		c := map[string]interface{}{
+			"name":                "schema-test",
+			"priority":            1,
+			"optimization_preset": presetSandbox,
+			"apply_protocol":      applyOnCreation,
+			"scope": []interface{}{map[string]interface{}{
+				"clusters":       []interface{}{"c"},
+				"namespaces":     []interface{}{"n"},
+				"workload_names": []interface{}{"w"},
+			}},
+		}
+		if block != nil {
+			c[containerNamesPatternsAttr] = block
+		}
+		return c
+	}
+	excludes := func(items ...interface{}) []interface{} {
+		return []interface{}{map[string]interface{}{"excludes": items}}
+	}
+
+	tests := []struct {
+		name    string
+		block   interface{}
+		wantErr string
+	}{
+		{name: "block omitted", block: nil},
+		{name: "valid", block: excludes("istio-proxy", "sidecar-*")},
+		{name: "empty excludes list", block: excludes(), wantErr: "excludes"},
+		{name: "empty entry", block: excludes("istio-proxy", ""), wantErr: "must not be empty"},
+		{name: "match-all pattern", block: excludes("*"), wantErr: "matches every container"},
+		{name: "block without excludes", block: []interface{}{map[string]interface{}{}}, wantErr: `"container_names_patterns.0.excludes" is required`},
+		{
+			name:    "two blocks",
+			block:   append(excludes("a"), excludes("b")...),
+			wantErr: "supports 1 item maximum",
+		},
+	}
+	res := resourceKomodorCostRightSizingPolicy()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			diags := res.Validate(terraform.NewResourceConfigRaw(cfg(tc.block)))
+			if tc.wantErr == "" {
+				assert.False(t, diags.HasError(), "%v", diags)
+				return
+			}
+			require.True(t, diags.HasError(), "expected an error containing %q", tc.wantErr)
+			var all string
+			for _, d := range diags {
+				all += d.Summary + " " + d.Detail + "\n"
+			}
+			assert.Contains(t, all, tc.wantErr)
 		})
 	}
 }

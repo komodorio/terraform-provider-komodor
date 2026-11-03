@@ -169,6 +169,15 @@ resource "komodor_cost_right_sizing_policy" "production" {
   allow_restart          = true
   allow_hpa_right_sizing = false
 
+  # Optional, exclude-only: containers matching any of these names or wildcard
+  # patterns ("*" matches any sequence of characters, case-sensitive) are never
+  # right-sized in ANY workload this policy covers. This is not a scope filter —
+  # the workloads stay in scope. Omit the block to exclude nothing. Removing it
+  # clears exclusions set elsewhere (e.g. in the Komodor UI).
+  container_names_patterns {
+    excludes = ["istio-proxy", "sidecar-*"]
+  }
+
   # step 4 - guardrails
   optimization_preset = "production"
 
@@ -195,6 +204,7 @@ resource "komodor_cost_right_sizing_policy" "production" {
 
 - `allow_hpa_right_sizing` (Boolean) Whether HPA-managed workloads are subject to right-sizing.
 - `allow_restart` (Boolean) Whether Komodor may restart pods to apply right-sizing. Effective only when apply_protocol = "onCreation".
+- `container_names_patterns` (Block List, Max: 1) Exclude-only container filter, applied at policy level: containers whose name matches any pattern are never right-sized, in every workload this policy covers (including workloads pinned to it by an override). This is **not** a scope filter — it does not change which workloads the policy covers, and excluded containers' workloads stay in scope. Matching is case-sensitive and `*` is the only wildcard. Omit the block to exclude nothing; an empty `excludes` list is rejected. **Removing the block clears any container exclusions on the policy, including ones set outside Terraform (e.g. in the Komodor UI).** (see [below for nested schema](#nestedblock--container_names_patterns))
 - `description` (String) Free-text description of the policy.
 - `force_delete` (Boolean) When `true`, cascade-deletes any active workload override records on destroy. Has no effect on create/update. **Recommended for any policy intended for `terraform destroy`**, especially when `apply_protocol = "immediate"` or the scope is broad — without it, destroy returns `POLICY_HAS_OVERRIDES` (HTTP 409) whenever override records exist for the policy.
 - `guardrails` (Block List, Max: 1) Right-sizing guardrails. Required when optimization_preset = "custom"; must be omitted otherwise (resolved server-side from the named preset and exposed as Computed). (see [below for nested schema](#nestedblock--guardrails))
@@ -265,6 +275,14 @@ Optional:
 - `include` (String, Deprecated) Deprecated: prefer "includes". Single wildcard pattern for matching (e.g., "prod-*"); * matches any sequence of characters. Cannot be combined with includes. Provide exactly one of include or includes.
 - `includes` (List of String) Wildcard patterns for matching (e.g., ["prod-*", "staging-*"]); * matches any sequence of characters; a resource is in scope if it matches any of them. Cannot be combined with include, and cannot be empty. Provide exactly one of include or includes.
 
+
+
+<a id="nestedblock--container_names_patterns"></a>
+### Nested Schema for `container_names_patterns`
+
+Required:
+
+- `excludes` (List of String) Container names or wildcard patterns to exclude from right-sizing (e.g., ["istio-proxy", "sidecar-*"]); * matches any sequence of characters; a container is excluded if it matches any of them. Cannot be empty, cannot contain empty entries, and a pattern made only of "*" is rejected because it would exclude every container.
 
 
 <a id="nestedblock--guardrails"></a>
