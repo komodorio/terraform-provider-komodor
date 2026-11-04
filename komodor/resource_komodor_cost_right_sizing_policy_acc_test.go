@@ -281,6 +281,123 @@ func TestAcc_komodor_cost_right_sizing_policy_pattern_conflicting_fields(t *test
 	})
 }
 
+// Needs komodor-cost and public-api deployed with the policy-level containersPatterns field.
+func TestAcc_komodor_cost_right_sizing_policy_container_names_patterns(t *testing.T) {
+	name := testResourceName("cost-rsp-containers")
+	resourceAddr := "komodor_cost_right_sizing_policy.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRightSizingPolicyDestroyed(name),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCostRSPConfigContainerNamesPatterns(name, []string{"tf-acc-istio-proxy", "tf-acc-sidecar-*"}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, containerNamesPatternsAttr+".#", "1"),
+					resource.TestCheckResourceAttr(resourceAddr, containerNamesPatternsAttr+".0.excludes.#", "2"),
+					resource.TestCheckResourceAttr(resourceAddr, containerNamesPatternsAttr+".0.excludes.0", "tf-acc-istio-proxy"),
+					resource.TestCheckResourceAttr(resourceAddr, containerNamesPatternsAttr+".0.excludes.1", "tf-acc-sidecar-*"),
+				),
+			},
+			{
+				// Re-applied unchanged: no diff.
+				Config:   testAccCostRSPConfigContainerNamesPatterns(name, []string{"tf-acc-istio-proxy", "tf-acc-sidecar-*"}),
+				PlanOnly: true,
+			},
+			{
+				Config: testAccCostRSPConfigContainerNamesPatterns(name, []string{"tf-acc-sidecar-*"}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, containerNamesPatternsAttr+".0.excludes.#", "1"),
+					resource.TestCheckResourceAttr(resourceAddr, containerNamesPatternsAttr+".0.excludes.0", "tf-acc-sidecar-*"),
+				),
+			},
+			{
+				ResourceName:            resourceAddr,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_delete"},
+			},
+			{
+				// Removing the block turns the feature off.
+				Config: testAccCostRSPConfigContainerNamesPatterns(name, nil),
+				Check:  resource.TestCheckResourceAttr(resourceAddr, containerNamesPatternsAttr+".#", "0"),
+			},
+			{
+				Config:   testAccCostRSPConfigContainerNamesPatterns(name, nil),
+				PlanOnly: true,
+			},
+		},
+	})
+}
+
+func TestAcc_komodor_cost_right_sizing_policy_container_names_patterns_invalid(t *testing.T) {
+	name := testResourceName("cost-rsp-containers-bad")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCostRSPConfigContainerNamesPatterns(name, []string{"*"}),
+				ExpectError: regexp.MustCompile(`matches every container`),
+			},
+			{
+				Config:      testAccCostRSPConfigContainerNamesPatterns(name, []string{"ok", ""}),
+				ExpectError: regexp.MustCompile(`must not be empty`),
+			},
+			{
+				Config: fmt.Sprintf(`
+resource "komodor_cost_right_sizing_policy" "test" {
+  name                = %q
+  priority            = 99
+  optimization_preset = %q
+  apply_protocol      = %q
+  force_delete        = true
+
+  scope {
+    clusters       = ["tf-acc-cluster"]
+    namespaces     = ["default"]
+    workload_names = ["tf-acc-workload"]
+  }
+
+  %s {
+    excludes = []
+  }
+}
+`, name, presetSandbox, applyOnCreation, containerNamesPatternsAttr),
+				ExpectError: regexp.MustCompile(`requires 1 item minimum`),
+			},
+		},
+	})
+}
+
+func testAccCostRSPConfigContainerNamesPatterns(name string, excludes []string) string {
+	block := ""
+	if len(excludes) > 0 {
+		block = fmt.Sprintf(`
+  %s {
+    excludes = %s
+  }
+`, containerNamesPatternsAttr, hclStringList(excludes))
+	}
+	return fmt.Sprintf(`
+resource "komodor_cost_right_sizing_policy" "test" {
+  name                = %q
+  priority            = 99
+  optimization_preset = %q
+  apply_protocol      = %q
+  force_delete        = true
+
+  scope {
+    clusters       = ["tf-acc-cluster"]
+    namespaces     = ["default"]
+    workload_names = ["tf-acc-workload"]
+  }
+%s}
+`, name, presetSandbox, applyOnCreation, block)
+}
+
 func testAccCheckRightSizingPolicyDestroyed(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := newRightSizingClientFromMeta(testAccProvider.Meta())

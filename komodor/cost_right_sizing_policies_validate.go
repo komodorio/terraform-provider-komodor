@@ -3,6 +3,7 @@ package komodor
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -126,6 +127,25 @@ func validatePatternValue(idx int, patternsKey string, v interface{}) error {
 		return fmt.Errorf(`in scope[%d].%s, one of "include" or "includes" is required — an empty "includes" list matches nothing`, idx, patternsKey)
 	}
 	return nil
+}
+
+// matchAllContainerPattern mirrors the backend's CONTAINERS_PATTERNS_MATCH_ALL rule: a pattern made
+// only of "*" would exclude every container, so the policy would right-size nothing.
+var matchAllContainerPattern = regexp.MustCompile(`^\*+$`)
+
+// validateContainerNamePattern is plan-time feedback only; the backend stays the source of truth.
+func validateContainerNamePattern(v interface{}, k string) ([]string, []error) {
+	s, ok := v.(string)
+	if !ok {
+		return nil, []error{fmt.Errorf("%s: expected a string, got %T", k, v)}
+	}
+	if s == "" {
+		return nil, []error{fmt.Errorf("%s: container pattern must not be empty", k)}
+	}
+	if matchAllContainerPattern.MatchString(s) {
+		return nil, []error{fmt.Errorf("%s: %q matches every container, so the policy would right-size nothing — use a narrower pattern, or omit the %s block", k, s, containerNamesPatternsAttr)}
+	}
+	return nil, nil
 }
 
 func validateGuardRailsBlock(d *schema.ResourceDiff) error {

@@ -34,6 +34,7 @@ type RightSizingMultiScopePolicy struct {
 	AllowQoSDowngrade   *bool                        `json:"allowQoSDowngrade,omitempty"`
 	AllowHpaRightSizing *bool                        `json:"allowHpaRightSizing,omitempty"`
 	AllowRestart        *bool                        `json:"allowRestart,omitempty"`
+	ContainersPatterns  *PolicyExcludePatterns       `json:"containersPatterns,omitempty"`
 	GuardRails          *PolicyGuardRails            `json:"guardRails,omitempty"`
 	Scopes              []PolicyResourceScope        `json:"scopes"`
 	Tags                *[]string                    `json:"tags,omitempty"`
@@ -89,6 +90,12 @@ type PolicyPattern struct {
 	Excludes *[]string `json:"excludes,omitempty"`
 }
 
+// PolicyExcludePatterns is exclude-only: unlike PolicyPattern it has no include keys. The API
+// rejects an empty Excludes list, so callers must omit the whole struct instead of sending {}.
+type PolicyExcludePatterns struct {
+	Excludes []string `json:"excludes"`
+}
+
 type PolicyGuardRails struct {
 	ManagedResources               PolicyGuardRailsManagedResources     `json:"managedResources"`
 	AllowRightSizingUp             bool                                 `json:"allowRightSizingUp"`
@@ -142,8 +149,10 @@ type rightSizingPolicyTFData struct {
 	AllowHpaRightSizing bool
 	OptimizationPreset  string
 	GuardRails          *guardRailsTFData
-	Tags                []string
-	ForceDelete         bool
+	// ContainerNamesPatterns is nil when the feature is off; never non-nil with an empty list.
+	ContainerNamesPatterns *excludePatternsTFData
+	Tags                   []string
+	ForceDelete            bool
 
 	Id             string
 	CreatedBy      string
@@ -167,6 +176,10 @@ type patternTFData struct {
 	Include  string
 	Includes []string
 	Exclude  string
+	Excludes []string
+}
+
+type excludePatternsTFData struct {
 	Excludes []string
 }
 

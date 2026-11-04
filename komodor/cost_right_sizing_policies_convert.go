@@ -49,6 +49,7 @@ func tfToAPIRightSizingPolicy(tf rightSizingPolicyTFData) RightSizingMultiScopeP
 		api.CpuPercentile = percentilePtr(tf.GuardRails.CpuPercentile)
 		api.MemoryPercentile = percentilePtr(tf.GuardRails.MemoryPercentile)
 	}
+	api.ContainersPatterns = tfToAPIExcludePatterns(tf.ContainerNamesPatterns)
 	if len(tf.Tags) > 0 {
 		tags := tf.Tags
 		api.Tags = &tags
@@ -86,10 +87,27 @@ func apiToTFRightSizingPolicy(api RightSizingMultiScopePolicy) rightSizingPolicy
 		gr.AllowQoSDowngrade = boolValue(api.AllowQoSDowngrade)
 		tf.GuardRails = &gr
 	}
+	tf.ContainerNamesPatterns = apiToTFExcludePatterns(api.ContainersPatterns)
 	if api.Tags != nil {
 		tf.Tags = *api.Tags
 	}
 	return tf
+}
+
+// A nil or empty list means "feature off" on both sides: the API rejects {"excludes": []}, so it
+// must never be sent, and if one is ever returned it is read as off rather than as an empty block.
+func tfToAPIExcludePatterns(p *excludePatternsTFData) *PolicyExcludePatterns {
+	if p == nil || len(p.Excludes) == 0 {
+		return nil
+	}
+	return &PolicyExcludePatterns{Excludes: p.Excludes}
+}
+
+func apiToTFExcludePatterns(p *PolicyExcludePatterns) *excludePatternsTFData {
+	if p == nil || len(p.Excludes) == 0 {
+		return nil
+	}
+	return &excludePatternsTFData{Excludes: p.Excludes}
 }
 
 func tfToAPIScopes(tfScopes []scopeTFData) []PolicyResourceScope {
@@ -326,16 +344,17 @@ func boolValue(p *bool) bool {
 
 func expandRightSizingPolicy(d *schema.ResourceData) rightSizingPolicyTFData {
 	tf := rightSizingPolicyTFData{
-		Name:                d.Get("name").(string),
-		Description:         d.Get("description").(string),
-		Priority:            d.Get("priority").(int),
-		Scopes:              expandScopes(d.Get("scope").([]interface{})),
-		ApplyProtocol:       d.Get("apply_protocol").(string),
-		AllowRestart:        d.Get("allow_restart").(bool),
-		AllowHpaRightSizing: d.Get("allow_hpa_right_sizing").(bool),
-		OptimizationPreset:  d.Get("optimization_preset").(string),
-		Tags:                toStringList(d.Get("tags").([]interface{})),
-		ForceDelete:         d.Get("force_delete").(bool),
+		Name:                   d.Get("name").(string),
+		Description:            d.Get("description").(string),
+		Priority:               d.Get("priority").(int),
+		Scopes:                 expandScopes(d.Get("scope").([]interface{})),
+		ApplyProtocol:          d.Get("apply_protocol").(string),
+		AllowRestart:           d.Get("allow_restart").(bool),
+		AllowHpaRightSizing:    d.Get("allow_hpa_right_sizing").(bool),
+		OptimizationPreset:     d.Get("optimization_preset").(string),
+		ContainerNamesPatterns: expandExcludePatterns(d.Get(containerNamesPatternsAttr)),
+		Tags:                   toStringList(d.Get("tags").([]interface{})),
+		ForceDelete:            d.Get("force_delete").(bool),
 	}
 	if gr := d.Get("guardrails").([]interface{}); len(gr) > 0 && gr[0] != nil {
 		expanded := expandGuardRails(gr[0].(map[string]interface{}))
@@ -380,6 +399,18 @@ func expandPattern(v interface{}) *patternTFData {
 		Exclude:  stringFromMap(m, "exclude"),
 		Excludes: toStringList(listFromMap(m, "excludes")),
 	}
+}
+
+func expandExcludePatterns(v interface{}) *excludePatternsTFData {
+	raw, ok := v.([]interface{})
+	if !ok || len(raw) == 0 || raw[0] == nil {
+		return nil
+	}
+	excludes := toStringList(listFromMap(raw[0].(map[string]interface{}), "excludes"))
+	if len(excludes) == 0 {
+		return nil
+	}
+	return &excludePatternsTFData{Excludes: excludes}
 }
 
 func listFromMap(m map[string]interface{}, key string) []interface{} {
@@ -471,20 +502,21 @@ func stringFromMap(m map[string]interface{}, key string) string {
 
 func flattenRightSizingPolicy(d *schema.ResourceData, tf rightSizingPolicyTFData) error {
 	for k, v := range map[string]interface{}{
-		"name":                   tf.Name,
-		"description":            tf.Description,
-		"priority":               tf.Priority,
-		"scope":                  flattenScopes(tf.Scopes),
-		"apply_protocol":         tf.ApplyProtocol,
-		"allow_restart":          tf.AllowRestart,
-		"allow_hpa_right_sizing": tf.AllowHpaRightSizing,
-		"optimization_preset":    tf.OptimizationPreset,
-		"guardrails":             flattenGuardRails(tf.GuardRails),
-		"tags":                   tf.Tags,
-		"created_by":             tf.CreatedBy,
-		"updated_by":             tf.LastModifiedBy,
-		"created_at":             tf.CreatedAt,
-		"updated_at":             tf.UpdatedAt,
+		"name":                     tf.Name,
+		"description":              tf.Description,
+		"priority":                 tf.Priority,
+		"scope":                    flattenScopes(tf.Scopes),
+		"apply_protocol":           tf.ApplyProtocol,
+		"allow_restart":            tf.AllowRestart,
+		"allow_hpa_right_sizing":   tf.AllowHpaRightSizing,
+		"optimization_preset":      tf.OptimizationPreset,
+		"guardrails":               flattenGuardRails(tf.GuardRails),
+		containerNamesPatternsAttr: flattenExcludePatterns(tf.ContainerNamesPatterns),
+		"tags":                     tf.Tags,
+		"created_by":               tf.CreatedBy,
+		"updated_by":               tf.LastModifiedBy,
+		"created_at":               tf.CreatedAt,
+		"updated_at":               tf.UpdatedAt,
 	} {
 		if err := d.Set(k, v); err != nil {
 			return err
@@ -528,6 +560,15 @@ func flattenPattern(p *patternTFData) []interface{} {
 			"exclude":  p.Exclude,
 			"excludes": p.Excludes,
 		},
+	}
+}
+
+func flattenExcludePatterns(p *excludePatternsTFData) []interface{} {
+	if p == nil {
+		return nil
+	}
+	return []interface{}{
+		map[string]interface{}{"excludes": p.Excludes},
 	}
 }
 

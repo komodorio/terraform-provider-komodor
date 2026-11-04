@@ -45,6 +45,15 @@ resource "komodor_cost_right_sizing_policy" "production" {
   allow_restart          = true
   allow_hpa_right_sizing = false
 
+  # Optional, exclude-only: containers matching any of these names or wildcard
+  # patterns ("*" matches any sequence of characters, case-sensitive) are never
+  # right-sized in ANY workload this policy covers. This is not a scope filter —
+  # the workloads stay in scope. Omit the block to exclude nothing. Removing it
+  # clears exclusions set elsewhere (e.g. in the Komodor UI).
+  container_names_patterns {
+    excludes = ["istio-proxy", "sidecar-*"]
+  }
+
   # step 4 - guardrails
   optimization_preset = "production"
 

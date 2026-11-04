@@ -27,6 +27,11 @@ const (
 	managedByTag = "managed-by:tf"
 	maxUserTags  = 19
 
+	// containerNamesPatternsAttr is the Terraform name of the policy-level `containersPatterns`
+	// API field. It is referenced everywhere via this constant, so a rename is a one-line change
+	// (plus regenerating docs and updating examples and the literal HCL in tests).
+	containerNamesPatternsAttr = "container_names_patterns"
+
 	qosUpgradeNotAllowed            = "notAllowed"
 	qosUpgradeBestEffortToBurstable = "bestEffortToBurstable"
 )
@@ -93,6 +98,14 @@ func resourceKomodorCostRightSizingPolicy() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "Whether HPA-managed workloads are subject to right-sizing.",
+			},
+
+			containerNamesPatternsAttr: {
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: "Exclude-only container filter, applied at policy level: containers whose name matches any pattern are never right-sized, in every workload this policy covers (including workloads pinned to it by an override). This is **not** a scope filter — it does not change which workloads the policy covers, and excluded containers' workloads stay in scope. Matching is case-sensitive and `*` is the only wildcard. Omit the block to exclude nothing; an empty `excludes` list is rejected. **Removing the block clears any container exclusions on the policy, including ones set outside Terraform (e.g. in the Komodor UI).**",
+				Elem:        costRSPContainerNamesPatternsResource(),
 			},
 
 			"optimization_preset": {
@@ -192,6 +205,23 @@ func costRSPScopeResource() *schema.Resource {
 			"resource_types_patterns": patternBlock("Wildcard patterns for workload kinds (`includes = [\"*\"]` matches all). Mutually exclusive with resource_types."),
 			"workload_names":          stringList("Required — provide via this field or `workload_names_patterns`. Exact workload names. The string `\"*\"` is treated literally — to match all workloads, use `workload_names_patterns { includes = [\"*\"] }` instead. Mutually exclusive with workload_names_patterns."),
 			"workload_names_patterns": patternBlock("Required — provide via this block or the exact `workload_names` list. Wildcard patterns for workload names (`includes = [\"*\"]` matches all). Mutually exclusive with workload_names."),
+		},
+	}
+}
+
+func costRSPContainerNamesPatternsResource() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"excludes": {
+				Type:     schema.TypeList,
+				Required: true,
+				MinItems: 1,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validateContainerNamePattern,
+				},
+				Description: `Container names or wildcard patterns to exclude from right-sizing (e.g., ["istio-proxy", "sidecar-*"]); * matches any sequence of characters; a container is excluded if it matches any of them. Cannot be empty, cannot contain empty entries, and a pattern made only of "*" is rejected because it would exclude every container.`,
+			},
 		},
 	}
 }
