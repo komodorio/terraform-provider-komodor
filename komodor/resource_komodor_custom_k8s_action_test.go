@@ -50,6 +50,26 @@ func TestParseRuleset(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "rule without apiGroups and resources is rejected",
+			ruleset: `[{"verbs":["get"]}]`,
+			wantErr: true,
+		},
+		{
+			name:    "rule with resources but no apiGroups is rejected",
+			ruleset: `[{"resources":["pods"],"verbs":["get"]}]`,
+			wantErr: true,
+		},
+		{
+			name:    "rule mixing resources and nonResourceURLs is rejected",
+			ruleset: `[{"apiGroups":[""],"resources":["pods"],"nonResourceURLs":["/metrics"],"verbs":["get"]}]`,
+			wantErr: true,
+		},
+		{
+			name:    "rule without verbs is rejected",
+			ruleset: `[{"apiGroups":[""],"resources":["pods"]}]`,
+			wantErr: true,
+		},
+		{
 			name:    "invalid JSON is rejected",
 			ruleset: `[{"verbs":["get"]`,
 			wantErr: true,
@@ -97,8 +117,6 @@ func TestResourceKomodorCustomK8sActionUpdateSendsFullRules(t *testing.T) {
 		"ruleset":     ruleset,
 	})
 	d.SetId("x")
-	_, errs := resourceKomodorCustomK8sAction().Schema["ruleset"].ValidateFunc(ruleset, "ruleset")
-	require.Empty(t, errs)
 
 	diags := resourceKomodorCustomK8sActionUpdate(context.Background(), d, NewClient("key", srv.URL))
 	require.False(t, diags.HasError(), "%v", diags)

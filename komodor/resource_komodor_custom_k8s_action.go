@@ -35,7 +35,7 @@ func resourceKomodorCustomK8sAction() *schema.Resource {
 					}
 					return nil, nil
 				},
-				Description: "JSON-encoded list of Kubernetes RBAC PolicyRules. Each rule supports `apiGroups`, `resources`, `nonResourceURLs` and `verbs`. Unknown keys are rejected.",
+				Description: "JSON-encoded list of Kubernetes RBAC PolicyRules. Each rule needs `verbs` and either both `apiGroups` and `resources`, or `nonResourceURLs`. Other keys are not supported and fail the plan. `nonResourceURLs` only grants access when the policy scope covers all namespaces.",
 			},
 			"id": {
 				Type:        schema.TypeString,

@@ -37,6 +37,13 @@ func TestAcc_komodor_action_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceAddr, "description", "View pods and deployments in default namespace"),
 				),
 			},
+			// Step 3: Add a nonResourceURLs rule + no-drift
+			{
+				Config: testAccActionConfigWithNonResourceURLs(actionName, "View pods and metrics"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceAddr, "ruleset", `[{"apiGroups":[""],"resources":["pods"],"verbs":["get","list"]},{"nonResourceURLs":["/metrics"],"verbs":["get"]}]`),
+				),
+			},
 		},
 	})
 }
@@ -68,6 +75,27 @@ resource "komodor_action" "test" {
     resources = ["pods"]
     verbs     = ["get", "list"]
   }])
+}
+`, actionName, description)
+}
+
+func testAccActionConfigWithNonResourceURLs(actionName, description string) string {
+	return fmt.Sprintf(`
+resource "komodor_action" "test" {
+  action      = %q
+  description = %q
+
+  ruleset = jsonencode([
+    {
+      apiGroups = [""]
+      resources = ["pods"]
+      verbs     = ["get", "list"]
+    },
+    {
+      nonResourceURLs = ["/metrics"]
+      verbs           = ["get"]
+    },
+  ])
 }
 `, actionName, description)
 }

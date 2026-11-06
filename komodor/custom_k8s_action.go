@@ -31,7 +31,29 @@ func parseRuleset(ruleset string) ([]CustomK8sActionStatement, error) {
 	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
 		return nil, errors.New("unexpected data after the ruleset JSON array")
 	}
+	for i, s := range statements {
+		if err := validateStatement(s); err != nil {
+			return nil, fmt.Errorf("rule %d: %w", i, err)
+		}
+	}
 	return statements, nil
+}
+
+// Same shape checks as Kubernetes ValidatePolicyRule, so a rule the cluster would reject fails the plan.
+func validateStatement(s CustomK8sActionStatement) error {
+	if len(s.Verbs) == 0 {
+		return errors.New("verbs must not be empty")
+	}
+	if len(s.NonResourceURLs) > 0 {
+		if len(s.ApiGroups) > 0 || len(s.Resources) > 0 {
+			return errors.New("a rule cannot set both nonResourceURLs and apiGroups/resources")
+		}
+		return nil
+	}
+	if len(s.ApiGroups) == 0 || len(s.Resources) == 0 {
+		return errors.New(`a rule needs both apiGroups and resources (use [""] for the core group), or nonResourceURLs`)
+	}
+	return nil
 }
 
 type CustomK8sAction struct {
