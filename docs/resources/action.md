@@ -54,7 +54,7 @@ resource "komodor_policy_v2" "komo-example-policy" {
 
 - `action` (String) The name of the custom Kubernetes action.
 - `description` (String) A human-readable description of what this action does.
-- `ruleset` (String) JSON-encoded list of Kubernetes RBAC rules defining the permitted API groups, resources, and verbs.
+- `ruleset` (String) JSON-encoded list of Kubernetes RBAC PolicyRules. Each rule supports `apiGroups`, `resources`, `nonResourceURLs` and `verbs`. Unknown keys are rejected.
 
 ### Read-Only
 

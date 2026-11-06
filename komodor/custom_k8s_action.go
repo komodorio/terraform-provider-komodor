@@ -1,15 +1,37 @@
 package komodor
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 )
 
+// Fields are in alphabetical order so the JSON written back to state matches what jsonencode() produces.
+// resourceNames is left out on purpose: the API does not store it yet, so it must fail the plan
+// instead of granting access to every resource of that type.
 type CustomK8sActionStatement struct {
-	ApiGroups []string `json:"apiGroups"`
-	Resources []string `json:"resources"`
-	Verbs     []string `json:"verbs"`
+	ApiGroups       []string `json:"apiGroups,omitempty"`
+	NonResourceURLs []string `json:"nonResourceURLs,omitempty"`
+	Resources       []string `json:"resources,omitempty"`
+	Verbs           []string `json:"verbs"`
+}
+
+// parseRuleset rejects unknown keys so a misspelled or unsupported field fails the plan
+// instead of being dropped from the rule sent to the API.
+func parseRuleset(ruleset string) ([]CustomK8sActionStatement, error) {
+	dec := json.NewDecoder(bytes.NewReader([]byte(ruleset)))
+	dec.DisallowUnknownFields()
+	var statements []CustomK8sActionStatement
+	if err := dec.Decode(&statements); err != nil {
+		return nil, err
+	}
+	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		return nil, errors.New("unexpected data after the ruleset JSON array")
+	}
+	return statements, nil
 }
 
 type CustomK8sAction struct {
