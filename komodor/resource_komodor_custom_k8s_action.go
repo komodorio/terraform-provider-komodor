@@ -3,6 +3,7 @@ package komodor
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -26,9 +27,15 @@ func resourceKomodorCustomK8sAction() *schema.Resource {
 				Description:  "A human-readable description of what this action does.",
 			},
 			"ruleset": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "JSON-encoded list of Kubernetes RBAC rules defining the permitted API groups, resources, and verbs.",
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: func(v interface{}, k string) ([]string, []error) {
+					if _, err := parseRuleset(v.(string)); err != nil {
+						return nil, []error{fmt.Errorf("%q is not a valid list of Kubernetes PolicyRules: %s", k, err)}
+					}
+					return nil, nil
+				},
+				Description: "JSON-encoded list of Kubernetes RBAC PolicyRules. Each rule needs `verbs` and either both `apiGroups` and `resources`, or `nonResourceURLs`. Other keys are not supported and fail the plan. `nonResourceURLs` only grants access when the policy scope covers all namespaces.",
 			},
 			"id": {
 				Type:        schema.TypeString,
@@ -58,10 +65,8 @@ func resourceKomodorCustomK8sActionCreate(ctx context.Context, d *schema.Resourc
 	client := meta.(*Client)
 	actionName := d.Get("action").(string)
 	description := d.Get("description").(string)
-	jsonRuleset := d.Get("ruleset")
-
-	var customK8sActionStatements []CustomK8sActionStatement
-	if err := json.Unmarshal([]byte(jsonRuleset.(string)), &customK8sActionStatements); err != nil {
+	customK8sActionStatements, err := parseRuleset(d.Get("ruleset").(string))
+	if err != nil {
 		return diag.Errorf("Error creating statement structure: %s", err)
 	}
 
@@ -127,10 +132,8 @@ func resourceKomodorCustomK8sActionUpdate(ctx context.Context, d *schema.Resourc
 	client := meta.(*Client)
 	id := d.Id()
 	description := d.Get("description").(string)
-	jsonCustomK8sAction := d.Get("ruleset")
-
-	var customK8sActions []CustomK8sActionStatement
-	if err := json.Unmarshal([]byte(jsonCustomK8sAction.(string)), &customK8sActions); err != nil {
+	customK8sActions, err := parseRuleset(d.Get("ruleset").(string))
+	if err != nil {
 		return diag.Errorf("Error creating statement structure: %s", err)
 	}
 
@@ -140,7 +143,7 @@ func resourceKomodorCustomK8sActionUpdate(ctx context.Context, d *schema.Resourc
 		Ruleset:     customK8sActions,
 	}
 
-	_, err := client.UpdateCustomK8sAction(id, newCustomK8sAction)
+	_, err = client.UpdateCustomK8sAction(id, newCustomK8sAction)
 	if err != nil {
 		return diag.Errorf("Error updating CustomK8sAction: %s", err)
 	}
