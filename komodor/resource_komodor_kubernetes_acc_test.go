@@ -12,11 +12,14 @@ func init() {
 	registerAccTest("komodor_kubernetes")
 }
 
-// TestAcc_komodor_kubernetes_basic tests creation and deletion of a Kubernetes
-// integration record in the Komodor API.
+// TestAcc_komodor_kubernetes_basic tests creation, import and deletion of a
+// Kubernetes integration record in the Komodor API.
 //
 // Note: komodor_kubernetes has ForceNew on cluster_name and no UpdateContext,
-// so this test only covers create and delete (no update step).
+// so this test covers create, import and delete (no update step).
+//
+// The import step uses ImportStateId rather than the resource ID: the import ID
+// is the cluster name, while the resource ID is the integration's apiKey.
 func TestAcc_komodor_kubernetes_basic(t *testing.T) {
 	clusterName := testResourceName("cluster")
 	resourceAddr := "komodor_kubernetes.test"
@@ -32,6 +35,12 @@ func TestAcc_komodor_kubernetes_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceAddr, "cluster_name", clusterName),
 					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
 				),
+			},
+			{
+				ResourceName:      resourceAddr,
+				ImportState:       true,
+				ImportStateId:     clusterName,
+				ImportStateVerify: true,
 			},
 		},
 	})
