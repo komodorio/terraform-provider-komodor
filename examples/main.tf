@@ -16,7 +16,6 @@ resource "komodor_policy_v2" "my-policy" {
 }
 
 resource "komodor_policy_role_attachment" "my-attachement" {
-  name     = "test-attachement"
   policies = [komodor_policy_v2.my-policy.id]
   role     = komodor_role.my-role.id
 }
