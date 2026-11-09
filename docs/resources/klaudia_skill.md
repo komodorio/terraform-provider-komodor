@@ -35,7 +35,7 @@ resource "komodor_klaudia_skill" "example" {
 
 ### Required
 
-- `clusters` (List of String) Clusters this skill is active for. Use `["*"]` for all clusters.
+- `clusters` (Set of String) Clusters this skill is active for. Use `["*"]` for all clusters.
 - `description` (String) Short description shown in the UI.
 - `instructions` (String) Full instructions injected into Klaudia's agent prompt when this skill is active. Supports markdown. Max 50,000 characters.
 - `name` (String) Unique name for the skill (per account).

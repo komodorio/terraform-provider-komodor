@@ -25,21 +25,22 @@ func TestAcc_komodor_klaudia_skill_basic(t *testing.T) {
 		CheckDestroy: testAccCheckKlaudiaSkillDestroyed,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccKlaudiaSkillConfig(name, "acceptance test skill", "Initial instructions for the skill."),
+				Config: testAccKlaudiaSkillConfig(name, "acceptance test skill", "Initial instructions for the skill.", false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "name", name),
 					resource.TestCheckResourceAttr(resourceAddr, "description", "acceptance test skill"),
-					resource.TestCheckResourceAttr(resourceAddr, "is_enabled", "true"),
+					resource.TestCheckResourceAttr(resourceAddr, "is_enabled", "false"),
 					resource.TestCheckResourceAttr(resourceAddr, "clusters.#", "1"),
 					resource.TestCheckResourceAttrSet(resourceAddr, "id"),
 					testAccCaptureKlaudiaSkillID(resourceAddr),
 				),
 			},
 			{
-				Config: testAccKlaudiaSkillConfig(name, "acceptance test skill updated", "Updated instructions for the skill."),
+				Config: testAccKlaudiaSkillConfig(name, "acceptance test skill updated", "Updated instructions for the skill.", true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceAddr, "description", "acceptance test skill updated"),
 					resource.TestCheckResourceAttr(resourceAddr, "instructions", "Updated instructions for the skill."),
+					resource.TestCheckResourceAttr(resourceAddr, "is_enabled", "true"),
 					testAccCaptureKlaudiaSkillID(resourceAddr),
 				),
 			},
@@ -75,14 +76,14 @@ func testAccCheckKlaudiaSkillDestroyed(s *terraform.State) error {
 	return nil
 }
 
-func testAccKlaudiaSkillConfig(name, description, instructions string) string {
+func testAccKlaudiaSkillConfig(name, description, instructions string, isEnabled bool) string {
 	return fmt.Sprintf(`
 resource "komodor_klaudia_skill" "test" {
   name         = %q
   description  = %q
   instructions = %q
   clusters     = ["*"]
-  is_enabled   = true
+  is_enabled   = %t
 }
-`, name, description, instructions)
+`, name, description, instructions, isEnabled)
 }

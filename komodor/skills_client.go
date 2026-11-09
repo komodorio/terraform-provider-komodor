@@ -12,7 +12,6 @@ type Skill struct {
 	Name         string   `json:"name"`
 	Description  string   `json:"description"`
 	Instructions string   `json:"instructions"`
-	UseCases     []string `json:"useCases"`
 	Clusters     []string `json:"clusters"`
 	IsEnabled    bool     `json:"isEnabled"`
 }
@@ -21,7 +20,6 @@ type CreateSkillRequest struct {
 	Name         string   `json:"name"`
 	Description  string   `json:"description"`
 	Instructions string   `json:"instructions"`
-	UseCases     []string `json:"useCases"`
 	Clusters     []string `json:"clusters"`
 }
 
@@ -29,7 +27,6 @@ type UpdateSkillRequest struct {
 	Name         *string  `json:"name,omitempty"`
 	Description  *string  `json:"description,omitempty"`
 	Instructions *string  `json:"instructions,omitempty"`
-	UseCases     []string `json:"useCases,omitempty"`
 	Clusters     []string `json:"clusters,omitempty"`
 	IsEnabled    *bool    `json:"isEnabled,omitempty"`
 }
@@ -79,6 +76,9 @@ func (c *Client) UpdateSkill(id string, req *UpdateSkillRequest) (*Skill, error)
 }
 
 func (c *Client) DeleteSkill(id string) error {
-	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetKlaudiaSkillsUrl(), id), nil)
+	_, statusCode, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetKlaudiaSkillsUrl(), id), nil)
+	if err != nil && statusCode == http.StatusNotFound {
+		return nil
+	}
 	return err
 }

@@ -19,8 +19,7 @@ An MCP integration connects Klaudia to an external MCP server so that Klaudia ca
 - `none` — No authentication.
 - `static_token` — A fixed token sent in an HTTP header.
 - `oauth2_client_credentials` — OAuth 2.0 client credentials.
-- `token_exchange` — RFC 8693 token exchange with optional upstream header forwarding.
-- `custom` — POST `auth.custom.body` to `auth.custom.token_url` to obtain a token, then send it to the MCP server using `auth.upstream_header` and `auth.response`.
+- `token_exchange` — RFC 8693 token exchange.
 
 ## Example Usage
 
