@@ -10,7 +10,7 @@ import (
 func init() { registerAccTest("datasource_komodor_kubernetes") }
 
 func TestAcc_datasource_komodor_kubernetes(t *testing.T) {
-	clusterName := testResourceName("ds-cluster")
+	clusterName := testResourceName(t, "ds-cluster")
 	resourceAddr := "data.komodor_kubernetes.test"
 
 	resource.Test(t, resource.TestCase{

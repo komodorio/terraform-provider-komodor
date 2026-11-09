@@ -12,7 +12,7 @@ func init() {
 }
 
 func TestAcc_datasource_komodor_policy_v2(t *testing.T) {
-	name := testResourceName("ds-policy")
+	name := testResourceName(t, "ds-policy")
 	resourceAddr := "data.komodor_policy_v2.test"
 
 	resource.Test(t, resource.TestCase{

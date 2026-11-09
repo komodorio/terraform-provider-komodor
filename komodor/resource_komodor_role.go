@@ -18,6 +18,12 @@ func resourceKomodorRole() *schema.Resource {
 				ValidateFunc: validation.NoZeroValues,
 				Description:  "The name of the role.",
 			},
+			"is_default": {
+				Type:        schema.TypeBool,
+				Description: "Set this role as the account wide Default role",
+				Optional:    true,
+				Default:     false,
+			},
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -35,12 +41,6 @@ func resourceKomodorRole() *schema.Resource {
 				Computed:    true,
 				Description: "The unique identifier of the role.",
 			},
-
-			"is_default": {
-				Type:        schema.TypeBool,
-				Computed:    true,
-				Description: "Whether this is a default built-in role.",
-			},
 		},
 		CreateContext: resourceKomodorRoleCreate,
 		ReadContext:   resourceKomodorRoleRead,
@@ -55,7 +55,8 @@ func resourceKomodorRoleCreate(ctx context.Context, d *schema.ResourceData, meta
 	client := meta.(*Client)
 
 	newRole := &NewRole{
-		Name: d.Get("name").(string),
+		Name:      d.Get("name").(string),
+		IsDefault: d.Get("is_default").(bool),
 	}
 
 	log.Printf("[DEBUG] Role create configuration: %#v", newRole)
@@ -102,17 +103,19 @@ func resourceKomodorRoleRead(ctx context.Context, d *schema.ResourceData, meta i
 
 func resourceKomodorRoleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Client)
-	id := d.Id()
-	if d.HasChange("name") {
-		// client.updateRole() // not yet implemented in api, so deleting and recreating
-		if err := client.DeleteRole(id); err != nil {
-			return diag.Errorf("Error deleting Role: %s", err)
-		}
-
-		d.SetId("")
-		return resourceKomodorRoleCreate(ctx, d, meta)
+	newRole := &NewRole{
+		Name:      d.Get("name").(string),
+		IsDefault: d.Get("is_default").(bool),
 	}
-	return nil
+
+	id := d.Id()
+	if d.HasChange("name") || d.HasChange("is_default") {
+		_, err := client.UpdateRole(id, newRole)
+		if err != nil {
+			return diag.Errorf("Error updating role: %s", err)
+		}
+	}
+	return resourceKomodorRoleRead(ctx, d, meta)
 }
 
 func resourceKomodorRoleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

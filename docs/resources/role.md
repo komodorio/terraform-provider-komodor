@@ -27,9 +27,12 @@ resource "komodor_role" "my-role" {
 
 - `name` (String) The name of the role.
 
+### Optional
+
+- `is_default` (Boolean) Set this role as the account wide Default role
+
 ### Read-Only
 
 - `created_at` (String) The date and time when the role was created.
 - `id` (String) The unique identifier of the role.
-- `is_default` (Boolean) Whether this is a default built-in role.
 - `updated_at` (String) The date and time when the role was last updated.

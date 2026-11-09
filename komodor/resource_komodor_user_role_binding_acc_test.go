@@ -14,9 +14,9 @@ func init() {
 
 func TestAcc_komodor_user_role_binding_basic(t *testing.T) {
 	userEmail := accTestPrefix + "binding-user@komodor-test.com"
-	roleName := testResourceName("binding-role")
-	role2Name := testResourceName("binding-role2")
-	bindingName := testResourceName("user-role-binding")
+	roleName := testResourceName(t, "binding-role")
+	role2Name := testResourceName(t, "binding-role2")
+	bindingName := testResourceName(t, "user-role-binding")
 	resourceAddr := "komodor_user_role_binding.test"
 
 	resource.Test(t, resource.TestCase{

@@ -21,7 +21,8 @@ type Role struct {
 }
 
 type NewRole struct {
-	Name string `json:"name"`
+	Name      string `json:"name"`
+	IsDefault bool   `json:"isDefault"`
 }
 
 func (c *Client) GetRoles() ([]Role, error) {
@@ -95,7 +96,29 @@ func (c *Client) CreateRole(role *NewRole) (*Role, error) {
 	return &newRole, nil
 }
 
+func (c *Client) UpdateRole(id string, role *NewRole) (*Role, error) {
+	requestBody, err := json.Marshal(role)
+
+	if err != nil {
+		return nil, err
+	}
+	res, _, err := c.executeHttpRequest(http.MethodPut, fmt.Sprintf("%s/%s", c.GetRolesUrl(), id), &requestBody)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var newRole Role
+	err = json.Unmarshal(res, &newRole)
+	if err != nil {
+		return nil, err
+	}
+
+	return &newRole, nil
+}
+
 func (c *Client) DeleteRole(id string) error {
+	fmt.Printf("[DEBUG] DELETING ROLE ID.... %s\n", id)
 	_, _, err := c.executeHttpRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.GetRolesUrl(), id), nil)
 	if err != nil {
 		return err

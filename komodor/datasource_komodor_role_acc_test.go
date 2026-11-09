@@ -10,7 +10,7 @@ import (
 func init() { registerAccTest("datasource_komodor_role") }
 
 func TestAcc_datasource_komodor_role(t *testing.T) {
-	name := testResourceName("ds-role")
+	name := testResourceName(t, "ds-role")
 	resourceAddr := "data.komodor_role.test"
 
 	resource.Test(t, resource.TestCase{

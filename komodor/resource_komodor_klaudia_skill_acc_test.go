@@ -16,7 +16,7 @@ func init() {
 var accTestKlaudiaSkillID string
 
 func TestAcc_komodor_klaudia_skill_basic(t *testing.T) {
-	name := testResourceName("klaudia-skill")
+	name := testResourceName(t, "klaudia-skill")
 	resourceAddr := "komodor_klaudia_skill.test"
 
 	resource.Test(t, resource.TestCase{
